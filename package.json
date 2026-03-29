@@ -1,25 +1,25 @@
 {
-    "dependencies": {
-        "@tailwindcss/vite": "^4.2.2",
-        "@vitejs/plugin-react": "^6.0.1",
-        "lucide-react": "^1.7.0",
-        "react": "^19.2.4",
-        "react-dom": "^19.2.4",
-        "vite": "^8.0.3"
-    },
-    "scripts": {
-        "dev": "vite --port=3000 --host=0.0.0.0",
-        "build": "vite build",
-        "preview": "vite preview",
-        "clean": "rm -rf dist",
-        "lint": "tsc --noEmit"
-    },
-    "name": "streamview",
-    "private": true,
-    "devDependencies": {
-        "@types/bun": "latest"
-    },
-    "peerDependencies": {
-        "typescript": "^5"
-    }
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@vitejs/plugin-react": "^6.0.1",
+    "lucide-react": "^1.7.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "vite": "^8.0.3"
+  },
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist",
+    "lint": "tsc --noEmit"
+  },
+  "name": "streamview",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
 }

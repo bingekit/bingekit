@@ -108,7 +108,7 @@ const ahk = {
     try {
       // @ts-ignore
       const hostObj = window.chrome?.webview?.hostObjects?.sync?.ahk;
-      if (hostObj && typeof hostObj[method] === 'function') {
+      if (hostObj && hostObj[method] !== undefined) {
         return hostObj[method](...args);
       }
     } catch (e) {
