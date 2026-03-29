@@ -1,0 +1,5 @@
+{
+  "name": "Remix: StreamView Minimal",
+  "description": "Ultra modern clean minimal interface for streaming, designed for a Chromium wrapper with AHK2 and WebViewToo.",
+  "requestFramePermissions": []
+}
