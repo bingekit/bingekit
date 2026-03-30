@@ -119,6 +119,8 @@ interface SitePlugin {
     description: string;
     code: string;
   }[];
+  customCss?: string;
+  customJs?: string;
 }
 
 const DEFAULT_PLUGIN: SitePlugin = {
@@ -131,7 +133,9 @@ const DEFAULT_PLUGIN: SitePlugin = {
   media: { seasonSel: '', epSel: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },
   tags: [],
-  customFunctions: []
+  customFunctions: [],
+  customCss: '',
+  customJs: ''
 };
 
 // --- AHK WebView2 Interop Helper ---
@@ -158,6 +162,7 @@ declare global {
     resolveSmartFetchError: (id: string, error: any) => void;
     SmartFetch: (url: string, jsSelectors: string) => Promise<any>;
     RawParseFetch: (url: string, jsSelectors: string) => Promise<any>;
+    RunPluginFunction: (pluginId: string, functionName: string, ...args: any[]) => Promise<any>;
   }
 }
 
@@ -286,7 +291,7 @@ export default function App() {
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [showCredModal, setShowCredModal] = useState(false);
   const [searchParamMode, setSearchParamMode] = useState<'navigate' | 'fetch'>('navigate');
-  const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(false);
+  const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(true);
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
   const lastSyncUrl = useRef<string | null>(null);
@@ -344,6 +349,21 @@ export default function App() {
     window.addEventListener('player-url-changed', handleEvent);
     return () => window.removeEventListener('player-url-changed', handleEvent);
   }, []);
+
+  // Expose RunPluginFunction globally linked to current plugins state
+  useEffect(() => {
+    window.RunPluginFunction = async (pluginId: string, functionName: string, ...args: any[]) => {
+      const plugin = plugins.find(p => p.id === pluginId);
+      if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
+      const funcDef = plugin.customFunctions?.find(f => f.name === functionName);
+      if (!funcDef) throw new Error(`Function ${functionName} not found in plugin ${plugin.name}`);
+      
+      const evalCode = `${funcDef.code}\nreturn await ${functionName}(...args);`;
+      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const executable = new AsyncFunction('...args', evalCode);
+      return await executable(...args);
+    };
+  }, [plugins]);
 
   // Load data on mount
   useEffect(() => {
@@ -492,9 +512,13 @@ export default function App() {
   // Save userscripts and sync payload to AHK
   useEffect(() => {
     const activeScripts = userscripts.filter(s => s.enabled);
-    if (activeScripts.length > 0) {
-      let payload = `
+    let payload = '';
+
+    if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
+      payload = `
         var currentHost = window.location.hostname;
+        
+        // Inject Userscripts
         var scripts = ${JSON.stringify(activeScripts)};
         scripts.forEach(s => {
           var matches = s.domains.includes('*') || s.domains.some(d => currentHost.includes(d));
@@ -502,11 +526,29 @@ export default function App() {
             try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); }
           }
         });
+
+        // Inject Plugin Custom CSS and JS
+        var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
+        sitePlugins.forEach(p => {
+          try {
+            var pHost = '';
+            try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+            if (currentHost.includes(pHost) || pHost.includes(currentHost)) {
+              if (p.css) {
+                var style = document.createElement('style');
+                style.innerHTML = p.css;
+                document.head.appendChild(style);
+              }
+              if (p.js) {
+                try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
+              }
+            }
+          } catch(e) {}
+        });
       `;
-      ahk.call('UpdateUserscriptPayload', payload);
-    } else {
-      ahk.call('UpdateUserscriptPayload', '');
     }
+    
+    ahk.call('UpdateUserscriptPayload', payload);
 
     // Debounce save execution
     const saveTimer = setTimeout(() => {
@@ -516,7 +558,7 @@ export default function App() {
     }, 500);
 
     return () => clearTimeout(saveTimer);
-  }, [userscripts]);
+  }, [userscripts, plugins]);
 
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
@@ -652,6 +694,16 @@ export default function App() {
           await runFlow(targetFlow, currentVar);
         } else {
           console.error(`Flow ${targetFlowId} not found!`);
+        }
+      } else if (step.type === 'pluginAction') {
+        const targetPluginId = await resolveVars(step.params.pluginId || '');
+        const actionName = await resolveVars(step.params.actionName || '');
+        try {
+          const res = await window.RunPluginFunction(targetPluginId, actionName, currentVar);
+          currentVar = (typeof res === 'object') ? JSON.stringify(res) : String(res);
+          console.log(`Plugin Action ${actionName} Result:`, currentVar);
+        } catch (e: any) {
+          console.error('Plugin Action Error:', e);
         }
       } else if (step.type === 'callPlugin') {
         const targetPluginId = await resolveVars(step.params.pluginId || '');
@@ -1630,12 +1682,35 @@ export default function App() {
                             />
                           </div>
                         </div>
-                        <div className="mt-4">
-                          <label className="block text-xs text-zinc-500 mb-1.5">Tags</label>
-                          <TagsInput
-                            tags={editingPlugin.tags || []}
-                            onChange={newTags => updateEditingPlugin('root', 'tags', newTags)}
-                          />
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Tags</label>
+                            <TagsInput
+                              tags={editingPlugin.tags || []}
+                              onChange={newTags => updateEditingPlugin('root', 'tags', newTags)}
+                            />
+                          </div>
+                          <div className="hidden md:block"></div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Custom CSS</label>
+                            <textarea
+                              value={editingPlugin.customCss || ''}
+                              onChange={(e) => updateEditingPlugin('root', 'customCss', e.target.value)}
+                              rows={4}
+                              placeholder="body { background: #000; }"
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Custom JS (Runs on load)</label>
+                            <textarea
+                              value={editingPlugin.customJs || ''}
+                              onChange={(e) => updateEditingPlugin('root', 'customJs', e.target.value)}
+                              rows={4}
+                              placeholder="console.log('Site loaded');"
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                            />
+                          </div>
                         </div>
                       </div>
 
