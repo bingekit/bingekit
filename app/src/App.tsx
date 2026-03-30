@@ -69,15 +69,17 @@ const MainLayout = () => {
         .hover\\:bg-zinc-900\\/50:hover { background-color: color-mix(in srgb, var(--theme-text-main) 4%, transparent) !important; }
 
         /* Generic Accent Colors */
-        .text-indigo-500, .text-indigo-400 { color: var(--theme-accent) !important; }
-        .bg-indigo-500, .bg-indigo-600 { background-color: var(--theme-accent) !important; border-color: var(--theme-accent) !important; }
-        .bg-indigo-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
-        .bg-indigo-500\\/20 { background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important; }
-        .bg-indigo-500\\/30 { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
-        .border-indigo-500, .border-indigo-500\\/30, .border-indigo-500\\/40, .border-indigo-500\\/50 { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
-        .fill-indigo-400 { fill: var(--theme-accent) !important; }
-        .hover\\:text-indigo-400:hover { color: var(--theme-accent) !important; filter: drop-shadow(0 0 4px var(--theme-accent)); }
-        .hover\\:bg-indigo-500\\/10:hover { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .text-indigo-500, .text-indigo-400, .text-indigo-300, .text-emerald-500, .text-emerald-400, .text-emerald-300 { color: var(--theme-accent) !important; }
+        .bg-indigo-500, .bg-indigo-600, .bg-emerald-500, .bg-emerald-600 { background-color: var(--theme-accent) !important; border-color: var(--theme-accent) !important; }
+        .bg-indigo-500\\/10, .bg-emerald-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .bg-indigo-500\\/20, .bg-emerald-500\\/20 { background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important; }
+        .bg-indigo-500\\/30, .bg-emerald-500\\/30 { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
+        .border-indigo-500, .border-indigo-500\\/30, .border-indigo-500\\/40, .border-indigo-500\\/50, .border-emerald-500, .border-emerald-500\\/30 { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
+        .fill-indigo-400, .fill-emerald-400 { fill: var(--theme-accent) !important; }
+        .hover\\:text-indigo-400:hover, .hover\\:text-emerald-400:hover, .hover\\:text-emerald-300:hover { color: var(--theme-accent) !important; filter: drop-shadow(0 0 4px var(--theme-accent)); }
+        .hover\\:bg-indigo-500\\/10:hover, .hover\\:bg-emerald-500\\/10:hover { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .hover\\:bg-emerald-500\\/30:hover { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
+        .hover\\:border-emerald-500\\/30:hover { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
 
         /* Text Colors */
         .text-white, .text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300 { color: var(--theme-text-main) !important; }

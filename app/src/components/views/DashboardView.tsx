@@ -33,8 +33,10 @@ export const DashboardView = () => {
 
   return (
 
-    <div className="w-full h-full bg-zinc-950 flex flex-col items-center justify-center p-8 overflow-y-auto no-scrollbar">
-      <div className="flex items-center gap-3 mb-8">
+    <div className="w-full h-full bg-zinc-950 flex flex-col items-center p-8 overflow-y-auto no-scrollbar">
+      <div className="mt-auto shrink-0" />
+      
+      <div className="flex items-center gap-3 mb-8 shrink-0">
         <Film size={48} className="text-indigo-500" />
         <h1 className="text-5xl font-light tracking-tight text-zinc-100">StreamView</h1>
       </div>
@@ -508,7 +510,8 @@ export const DashboardView = () => {
           )}
         </div>
       )}
+      
+      <div className="mb-auto shrink-0 pb-12" />
     </div>
-
   );
 };

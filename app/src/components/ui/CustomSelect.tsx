@@ -48,7 +48,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onCh
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40">
+        <div style={{ backgroundColor: 'var(--theme-titlebar)' }} className="absolute z-50 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40">
           {searchable && (
             <div className="p-2 border-b border-zinc-800 flex items-center gap-2 text-zinc-400 bg-zinc-950/50">
                 <Search size={14} />
