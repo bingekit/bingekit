@@ -22,11 +22,17 @@ if (A_IsCompiled) {
 }
 
 
-MainGui := WebViewGui("+Resize -Caption", , , WebViewSettings)
+global SplashGui := Gui("-Caption +AlwaysOnTop +ToolWindow", "StreamView Loading")
+SplashGui.BackColor := "09090b"
+SplashGui.SetFont("s24 cWhite bold")
+SplashGui.Add("Text", "w400 h200 Center 0x200", "Loading StreamView...")
+SplashGui.Show("w400 h200 Center")
+
+MainGui := WebViewGui("+Resize -Caption", "StreamView", , WebViewSettings)
 
 MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
 
-MainGui.Show("w800 h600")
+
 ; Initialize WebViewToo
 WV := MainGui.Control.wv
 
@@ -412,8 +418,67 @@ AHK_UpdatePlayerUrl(url) {
     SetTimer(DoUpdateUrl, -1)
 }
 
+AHK_HideSplash(*) {
+    global SplashGui, MainGui
+    if (SplashGui) {
+        SplashGui.Destroy()
+        SplashGui := ""
+        MainGui.Show("w1280 h800 center")
+        WinSetTransparent(255, MainGui.Hwnd)
+    }
+}
+
+AHK_PlayerGoBack(*) {
+    global PlayerWV
+    if (PlayerWV) {
+        try {
+            PlayerWV.wv.GoBack()
+        } catch {
+            PlayerWV.wv.ExecuteScript("window.history.back()", 0)
+        }
+    }
+}
+
+AHK_PlayerGoForward(*) {
+    global PlayerWV
+    if (PlayerWV) {
+        try {
+            PlayerWV.wv.GoForward()
+        } catch {
+            PlayerWV.wv.ExecuteScript("window.history.forward()", 0)
+        }
+    }
+}
+
+AHK_PlayerReload(*) {
+    global PlayerWV
+    if (PlayerWV) {
+        try {
+            PlayerWV.wv.Reload()
+        } catch {
+            PlayerWV.wv.ExecuteScript("window.location.reload()", 0)
+        }
+    }
+}
+
+AHK_ShowTooltip(text) {
+    if (text) {
+        ToolTip(text)
+    }
+}
+
+AHK_HideTooltip(*) {
+    ToolTip()
+}
+
 ; Expose AHK functions to the WebView (JavaScript) using a plain object
 WV.AddHostObjectToScript("ahk", {
+    HideSplash: AHK_HideSplash,
+    PlayerGoBack: AHK_PlayerGoBack,
+    PlayerGoForward: AHK_PlayerGoForward,
+    PlayerReload: AHK_PlayerReload,
+    ShowTooltip: AHK_ShowTooltip,
+    HideTooltip: AHK_HideTooltip,
     Minimize: AHK_Minimize,
     Maximize: AHK_Maximize,
     Close: AHK_Close,
@@ -454,10 +519,14 @@ try {
 
 ; Load the local React build (or dev server if testing)
 WV.Navigate("http://localhost:3000") ; For development
+
+MainGui.Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
+WinSetTransparent(0, MainGui.Hwnd)
+;MainGui.Hide()
 ;WV.Load("file:///" A_ScriptDir "\settings\dist\index.html") ; For production
 
 ; Show the GUI
-MainGui.Show("w1280 h800")
+; MainGui.Show("w1280 h800") ; Deferred to SplashHide
 
 OnMessage(0x0003, AHK_OnMove) ; WM_MOVE
 OnMessage(0x0005, AHK_OnMove) ; WM_SIZE

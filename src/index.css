@@ -41,11 +41,3 @@ body {
 button {
   cursor: pointer;
 }
-
-.no-drag>form {
-  display: none;
-}
-
-body>#root>div:nth-child(1):has(> div:nth-child(2)> div:nth-child(1)> button:nth-child(2).text-indigo-400)>div:nth-child(1) .no-drag>form {
-  display: flex;
-}

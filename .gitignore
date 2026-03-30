@@ -11,3 +11,5 @@ coverage/
 Lib/
 *.lock
 ahk/settings/
+*.txt
+old*

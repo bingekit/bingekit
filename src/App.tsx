@@ -157,7 +157,7 @@ const ahk = {
 // --- Smart Fetch Promise Bridge ---
 declare global {
   interface Window {
-    _fetchPromises: Record<string, {resolve: Function, reject: Function}>;
+    _fetchPromises: Record<string, { resolve: Function, reject: Function }>;
     resolveSmartFetch: (id: string, result: any) => void;
     resolveSmartFetchError: (id: string, error: any) => void;
     SmartFetch: (url: string, jsSelectors: string) => Promise<any>;
@@ -197,6 +197,18 @@ window.RawParseFetch = (url: string, jsSelectors: string) => {
     ahk.call('StartRawFetchParse', url, jsSelectors, id);
   });
 };
+const TooltipWrapper = ({ text, children }: { text: string, children: React.ReactNode }) => {
+  return (
+    <div
+      onMouseEnter={() => ahk.call('ShowTooltip', text)}
+      onMouseLeave={() => ahk.call('HideTooltip')}
+      className="inline-flex items-center justify-center cursor-pointer"
+    >
+      {children}
+    </div>
+  );
+};
+
 
 const CustomCheckbox = ({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) => (
   <button
@@ -266,7 +278,18 @@ export default function App() {
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
-  const [isSimpleUrlBar, setIsSimpleUrlBar] = useState(false);
+  const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
+  const isInitialThemeMount = useRef(true);
+  const [theme, setTheme] = useState({
+    mode: 'dark',
+    titlebarBg: '#09090b',
+    sidebarBg: '#09090b',
+    mainBg: '#09090b',
+    border: '#27272a',
+    accent: '#6366f1',
+    textMain: '#fafafa',
+    textSec: '#a1a1aa'
+  });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
   const [followedItems, setFollowedItems] = useState<FollowedItem[]>([]);
@@ -274,7 +297,7 @@ export default function App() {
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
   const [testSearchUrl, setTestSearchUrl] = useState('');
-  const [testSearchResults, setTestSearchResults] = useState<{status: string, nodesCount: number, results: any[]}>({status: 'idle', nodesCount: 0, results: []});
+  const [testSearchResults, setTestSearchResults] = useState<{ status: string, nodesCount: number, results: any[] }>({ status: 'idle', nodesCount: 0, results: [] });
   const [isTestingSearch, setIsTestingSearch] = useState(false);
   const [flows, setFlows] = useState<CustomFlow[]>([]);
   const [editingFlow, setEditingFlow] = useState<CustomFlow | null>(null);
@@ -357,9 +380,9 @@ export default function App() {
       if (!plugin) throw new Error(`Plugin ${pluginId} not found`);
       const funcDef = plugin.customFunctions?.find(f => f.name === functionName);
       if (!funcDef) throw new Error(`Function ${functionName} not found in plugin ${plugin.name}`);
-      
+
       const evalCode = `${funcDef.code}\nreturn await ${functionName}(...args);`;
-      const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+      const AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
       const executable = new AsyncFunction('...args', evalCode);
       return await executable(...args);
     };
@@ -397,7 +420,7 @@ export default function App() {
           }
         }
       }
-      
+
       // Auto-migrate from monolithic to split files if split files don't exist
       if (loadedFlows.length === 0) {
         const oldFlows = ahk.call('LoadData', 'flows.json');
@@ -410,7 +433,7 @@ export default function App() {
                 ahk.call('SaveFlow', `flow_${f.id}.json`, JSON.stringify(f, null, 2));
               });
             }
-          } catch(e) {}
+          } catch (e) { }
         }
       }
       setFlows(loadedFlows);
@@ -442,7 +465,7 @@ export default function App() {
           }
         }
       }
-      
+
       // Auto-migrate from monolithic to split files if split files don't exist
       if (loadedScripts.length === 0) {
         const oldScripts = ahk.call('LoadData', 'userscripts.json');
@@ -455,7 +478,7 @@ export default function App() {
                 ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(s, null, 2));
               });
             }
-          } catch(e) {}
+          } catch (e) { }
         }
       }
       setUserscripts(loadedScripts);
@@ -464,6 +487,28 @@ export default function App() {
 
     // Load Plugins
     loadPlugins();
+
+    // Load Theme
+    const savedTheme = ahk.call('LoadData', 'theme.json');
+    if (savedTheme) {
+      try {
+        const parsed = JSON.parse(savedTheme);
+        setTheme({
+          mode: parsed.mode || 'dark',
+          titlebarBg: parsed.titlebarBg || parsed.bgMain || '#09090b',
+          sidebarBg: parsed.sidebarBg || parsed.bgSec || '#09090b',
+          mainBg: parsed.mainBg || parsed.bgMain || '#09090b',
+          border: parsed.border || '#27272a',
+          accent: parsed.accent || '#6366f1',
+          textMain: parsed.textMain || '#fafafa',
+          textSec: parsed.textSec || '#a1a1aa'
+        });
+      } catch (e) { }
+    }
+
+    setTimeout(() => {
+      ahk.call('HideSplash');
+    }, 500);
   }, []);
 
   const loadPlugins = () => {
@@ -509,6 +554,15 @@ export default function App() {
     }
   }, [followedItems]);
 
+  // Save theme when changed
+  useEffect(() => {
+    if (isInitialThemeMount.current) {
+      isInitialThemeMount.current = false;
+      return;
+    }
+    ahk.call('SaveData', 'theme.json', JSON.stringify(theme));
+  }, [theme]);
+
   // Save userscripts and sync payload to AHK
   useEffect(() => {
     const activeScripts = userscripts.filter(s => s.enabled);
@@ -547,7 +601,7 @@ export default function App() {
         });
       `;
     }
-    
+
     ahk.call('UpdateUserscriptPayload', payload);
 
     // Debounce save execution
@@ -654,31 +708,31 @@ export default function App() {
   const runFlow = async (flow: CustomFlow, initialUrl: string = url) => {
     console.log('Running flow:', flow.name, 'on url:', initialUrl);
     let currentVar = initialUrl;
-    
+
     const resolveVars = async (str: string) => {
       if (!str) return str;
       let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
-                   .replace(/\{\{PREV\}\}/g, currentVar)
-                   .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
-      
+        .replace(/\{\{PREV\}\}/g, currentVar)
+        .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
+
       const promptRegex = /\{\{prompt:([^}]+)\}\}/g;
       let match;
       while ((match = promptRegex.exec(res)) !== null) {
-          const promptTitle = match[1];
-          const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
-          res = res.replace(match[0], userInput || "");
+        const promptTitle = match[1];
+        const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
+        res = res.replace(match[0], userInput || "");
       }
       return res;
     };
 
     for (const step of flow.steps) {
       console.log("Executing Step:", step.type, step.params);
-      
+
       if (step.type === 'navigate') {
         const dest = await resolveVars(step.params.url || '');
         ahk.call('UpdatePlayerUrl', dest);
         currentVar = dest;
-        await new Promise(r => setTimeout(r, 1500)); 
+        await new Promise(r => setTimeout(r, 1500));
       } else if (step.type === 'inject') {
         const code = await resolveVars(step.params.code || '');
         ahk.call('InjectJS', code);
@@ -709,25 +763,86 @@ export default function App() {
         const targetPluginId = await resolveVars(step.params.pluginId || '');
         const targetPlugin = plugins.find(p => p.id === targetPluginId);
         if (targetPlugin && targetPlugin.search.urlFormat) {
-           const sq = await resolveVars(step.params.query || currentVar);
-           const pUrl = targetPlugin.search.urlFormat.replace('{query}', encodeURIComponent(sq));
-           setMultiSearchQuery(sq);
-           setSearchParamMode('fetch');
-           setActiveTab('dashboard');
-           setTimeout(() => {
-              const input = document.getElementById('search-input');
-              if (input) input.focus();
-           }, 100);
+          const sq = await resolveVars(step.params.query || currentVar);
+          const pUrl = targetPlugin.search.urlFormat.replace('{query}', encodeURIComponent(sq));
+          setMultiSearchQuery(sq);
+          setSearchParamMode('fetch');
+          setActiveTab('dashboard');
+          setTimeout(() => {
+            const input = document.getElementById('search-input');
+            if (input) input.focus();
+          }, 100);
         }
       }
     }
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-zinc-950 text-zinc-100 font-sans overflow-hidden border border-zinc-800/50">
+    <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>
+      <style>{`
+        :root {
+          --theme-titlebar: ${theme.titlebarBg};
+          --theme-sidebar: ${theme.sidebarBg};
+          --theme-main: ${theme.mainBg};
+          --theme-border: ${theme.border};
+          --theme-accent: ${theme.accent};
+          --theme-text-main: ${theme.textMain};
+          --theme-text-sec: ${theme.textSec};
+        }
+
+        /* Essential Layout Backgrounds mapped to IDs */
+        #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: var(--theme-border) !important; }
+        #sidebar-region { background-color: var(--theme-sidebar) !important; border-color: var(--theme-border) !important; }
+        #main-region, #main-region > div { background-color: var(--theme-main) !important; }
+
+        /* General Borders / Overrides */
+        .border-zinc-900, .border-zinc-800, .border-zinc-800\\/50, .border-zinc-800\\/60, .border-zinc-800\\/80, .border-zinc-700 { 
+          border-color: var(--theme-border) !important; 
+        }
+
+        /* Dynamic Component Backgrounds using Transparent Tinting */
+        .bg-zinc-950 { background-color: transparent !important; }
+        .bg-zinc-900 { background-color: color-mix(in srgb, var(--theme-text-main) 3%, transparent) !important; }
+        .bg-zinc-800 { background-color: color-mix(in srgb, var(--theme-text-main) 7%, transparent) !important; }
+        .bg-zinc-700 { background-color: color-mix(in srgb, var(--theme-text-main) 12%, transparent) !important; }
+        .bg-zinc-900\\/50, .bg-zinc-950\\/50 { background-color: color-mix(in srgb, var(--theme-text-main) 2%, transparent) !important; }
+        .bg-zinc-900\\/30, .bg-zinc-900\\/40 { background-color: color-mix(in srgb, var(--theme-text-main) 1.5%, transparent) !important; }
+        .bg-zinc-900\\/80 { background-color: color-mix(in srgb, var(--theme-text-main) 4%, transparent) !important; }
+
+        /* Hover states for standard background tints */
+        .hover\\:bg-zinc-900:hover { background-color: color-mix(in srgb, var(--theme-text-main) 5%, transparent) !important; }
+        .hover\\:bg-zinc-800:hover { background-color: color-mix(in srgb, var(--theme-text-main) 9%, transparent) !important; }
+        .hover\\:bg-zinc-700:hover { background-color: color-mix(in srgb, var(--theme-text-main) 15%, transparent) !important; }
+        .hover\\:bg-zinc-900\\/80:hover { background-color: color-mix(in srgb, var(--theme-text-main) 6%, transparent) !important; }
+        .hover\\:bg-zinc-900\\/50:hover { background-color: color-mix(in srgb, var(--theme-text-main) 4%, transparent) !important; }
+
+        /* Generic Accent Colors */
+        .text-indigo-500, .text-indigo-400 { color: var(--theme-accent) !important; }
+        .bg-indigo-500, .bg-indigo-600 { background-color: var(--theme-accent) !important; border-color: var(--theme-accent) !important; }
+        .bg-indigo-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .bg-indigo-500\\/20 { background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important; }
+        .bg-indigo-500\\/30 { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
+        .border-indigo-500, .border-indigo-500\\/30, .border-indigo-500\\/40, .border-indigo-500\\/50 { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
+        .fill-indigo-400 { fill: var(--theme-accent) !important; }
+        .hover\\:text-indigo-400:hover { color: var(--theme-accent) !important; filter: drop-shadow(0 0 4px var(--theme-accent)); }
+        .hover\\:bg-indigo-500\\/10:hover { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+
+        /* Text Colors */
+        .text-white, .text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300 { color: var(--theme-text-main) !important; }
+        .text-zinc-400, .text-zinc-500, .text-zinc-600 { color: var(--theme-text-sec) !important; }
+        
+        .hover\\:text-zinc-100:hover, .hover\\:text-zinc-200:hover, .hover\\:text-zinc-300:hover, .hover\\:text-white:hover { color: var(--theme-text-main) !important; }
+        .hover\\:text-zinc-400:hover, .hover\\:text-zinc-500:hover { color: var(--theme-text-sec) !important; }
+
+        /* Transparent overrides */
+        input.bg-transparent, textarea.bg-transparent { background-color: transparent !important; }
+
+        /* Hard Toolbar Fix */
+        form#toolbar-form { display: flex !important; }
+      `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
-      <div className="h-10 flex items-center justify-between bg-zinc-950 border-b border-zinc-900 drag-region select-none px-3">
+      <div id="titlebar-region" className="h-10 flex items-center justify-between drag-region select-none px-3 border-b">
         <div className="flex items-center gap-3 no-drag">
           <div className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <Film size={16} className="text-indigo-500" />
@@ -737,18 +852,24 @@ export default function App() {
 
         {/* URL Bar */}
         <div className="flex-1 max-w-xl mx-4 no-drag flex items-center justify-center">
-          {isSimpleUrlBar ? (
-            <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setIsSimpleUrlBar(false)}>
+          {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
+            <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
               {(() => {
                 try { return new URL(url).hostname; } catch (e) { return url; }
               })()}
             </div>
           ) : (
-            <form onSubmit={handleNavigate} className="flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
+            <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
               <div className="flex items-center px-2 gap-1 text-zinc-500">
-                <button type="button" className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
-                <button type="button" className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
-                <button type="button" className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
+                <TooltipWrapper text="Go Back">
+                  <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
+                </TooltipWrapper>
+                <TooltipWrapper text="Go Forward">
+                  <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
+                </TooltipWrapper>
+                <TooltipWrapper text="Refresh">
+                  <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
+                </TooltipWrapper>
               </div>
 
               <div className="w-px h-3 bg-zinc-800 mx-1" />
@@ -794,15 +915,26 @@ export default function App() {
 
         {/* Window Controls */}
         <div className="flex items-center gap-1 no-drag">
-          <button onClick={() => ahk.call('Minimize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
-            <Minus size={14} />
-          </button>
-          <button onClick={() => ahk.call('Maximize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
-            <Square size={12} />
-          </button>
-          <button onClick={() => ahk.call('Close')} className="p-1.5 text-zinc-500 hover:text-white hover:bg-red-500/90 rounded transition-colors">
-            <X size={14} />
-          </button>
+          <TooltipWrapper text="Toggle URL Bar">
+            <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className="p-1.5 mr-2 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
+              {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Minimize">
+            <button onClick={() => ahk.call('Minimize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
+              <Minus size={14} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Maximize">
+            <button onClick={() => ahk.call('Maximize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
+              <Square size={12} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Close">
+            <button onClick={() => ahk.call('Close')} className="p-1.5 text-zinc-500 hover:text-white hover:bg-red-500/90 rounded transition-colors">
+              <X size={14} />
+            </button>
+          </TooltipWrapper>
         </div>
       </div>
 
@@ -810,78 +942,101 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* Slim Sidebar */}
-        <div className="w-14 flex flex-col items-center py-4 bg-zinc-950 border-r border-zinc-900 gap-6 z-10">
-          <button
-            onClick={() => setActiveTab('dashboard')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'dashboard' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Compass size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('player')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'player' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <MonitorPlay size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('bookmarks')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'bookmarks' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Bookmark size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('watchlater')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'watchlater' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Clock size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('activity')}
-            className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'activity' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Activity size={20} strokeWidth={1.5} />
-            {followedItems.some(i => i.hasUpdate) && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('plugins')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'plugins' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Puzzle size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('flows')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'flows' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <ListTree size={20} strokeWidth={1.5} />
-          </button>
-          <button
-            onClick={() => setActiveTab('userscripts')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'userscripts' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Code size={20} strokeWidth={1.5} />
-          </button>
+        <div id="sidebar-region" className="w-14 flex flex-col items-center py-4 border-r gap-6 z-10">
+          <TooltipWrapper text="Dashboard">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'dashboard' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Compass size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Player">
+            <button
+              onClick={() => setActiveTab('player')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'player' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <MonitorPlay size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Bookmarks">
+            <button
+              onClick={() => setActiveTab('bookmarks')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'bookmarks' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Bookmark size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Watch Later">
+            <button
+              onClick={() => setActiveTab('watchlater')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'watchlater' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Clock size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Activity">
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'activity' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Activity size={20} strokeWidth={1.5} />
+              {followedItems.some(i => i.hasUpdate) && (
+                <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+              )}
+            </button>
+          </TooltipWrapper>
 
           <div className="flex-1" />
 
-          <button
-            onClick={() => setIsAdblockEnabled(!isAdblockEnabled)}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${isAdblockEnabled ? 'text-emerald-400 bg-emerald-400/10' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900'}`}
-            title={isAdblockEnabled ? "Adblock Active" : "Adblock Disabled"}
-          >
-            {isAdblockEnabled ? <Shield size={20} strokeWidth={1.5} /> : <ShieldOff size={20} strokeWidth={1.5} />}
-          </button>
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'settings' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-          >
-            <Settings size={20} strokeWidth={1.5} />
-          </button>
+          <TooltipWrapper text="Plugins">
+            <button
+              onClick={() => setActiveTab('plugins')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'plugins' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Puzzle size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Flows">
+            <button
+              onClick={() => setActiveTab('flows')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'flows' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <ListTree size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="Userscripts">
+            <button
+              onClick={() => setActiveTab('userscripts')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'userscripts' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Code size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          {
+            /*
+            <TooltipWrapper text={isAdblockEnabled ? "Adblock Active" : "Adblock Disabled"}>
+              <button
+                onClick={() => setIsAdblockEnabled(!isAdblockEnabled)}
+                className={`p-2.5 rounded-xl transition-all duration-200 ${isAdblockEnabled ? 'text-emerald-400 bg-emerald-400/10' : 'text-zinc-600 hover:text-zinc-400 hover:bg-zinc-900'}`}
+              >
+                {isAdblockEnabled ? <Shield size={20} strokeWidth={1.5} /> : <ShieldOff size={20} strokeWidth={1.5} />}
+              </button>
+            </TooltipWrapper>
+            */
+          }
+          <TooltipWrapper text="Settings">
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'settings' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Settings size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
         </div>
 
         {/* Main Viewport */}
-        <div className="flex-1 flex flex-col relative bg-zinc-950">
+        <div id="main-region" className="flex-1 flex flex-col relative">
 
           {/* Content Area */}
           <div className="flex-1 w-full h-full relative">
@@ -977,7 +1132,7 @@ export default function App() {
                                     return { title: titleStr, href: linkStr };
                                   });
                                 `;
-                                
+
                                 const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);
                                 console.log(`[Search] ${plugin.name} returned from SmartFetch:`, fetchResults);
 
@@ -1059,64 +1214,64 @@ export default function App() {
                     <div className="w-full max-w-5xl mx-auto space-y-12 pb-20 mt-8">
                       {/* Unique Tags Renderer */}
                       {Array.from(new Set(plugins.flatMap(p => p.tags || []))).sort().map(tag => {
-                         const matchedPlugins = plugins.filter(p => p.tags?.includes(tag));
-                         if (matchedPlugins.length === 0) return null;
-                         return (
-                           <div key={tag} className="space-y-4">
-                             <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest pl-2 flex items-center gap-2">
-                               <Puzzle size={14} className="opacity-70" /> {tag}
-                             </h3>
-                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                               {matchedPlugins.map(p => (
-                                 <div 
-                                   key={p.id}
-                                   onClick={() => {
-                                     setUrl(p.baseUrl);
-                                     setInputUrl(p.baseUrl);
-                                     setActiveTab('player');
-                                   }}
-                                   className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
-                                 >
-                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
-                                     <Globe size={18} />
-                                   </div>
-                                   <div className="flex-1 min-w-0">
-                                     <h4 className="text-sm font-medium text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">{p.name}</h4>
-                                     <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
-                                   </div>
-                                 </div>
-                               ))}
-                             </div>
-                           </div>
-                         )
+                        const matchedPlugins = plugins.filter(p => p.tags?.includes(tag));
+                        if (matchedPlugins.length === 0) return null;
+                        return (
+                          <div key={tag} className="space-y-4">
+                            <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+                              <Puzzle size={14} className="opacity-70" /> {tag}
+                            </h3>
+                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                              {matchedPlugins.map(p => (
+                                <div
+                                  key={p.id}
+                                  onClick={() => {
+                                    setUrl(p.baseUrl);
+                                    setInputUrl(p.baseUrl);
+                                    setActiveTab('player');
+                                  }}
+                                  className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
+                                >
+                                  <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
+                                    <Globe size={18} />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-medium text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">{p.name}</h4>
+                                    <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
                       })}
 
                       {/* Uncategorized Plugins */}
                       {plugins.filter(p => !p.tags || p.tags.length === 0).length > 0 && (
-                         <div className="space-y-4">
-                           <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-widest pl-2">Uncategorized Sites</h3>
-                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                               {plugins.filter(p => !p.tags || p.tags.length === 0).map(p => (
-                                 <div 
-                                   key={p.id}
-                                   onClick={() => {
-                                     setUrl(p.baseUrl);
-                                     setInputUrl(p.baseUrl);
-                                     setActiveTab('player');
-                                   }}
-                                   className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
-                                 >
-                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
-                                     <Globe size={18} />
-                                   </div>
-                                   <div className="flex-1 min-w-0">
-                                     <h4 className="text-sm font-medium text-zinc-300 truncate">{p.name}</h4>
-                                     <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
-                                   </div>
-                                 </div>
-                               ))}
-                           </div>
-                         </div>
+                        <div className="space-y-4">
+                          <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-widest pl-2">Uncategorized Sites</h3>
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            {plugins.filter(p => !p.tags || p.tags.length === 0).map(p => (
+                              <div
+                                key={p.id}
+                                onClick={() => {
+                                  setUrl(p.baseUrl);
+                                  setInputUrl(p.baseUrl);
+                                  setActiveTab('player');
+                                }}
+                                className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
+                              >
+                                <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
+                                  <Globe size={18} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-medium text-zinc-300 truncate">{p.name}</h4>
+                                  <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}
@@ -1819,8 +1974,8 @@ export default function App() {
                           </div>
                           <div className="mt-6 pt-6 border-t border-zinc-800/50">
                             <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center justify-between">
-                                SmartFetch Selector Tester
-                                {isTestingSearch && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
+                              SmartFetch Selector Tester
+                              {isTestingSearch && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
                             </h4>
                             <div className="flex gap-2 mb-3">
                               <input
@@ -1884,7 +2039,7 @@ export default function App() {
                                 Test Fetch
                               </button>
                             </div>
-                            
+
                             {testSearchResults.status !== 'idle' && (
                               <div className="bg-zinc-950 rounded-lg border border-zinc-800/80 p-3 overflow-y-auto max-h-64 no-scrollbar">
                                 <div className="text-xs font-mono text-zinc-400 mb-2 border-b border-zinc-800/50 pb-2 flex justify-between">
@@ -2500,6 +2655,70 @@ export default function App() {
                 <h2 className="text-2xl font-light tracking-tight text-zinc-100 mb-8">Settings</h2>
 
                 <div className="space-y-6">
+                  {/* Theme Configuration */}
+                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
+                    <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Zap size={16} className="text-indigo-400" /> Theme Configuration</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Top Titlebar</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Side Menu</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Main Content</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Borders</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Accent Color (Buttons)</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Main Text</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Secondary Text</label>
+                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                          <input type="color" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                          <input type="text" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+                        </div>
+                      </div>
+                      <div className="col-span-1 md:col-span-2">
+                        <label className="block text-xs text-zinc-500 mb-1.5">1-Click Presets</label>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b', border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">Dark</button>
+                          <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#f4f4f5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#3b82f6', textMain: '#18181b', textSec: '#52525b' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Light</button>
+                          <button onClick={() => setTheme({ mode: 'dracula', titlebarBg: '#282a36', sidebarBg: '#21222c', mainBg: '#282a36', border: '#44475a', accent: '#bd93f9', textMain: '#f8f8f2', textSec: '#6272a4' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Drac</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
                     <div className="flex items-center justify-between">
                       <div>
