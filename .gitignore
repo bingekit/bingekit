@@ -13,3 +13,7 @@ Lib/
 host/settings/
 *.txt
 old*
+extract.js
+fix_*.js
+*.tsbuildinfo
+error*
