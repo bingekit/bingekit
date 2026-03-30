@@ -5,7 +5,7 @@ import './lib/bridge';
 
 // Icons
 import {
-  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings 
+  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings
 } from 'lucide-react';
 
 // UI Wrappers
@@ -23,10 +23,10 @@ import { FlowsView } from './components/views/FlowsView';
 import { UserscriptsView } from './components/views/UserscriptsView';
 
 const MainLayout = () => {
-  const { 
-    activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme, 
-    inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks, 
-    watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate 
+  const {
+    activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme,
+    inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
+    watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate
   } = useAppContext();
 
   return (
@@ -240,7 +240,7 @@ const MainLayout = () => {
 
           <div className="flex-1" />
 
-          <TooltipWrapper text="Plugins">
+          <TooltipWrapper text="Sites">
             <button
               onClick={() => setActiveTab('plugins')}
               className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'plugins' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
