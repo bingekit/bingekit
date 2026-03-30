@@ -1,18 +1,27 @@
 #Requires AutoHotkey v2.0
 #Include Lib\WebViewToo.ahk
 
-; -----------------------------------------------------------------------------
-; StreamView Minimal - Main AHK2 Wrapper
-; -----------------------------------------------------------------------------
 
-;Create the WebViewGui
-;///////////////////////////////////////////////////////////////////////////////////////////
+EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+    "--edge-webview-no-dpi-workaround " .
+    "--disable-gpu " .
+    "--edge-webview-is-background " .
+    "--msWebView2CodeCache " .
+    "--no-first-run " .
+    "--msWebView2CancelInitialNavigation " .
+    "--disable-web-security " .
+    "--allow-insecure-localhost " .
+    "--allow-running-insecure-content " .
+    "--disable-features=RendererLegacyCanvas " .
+    "")
+
 if (A_IsCompiled) {
     WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
     WebViewSettings := { DllPath: WebViewCtrl.TempDir "\" (A_PtrSize * 8) "bit\WebView2Loader.dll" }
 } else {
     WebViewSettings := {}
 }
+
 
 MainGui := WebViewGui("+Resize -Caption", , , WebViewSettings)
 
@@ -21,6 +30,8 @@ MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
 MainGui.Show("w800 h600")
 ; Initialize WebViewToo
 WV := MainGui.Control.wv
+
+MainGui.Control.CreateCoreWebView2ControllerOptions()
 
 ; Define global functions for WebView2 Interop
 
