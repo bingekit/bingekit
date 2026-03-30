@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { ahk } from '../lib/ahk';
-import { 
-  BookmarkItem, WatchLaterItem, CredentialItem, 
-  FollowedItem, CustomFlow, Userscript, SitePlugin 
+import {
+  BookmarkItem, WatchLaterItem, CredentialItem,
+  FollowedItem, CustomFlow, Userscript, SitePlugin
 } from '../types';
 
 interface AppContextType {
@@ -35,7 +35,7 @@ interface AppContextType {
   bookmarkSearchQuery: string; setBookmarkSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   editingBookmarkId: string | null; setEditingBookmarkId: React.Dispatch<React.SetStateAction<string | null>>;
   showCredModal: boolean; setShowCredModal: React.Dispatch<React.SetStateAction<boolean>>;
-  searchParamMode: 'navigate' | 'fetch'; setSearchParamMode: React.Dispatch<React.SetStateAction<'navigate' | 'fetch'>>;
+  searchParamMode: 'fetch' | 'navigate'; setSearchParamMode: React.Dispatch<React.SetStateAction<'fetch' | 'navigate'>>;
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
   playerRef: React.RefObject<HTMLDivElement>;
 
@@ -96,7 +96,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [bookmarkSearchQuery, setBookmarkSearchQuery] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [showCredModal, setShowCredModal] = useState(false);
-  const [searchParamMode, setSearchParamMode] = useState<'navigate' | 'fetch'>('navigate');
+  const [searchParamMode, setSearchParamMode] = useState<'fetch' | 'navigate'>('fetch');
   const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(true);
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
@@ -481,7 +481,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const value = {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, 
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,

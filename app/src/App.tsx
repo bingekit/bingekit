@@ -3,9 +3,8 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ahk } from './lib/ahk';
 import './lib/bridge';
 
-// Icons
 import {
-  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings
+  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap
 } from 'lucide-react';
 
 // UI Wrappers
@@ -26,7 +25,8 @@ const MainLayout = () => {
   const {
     activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme,
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
-    watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate
+    watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
+    isQuickOptionsHidden, setIsQuickOptionsHidden
   } = useAppContext();
 
   return (
@@ -94,96 +94,110 @@ const MainLayout = () => {
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
-      <div id="titlebar-region" className="h-10 flex items-center justify-between drag-region select-none px-3 border-b">
+      <div id="titlebar-region" className="h-10 flex items-center justify-between drag-region select-none pl-5 border-b">
         <div className="flex items-center gap-3 no-drag">
-          <div className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+          <div className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer" onClick={() => setActiveTab('dashboard')} title="Dashboard">
             <Film size={16} className="text-indigo-500" />
-            <span className="text-xs font-medium tracking-wider uppercase">StreamView</span>
+            {/* <span className="text-xs font-medium tracking-wider uppercase">StreamView</span> */}
           </div>
         </div>
 
         {/* URL Bar */}
-        <div className="flex-1 max-w-xl mx-4 no-drag flex items-center justify-center">
-          {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
-            <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
-              {(() => {
-                try { return new URL(url).hostname; } catch (e) { return url; }
-              })()}
-            </div>
-          ) : (
-            <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
-              <div className="flex items-center px-2 gap-1 text-zinc-500">
-                <TooltipWrapper text="Go Back">
-                  <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
-                </TooltipWrapper>
-                <TooltipWrapper text="Go Forward">
-                  <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
-                </TooltipWrapper>
-                <TooltipWrapper text="Refresh">
-                  <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
-                </TooltipWrapper>
+        {activeTab === 'player' && (
+          <div className="flex-1 max-w-xl mx-4 no-drag flex items-center justify-center">
+            {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
+              <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
+                {(() => {
+                  try { return new URL(url).hostname; } catch (e) { return url; }
+                })()}
               </div>
+            ) : (
+              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
+                <div className="flex items-center px-2 gap-1 text-zinc-500">
+                  <TooltipWrapper text="Go Back">
+                    <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
+                  </TooltipWrapper>
+                  <TooltipWrapper text="Go Forward">
+                    <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
+                  </TooltipWrapper>
+                  <TooltipWrapper text="Refresh">
+                    <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
+                  </TooltipWrapper>
+                </div>
 
-              <div className="w-px h-3 bg-zinc-800 mx-1" />
+                <div className="w-px h-3 bg-zinc-800 mx-1" />
 
-              <div className="flex-1 flex items-center px-2 gap-2">
-                <Search size={12} className="text-zinc-500" />
-                <input
-                  type="text"
-                  value={inputUrl}
-                  onChange={(e) => setInputUrl(e.target.value)}
-                  placeholder="Search streams or enter URL..."
-                  className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
-                />
-              </div>
+                <div className="flex-1 flex items-center px-2 gap-2">
+                  <Search size={12} className="text-zinc-500" />
+                  <input
+                    type="text"
+                    value={inputUrl}
+                    onChange={(e) => setInputUrl(e.target.value)}
+                    placeholder="Search streams or enter URL..."
+                    className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
+                  />
+                </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (!bookmarks.find(b => b.url === url)) {
-                    setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
-                  }
-                }}
-                className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
-                title="Bookmark"
-              >
-                <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!watchLater.find(w => w.url === url)) {
-                    setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
-                  }
-                }}
-                className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
-                title="Watch Later"
-              >
-                <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
-              </button>
-            </form>
-          )}
-        </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!bookmarks.find(b => b.url === url)) {
+                      setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
+                    }
+                  }}
+                  className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
+                  title="Bookmark"
+                >
+                  <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!watchLater.find(w => w.url === url)) {
+                      setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
+                    }
+                  }}
+                  className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
+                  title="Watch Later"
+                >
+                  <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
+                </button>
+              </form>
+            )}
+          </div>
+        )}
 
         {/* Window Controls */}
-        <div className="flex items-center gap-1 no-drag">
-          <TooltipWrapper text="Toggle URL Bar">
-            <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className="p-1.5 mr-2 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
-              {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </TooltipWrapper>
+        <div className="flex items-center no-drag">
+          {activeTab === 'player' && (
+            <TooltipWrapper text="Toggle URL Bar">
+              <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800'}`}>
+                {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </TooltipWrapper>
+          )}
+          {activeTab === 'player' && (
+            <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
+              <button
+                onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
+                className={`p-5 px-5 transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800'}`}
+              >
+                <Zap size={14} />
+              </button>
+            </TooltipWrapper>
+          )}
           <TooltipWrapper text="Minimize">
-            <button onClick={() => ahk.call('Minimize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
+            <button onClick={() => ahk.call('Minimize')} className="p-5 px-5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
               <Minus size={14} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Maximize">
-            <button onClick={() => ahk.call('Maximize')} className="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded transition-colors">
+            <button onClick={() => ahk.call('Maximize')} className="p-5 px-5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
               <Square size={12} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Close">
-            <button onClick={() => ahk.call('Close')} className="p-1.5 text-zinc-500 hover:text-white hover:bg-red-500/90 rounded transition-colors">
+            <button onClick={() => ahk.call('Close')} className="p-5 px-5 text-zinc-500 hover:text-white hover:bg-red-500/90 transition-colors">
               <X size={14} />
             </button>
           </TooltipWrapper>

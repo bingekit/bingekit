@@ -108,14 +108,7 @@ export const PlayerView = () => {
                     </button>
                   </div>
                 )}
-                {/* Toggle Button for Quick Options */}
-                <button
-                  onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
-                  className={`absolute right-4 z-20 p-1.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/50 rounded-lg text-zinc-500 hover:text-zinc-300 transition-all shadow-lg backdrop-blur-sm ${isQuickOptionsHidden ? 'top-4' : 'top-12'}`}
-                  title={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}
-                >
-                  {isQuickOptionsHidden ? <ChevronLeft size={14} /> : <X size={14} />}
-                </button>
+
 
                 <div ref={playerRef} className="w-full flex-1 bg-zinc-900 border-none relative" />
               </div>
