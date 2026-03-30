@@ -42,21 +42,83 @@ export const PlayerView = () => {
                     <div className="w-px h-4 bg-zinc-800" />
                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                       <span className="text-xs text-zinc-600 font-medium whitespace-nowrap">Run Flow:</span>
-                      {flows.map(flow => (
-                        <button
-                          key={flow.id}
-                          onClick={async () => {
-                            await runFlow(flow);
-                            setActiveTab('player');
-                          }}
-                          className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 py-1 rounded whitespace-nowrap"
-                        >
-                          <Zap size={12} /> {flow.name}
-                        </button>
-                      ))}
-                      {flows.length === 0 && (
-                        <span className="text-xs text-zinc-600 italic whitespace-nowrap">No flows</span>
-                      )}
+                      {(() => {
+                        const currentPlugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+                        const detailsFlowId = currentPlugin?.details?.delegateFlowId;
+                        const dFlow = flows.find(f => f.id === detailsFlowId);
+                        
+                        return (
+                          <>
+                            {dFlow && (
+                              <button
+                                onClick={async () => {
+                                  if (!currentPlugin || !dFlow) return;
+                                  const inputs = currentPlugin.details.delegateFlowInputs || {};
+                                  const resolvedVars: Record<string, string> = { url };
+                                  
+                                  const selectorsToFetch = [];
+                                  for (const [key, val] of Object.entries(inputs)) {
+                                    if (typeof val === 'string' && val.startsWith('js:')) {
+                                      selectorsToFetch.push({ key, type: 'eval', script: val.substring(3) }); 
+                                    } else if (typeof val === 'string' && val.startsWith('selector:')) {
+                                      const sel = val.substring(9);
+                                      const isAttr = sel.includes('@');
+                                      selectorsToFetch.push({
+                                         key: key as string,
+                                         selector: (isAttr ? sel.split('@')[0] : sel) as string,
+                                         type: (isAttr ? 'attr' : 'text') as string,
+                                         attr: (isAttr ? sel.split('@')[1] : null) as string | null
+                                      });
+                                    } else {
+                                      resolvedVars[key] = val as string;
+                                    }
+                                  }
+                                  
+                                  if (selectorsToFetch.length > 0) {
+                                      // Run SmartFetch to evaluate selectors & js against the player's URL
+                                      // Note: Currently SmartFetch natively supports 'text' and 'attr', but we can inject eval scripts into the payload config
+                                      const payload = selectorsToFetch.map(item => {
+                                         if (item.type === 'eval') {
+                                             // Workaround to execute arbitrary JS in the SmartFetch `extractTitle`/extract... bindings 
+                                             // by passing an arrow function string since SmartFetch string-evals functions in its crawler!
+                                             return { key: item.key, selector: `()=>${item.script}`, type: 'text' };
+                                         }
+                                         return item;
+                                      });
+                                      
+                                      const scraped = await window.SmartFetch(url, JSON.stringify(payload));
+                                      if (scraped && scraped.items && scraped.items.length > 0) {
+                                          Object.assign(resolvedVars, scraped.items[0]);
+                                      }
+                                  }
+                                  
+                                  await runFlow(dFlow, url, resolvedVars);
+                                  setActiveTab('player');
+                                }}
+                                className="text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-1 transition-colors bg-zinc-900 px-2 flex-shrink-0 py-1 rounded whitespace-nowrap"
+                              >
+                                <ListTree size={12} /> Fetch Details
+                              </button>
+                            )}
+                            
+                            {flows.filter(f => f.id !== detailsFlowId).map(flow => (
+                              <button
+                                key={flow.id}
+                                onClick={async () => {
+                                  await runFlow(flow);
+                                  setActiveTab('player');
+                                }}
+                                className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 flex-shrink-0 py-1 rounded whitespace-nowrap"
+                              >
+                                <Zap size={12} /> {flow.name}
+                              </button>
+                            ))}
+                            {flows.length === 0 && !dFlow && (
+                              <span className="text-xs text-zinc-600 italic whitespace-nowrap">No flows</span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="flex-1" />
                     <button

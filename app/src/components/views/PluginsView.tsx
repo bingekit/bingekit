@@ -220,15 +220,18 @@ export const PluginsView = () => {
                     checked={!!editingPlugin.search.delegateFlowId}
                     onChange={(val) => {
                       if (val) {
-                        updateEditingPlugin('search', 'delegateFlowId', flows[0]?.id || '');
-                        updateEditingPlugin('search', 'delegateFlowInputs', {});
+                        updateEditingPlugin('root', 'search', {
+                          ...editingPlugin.search,
+                          delegateFlowId: flows[0]?.id || '',
+                          delegateFlowInputs: {}
+                        });
                       } else {
                         const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.search;
                         updateEditingPlugin('root', 'search', rest);
                       }
                     }}
                   />
-                  <span className="text-sm font-medium text-indigo-300">Delegate execution to a Custom Flow</span>
+                  <span className="text-sm font-medium text-indigo-400">Delegate execution to a Custom Flow</span>
                 </div>
 
                 {editingPlugin.search.delegateFlowId ? (
@@ -251,22 +254,48 @@ export const PluginsView = () => {
                       return (
                         <div className="pt-2 border-t border-indigo-500/20 space-y-3">
                           <label className="block text-xs text-indigo-300 mb-1.5">Map Flow Variables</label>
-                          {selectedFlow.variables.map(v => (
-                            <div key={v} className="flex items-center gap-3">
-                              <span className="text-xs text-zinc-400 w-1/3 truncate font-mono">{v}</span>
-                              <input
-                                type="text"
-                                placeholder="Value (e.g. {query})"
-                                value={editingPlugin.search.delegateFlowInputs?.[v] || ''}
-                                onChange={(e) => {
-                                  const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
-                                  inputs[v] = e.target.value;
-                                  updateEditingPlugin('search', 'delegateFlowInputs', inputs);
-                                }}
-                                className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                              />
-                            </div>
-                          ))}
+                          {selectedFlow.variables.map(v => {
+                            const valStr = editingPlugin.search.delegateFlowInputs?.[v] || '';
+                            const isSel = valStr.startsWith('selector:');
+                            const isJs = valStr.startsWith('js:');
+                            const type = isSel ? 'selector' : isJs ? 'js' : 'string';
+                            const cleanVal = isSel ? valStr.substring(9) : isJs ? valStr.substring(3) : valStr;
+
+                            return (
+                              <div key={v} className="flex gap-2 items-start">
+                                <span className="text-xs text-zinc-400 w-1/4 truncate font-mono mt-2">{v}</span>
+                                <div className="flex-1 flex flex-col gap-2">
+                                  <select 
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 outline-none hover:border-zinc-700 transition-colors"
+                                    value={type}
+                                    onChange={(e) => {
+                                      const newType = e.target.value;
+                                      const prefix = newType === 'selector' ? 'selector:' : newType === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + cleanVal;
+                                      updateEditingPlugin('root', 'search', { ...editingPlugin.search, delegateFlowInputs: inputs });
+                                    }}
+                                  >
+                                    <option value="string">String / Native (e.g. {'{url}'})</option>
+                                    <option value="selector">CSS Selector (on current page)</option>
+                                    <option value="js">JavaScript (evaluated on page)</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    placeholder={type === 'selector' ? 'img.poster@src' : type === 'js' ? 'return document.title;' : '{query}'}
+                                    value={cleanVal}
+                                    onChange={(e) => {
+                                      const prefix = type === 'selector' ? 'selector:' : type === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + e.target.value;
+                                      updateEditingPlugin('root', 'search', { ...editingPlugin.search, delegateFlowInputs: inputs });
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })()}
@@ -796,15 +825,18 @@ export const PluginsView = () => {
                     checked={!!editingPlugin.details.delegateFlowId}
                     onChange={(val) => {
                       if (val) {
-                        updateEditingPlugin('details', 'delegateFlowId', flows[0]?.id || '');
-                        updateEditingPlugin('details', 'delegateFlowInputs', {});
+                        updateEditingPlugin('root', 'details', {
+                          ...editingPlugin.details,
+                          delegateFlowId: flows[0]?.id || '',
+                          delegateFlowInputs: {}
+                        });
                       } else {
                         const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.details;
                         updateEditingPlugin('root', 'details', rest);
                       }
                     }}
                   />
-                  <span className="text-sm font-medium text-indigo-300">Delegate fetching explicit details to a Custom Flow</span>
+                  <span className="text-sm font-medium text-indigo-400">Delegate fetching explicit details to a Custom Flow</span>
                 </div>
 
                 {editingPlugin.details.delegateFlowId ? (
@@ -826,22 +858,48 @@ export const PluginsView = () => {
                       return (
                         <div className="pt-2 border-t border-indigo-500/20 space-y-3">
                           <label className="block text-xs text-indigo-300 mb-1.5">Map Context Variables</label>
-                          {selectedFlow.variables.map(v => (
-                            <div key={v} className="flex items-center gap-3">
-                              <span className="text-xs text-zinc-400 w-1/3 truncate font-mono">{v}</span>
-                              <input
-                                type="text"
-                                placeholder="Value (e.g. {url})"
-                                value={editingPlugin.details.delegateFlowInputs?.[v] || ''}
-                                onChange={(e) => {
-                                  const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
-                                  inputs[v] = e.target.value;
-                                  updateEditingPlugin('details', 'delegateFlowInputs', inputs);
-                                }}
-                                className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                              />
-                            </div>
-                          ))}
+                          {selectedFlow.variables.map(v => {
+                            const valStr = editingPlugin.details.delegateFlowInputs?.[v] || '';
+                            const isSel = valStr.startsWith('selector:');
+                            const isJs = valStr.startsWith('js:');
+                            const type = isSel ? 'selector' : isJs ? 'js' : 'string';
+                            const cleanVal = isSel ? valStr.substring(9) : isJs ? valStr.substring(3) : valStr;
+
+                            return (
+                              <div key={v} className="flex gap-2 items-start">
+                                <span className="text-xs text-zinc-400 w-1/4 truncate font-mono mt-2">{v}</span>
+                                <div className="flex-1 flex flex-col gap-2">
+                                  <select 
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 outline-none hover:border-zinc-700 transition-colors"
+                                    value={type}
+                                    onChange={(e) => {
+                                      const newType = e.target.value;
+                                      const prefix = newType === 'selector' ? 'selector:' : newType === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + cleanVal;
+                                      updateEditingPlugin('root', 'details', { ...editingPlugin.details, delegateFlowInputs: inputs });
+                                    }}
+                                  >
+                                    <option value="string">String / Native (e.g. {'{url}'})</option>
+                                    <option value="selector">CSS Selector (on current page)</option>
+                                    <option value="js">JavaScript (evaluated on page)</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    placeholder={type === 'selector' ? 'img.poster@src' : type === 'js' ? 'return document.title;' : '{url}'}
+                                    value={cleanVal}
+                                    onChange={(e) => {
+                                      const prefix = type === 'selector' ? 'selector:' : type === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + e.target.value;
+                                      updateEditingPlugin('root', 'details', { ...editingPlugin.details, delegateFlowInputs: inputs });
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       );
                     })()}
