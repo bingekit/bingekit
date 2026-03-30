@@ -10,8 +10,13 @@ import {
   Play, LayoutGrid, Shield, ShieldOff, Plus,
   Puzzle, Save, Trash2, Download, Upload, KeyRound,
   Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell,
-  Compass, Zap, Clock, Folder, Lock, EyeOff, Eye
+  Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe
 } from 'lucide-react';
+
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/themes/prism-tomorrow.css';
 
 // --- Types ---
 interface BookmarkItem {
@@ -60,6 +65,14 @@ interface CustomFlow {
   description: string;
   variables?: string[];
   steps: FlowStep[];
+}
+
+interface Userscript {
+  id: string;
+  name: string;
+  domains: string[];
+  code: string;
+  enabled: boolean;
 }
 
 interface SitePlugin {
@@ -255,9 +268,14 @@ export default function App() {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
+  const [testSearchUrl, setTestSearchUrl] = useState('');
+  const [testSearchResults, setTestSearchResults] = useState<{status: string, nodesCount: number, results: any[]}>({status: 'idle', nodesCount: 0, results: []});
+  const [isTestingSearch, setIsTestingSearch] = useState(false);
   const [flows, setFlows] = useState<CustomFlow[]>([]);
   const [editingFlow, setEditingFlow] = useState<CustomFlow | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows'>('dashboard');
+  const [userscripts, setUserscripts] = useState<Userscript[]>([]);
+  const [editingUserscriptId, setEditingUserscriptId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts'>('dashboard');
   const [multiSearchQuery, setMultiSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -347,10 +365,37 @@ export default function App() {
     }
 
     // Load Flows
-    const savedFlows = ahk.call('LoadData', 'flows.json');
-    if (savedFlows) {
-      try { setFlows(JSON.parse(savedFlows)); } catch (e) { }
-    }
+    const loadFlows = () => {
+      const filesStr = ahk.call('ListFlows');
+      const loadedFlows: CustomFlow[] = [];
+      if (filesStr) {
+        const files = filesStr.split('|').filter(Boolean);
+        for (const file of files) {
+          const data = ahk.call('LoadFlow', file);
+          if (data) {
+            try { loadedFlows.push(JSON.parse(data)); } catch (e) { }
+          }
+        }
+      }
+      
+      // Auto-migrate from monolithic to split files if split files don't exist
+      if (loadedFlows.length === 0) {
+        const oldFlows = ahk.call('LoadData', 'flows.json');
+        if (oldFlows) {
+          try {
+            const parsed = JSON.parse(oldFlows);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach(f => {
+                loadedFlows.push(f);
+                ahk.call('SaveFlow', `flow_${f.id}.json`, JSON.stringify(f, null, 2));
+              });
+            }
+          } catch(e) {}
+        }
+      }
+      setFlows(loadedFlows);
+    };
+    loadFlows();
 
     // Load Watch Later
     const savedWatchLater = ahk.call('LoadData', 'watchlater.json');
@@ -363,6 +408,39 @@ export default function App() {
     if (savedCreds) {
       try { setCredentials(JSON.parse(savedCreds)); } catch (e) { }
     }
+
+    // Load Userscripts
+    const loadUserscripts = () => {
+      const filesStr = ahk.call('ListScripts');
+      const loadedScripts: Userscript[] = [];
+      if (filesStr) {
+        const files = filesStr.split('|').filter(Boolean);
+        for (const file of files) {
+          const data = ahk.call('LoadScript', file);
+          if (data) {
+            try { loadedScripts.push(JSON.parse(data)); } catch (e) { }
+          }
+        }
+      }
+      
+      // Auto-migrate from monolithic to split files if split files don't exist
+      if (loadedScripts.length === 0) {
+        const oldScripts = ahk.call('LoadData', 'userscripts.json');
+        if (oldScripts) {
+          try {
+            const parsed = JSON.parse(oldScripts);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              parsed.forEach(s => {
+                loadedScripts.push(s);
+                ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(s, null, 2));
+              });
+            }
+          } catch(e) {}
+        }
+      }
+      setUserscripts(loadedScripts);
+    };
+    loadUserscripts();
 
     // Load Plugins
     loadPlugins();
@@ -410,6 +488,35 @@ export default function App() {
       ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems));
     }
   }, [followedItems]);
+
+  // Save userscripts and sync payload to AHK
+  useEffect(() => {
+    const activeScripts = userscripts.filter(s => s.enabled);
+    if (activeScripts.length > 0) {
+      let payload = `
+        var currentHost = window.location.hostname;
+        var scripts = ${JSON.stringify(activeScripts)};
+        scripts.forEach(s => {
+          var matches = s.domains.includes('*') || s.domains.some(d => currentHost.includes(d));
+          if (matches) {
+            try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); }
+          }
+        });
+      `;
+      ahk.call('UpdateUserscriptPayload', payload);
+    } else {
+      ahk.call('UpdateUserscriptPayload', '');
+    }
+
+    // Debounce save execution
+    const saveTimer = setTimeout(() => {
+      userscripts.forEach(s => {
+        ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(s, null, 2));
+      });
+    }, 500);
+
+    return () => clearTimeout(saveTimer);
+  }, [userscripts]);
 
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
@@ -499,6 +606,68 @@ export default function App() {
       return new URL(targetUrl).hostname;
     } catch {
       return targetUrl;
+    }
+  };
+
+  const runFlow = async (flow: CustomFlow, initialUrl: string = url) => {
+    console.log('Running flow:', flow.name, 'on url:', initialUrl);
+    let currentVar = initialUrl;
+    
+    const resolveVars = async (str: string) => {
+      if (!str) return str;
+      let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
+                   .replace(/\{\{PREV\}\}/g, currentVar)
+                   .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
+      
+      const promptRegex = /\{\{prompt:([^}]+)\}\}/g;
+      let match;
+      while ((match = promptRegex.exec(res)) !== null) {
+          const promptTitle = match[1];
+          const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
+          res = res.replace(match[0], userInput || "");
+      }
+      return res;
+    };
+
+    for (const step of flow.steps) {
+      console.log("Executing Step:", step.type, step.params);
+      
+      if (step.type === 'navigate') {
+        const dest = await resolveVars(step.params.url || '');
+        ahk.call('UpdatePlayerUrl', dest);
+        currentVar = dest;
+        await new Promise(r => setTimeout(r, 1500)); 
+      } else if (step.type === 'inject') {
+        const code = await resolveVars(step.params.code || '');
+        ahk.call('InjectJS', code);
+      } else if (step.type === 'RawFetchHTML') {
+        const fetchUrl = await resolveVars(step.params.url || '');
+        const html = ahk.call('RawFetchHTML', fetchUrl);
+        currentVar = html;
+        console.log('Fetched HTML length:', html?.length);
+      } else if (step.type === 'callFlow') {
+        const targetFlowId = await resolveVars(step.params.flowId || '');
+        const targetFlow = flows.find(f => f.id === targetFlowId);
+        if (targetFlow) {
+          await runFlow(targetFlow, currentVar);
+        } else {
+          console.error(`Flow ${targetFlowId} not found!`);
+        }
+      } else if (step.type === 'callPlugin') {
+        const targetPluginId = await resolveVars(step.params.pluginId || '');
+        const targetPlugin = plugins.find(p => p.id === targetPluginId);
+        if (targetPlugin && targetPlugin.search.urlFormat) {
+           const sq = await resolveVars(step.params.query || currentVar);
+           const pUrl = targetPlugin.search.urlFormat.replace('{query}', encodeURIComponent(sq));
+           setMultiSearchQuery(sq);
+           setSearchParamMode('fetch');
+           setActiveTab('dashboard');
+           setTimeout(() => {
+              const input = document.getElementById('search-input');
+              if (input) input.focus();
+           }, 100);
+        }
+      }
     }
   };
 
@@ -635,6 +804,12 @@ export default function App() {
           >
             <ListTree size={20} strokeWidth={1.5} />
           </button>
+          <button
+            onClick={() => setActiveTab('userscripts')}
+            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'userscripts' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+          >
+            <Code size={20} strokeWidth={1.5} />
+          </button>
 
           <div className="flex-1" />
 
@@ -712,43 +887,64 @@ export default function App() {
                               console.log(`[Search] Starting fetch for ${plugin.name}...`);
                               const searchUrl = plugin.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
                               try {
-                                //const html = await (await fetch(searchUrl)).text();
-                                const html = ahk.call('RawFetchHTML', searchUrl);
-                                console.log(`[Search] ${plugin.name} returned HTML layout (${html ? Math.round(html.length / 1024) + 'kb' : 'failed'})`);
+                                const jsQuery = `
+                                  function extractValue(el, selector, defaultAttr) {
+                                    if (!el) return '';
+                                    if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
+                                    if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
+                                    if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
+                                    
+                                    let targetSel = selector;
+                                    let attr = defaultAttr;
+                                    if (selector.includes('@')) {
+                                      const parts = selector.split('@');
+                                      targetSel = parts[0];
+                                      attr = parts[1];
+                                    }
+                                    
+                                    const targetEl = targetSel ? (el.querySelector(targetSel) || el) : el;
+                                    if (attr) {
+                                      return targetEl.getAttribute(attr) || '';
+                                    }
+                                    
+                                    let text = targetEl.textContent ? targetEl.textContent.trim() : '';
+                                    if (!text && targetEl.hasAttribute('alt')) text = targetEl.getAttribute('alt') || '';
+                                    if (!text && targetEl.hasAttribute('title')) text = targetEl.getAttribute('title') || '';
+                                    return text;
+                                  }
+                                  
+                                  const itemSelector = '${plugin.search.itemSel ? plugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
+                                  const items = Array.from(document.querySelectorAll(itemSelector));
+                                  return items.slice(0, 10).map(item => {
+                                    let titleStr = extractValue(item, '${plugin.search.titleSel ? plugin.search.titleSel.replace(/'/g, "\\'") : ''}', null);
+                                    let linkStr = extractValue(item, '${plugin.search.linkSel ? plugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href');
+                                    
+                                    if (linkStr && !linkStr.startsWith('http')) {
+                                      try { linkStr = new URL(linkStr, '${plugin.baseUrl}').href; } catch(e) {}
+                                    }
+                                    return { title: titleStr, href: linkStr };
+                                  });
+                                `;
+                                
+                                const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);
+                                console.log(`[Search] ${plugin.name} returned from SmartFetch:`, fetchResults);
 
-                                if (html) {
-                                  const parser = new DOMParser();
-                                  const doc = parser.parseFromString(html, 'text/html');
-                                  const items = plugin.search.itemSel ? doc.querySelectorAll(plugin.search.itemSel) : [];
-                                  console.log(`[Search] ${plugin.name} matched ${items.length} items using itemSel: '${plugin.search.itemSel}'`);
-
-                                  if (items.length > 0) {
-                                    Array.from(items).slice(0, 10).forEach((item, i) => {
-                                      const titleEl = plugin.search.titleSel ? item.querySelector(plugin.search.titleSel) : item;
-                                      let extractedTitle = titleEl?.textContent?.trim();
-
-                                      // If title selector specifically targeted an attribute (e.g. img@alt format) we'd parse it here, but falling back:
-                                      if (!extractedTitle && titleEl?.hasAttribute('alt')) extractedTitle = titleEl.getAttribute('alt') || '';
-                                      if (!extractedTitle && titleEl?.hasAttribute('title')) extractedTitle = titleEl.getAttribute('title') || '';
-
-                                      const linkEl = plugin.search.linkSel ? (item.querySelector(plugin.search.linkSel) || item) : item;
-                                      let href = linkEl?.getAttribute('href');
-                                      if (href && !href.startsWith('http')) {
-                                        try { href = new URL(href, plugin.baseUrl).href; } catch { }
-                                      }
-
-                                      if (extractedTitle && href) {
-                                        results.push({
-                                          id: plugin.id + '_' + i,
-                                          title: extractedTitle,
-                                          url: href,
-                                          pluginName: plugin.name,
-                                          type: 'result'
-                                        });
-                                      }
-                                    });
-                                  } else {
-                                    console.log(`[Search] ${plugin.name} found 0 results mapping. Generating empty marker.`);
+                                if (Array.isArray(fetchResults) && fetchResults.length > 0) {
+                                  let validCount = 0;
+                                  fetchResults.forEach((res: any, i: number) => {
+                                    if (res.title && res.href) {
+                                      validCount++;
+                                      results.push({
+                                        id: plugin.id + '_' + i,
+                                        title: res.title,
+                                        url: res.href,
+                                        pluginName: plugin.name,
+                                        type: 'result'
+                                      });
+                                    }
+                                  });
+                                  if (validCount === 0) {
+                                    console.log(`[Search] ${plugin.name} found 0 valid results.`);
                                     results.push({
                                       id: plugin.id + '_empty',
                                       title: 'No matches found',
@@ -758,17 +954,17 @@ export default function App() {
                                     });
                                   }
                                 } else {
-                                  console.log(`[Search] ${plugin.name} failed to return HTML body.`);
+                                  console.log(`[Search] ${plugin.name} found 0 results.`);
                                   results.push({
-                                    id: plugin.id + '_error',
-                                    title: 'Failed to fetch HTTP',
+                                    id: plugin.id + '_empty',
+                                    title: 'No matches found',
                                     url: searchUrl,
                                     pluginName: plugin.name,
                                     type: 'empty'
                                   });
                                 }
                               } catch (e) {
-                                console.error(`[Search] Error evaluating ${plugin.name}:`, e);
+                                console.error(`[Search] Error evaluating ${plugin.name} SmartFetch:`, e);
                                 results.push({ id: plugin.id + '_error', title: 'Error executing script', url: searchUrl, pluginName: plugin.name, type: 'empty' });
                               }
                             }
@@ -806,12 +1002,72 @@ export default function App() {
                 </div>
 
                 {/* Tags / Custom Search Lists */}
-                <div className="flex gap-2 flex-wrap justify-center mb-12">
-                  {['Movies', 'TV Shows', 'Anime', 'Live TV', 'Sports'].map(tag => (
-                    <button key={tag} className="px-4 py-1.5 rounded-full bg-zinc-900/50 border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-700 transition-colors">
-                      {tag}
-                    </button>
-                  ))}
+                <div className="w-full">
+                  {searchResults.length === 0 && (
+                    <div className="w-full max-w-5xl mx-auto space-y-12 pb-20 mt-8">
+                      {/* Unique Tags Renderer */}
+                      {Array.from(new Set(plugins.flatMap(p => p.tags || []))).sort().map(tag => {
+                         const matchedPlugins = plugins.filter(p => p.tags?.includes(tag));
+                         if (matchedPlugins.length === 0) return null;
+                         return (
+                           <div key={tag} className="space-y-4">
+                             <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-widest pl-2 flex items-center gap-2">
+                               <Puzzle size={14} className="opacity-70" /> {tag}
+                             </h3>
+                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                               {matchedPlugins.map(p => (
+                                 <div 
+                                   key={p.id}
+                                   onClick={() => {
+                                     setUrl(p.baseUrl);
+                                     setInputUrl(p.baseUrl);
+                                     setActiveTab('player');
+                                   }}
+                                   className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
+                                 >
+                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
+                                     <Globe size={18} />
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <h4 className="text-sm font-medium text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">{p.name}</h4>
+                                     <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
+                                   </div>
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
+                         )
+                      })}
+
+                      {/* Uncategorized Plugins */}
+                      {plugins.filter(p => !p.tags || p.tags.length === 0).length > 0 && (
+                         <div className="space-y-4">
+                           <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-widest pl-2">Uncategorized Sites</h3>
+                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                               {plugins.filter(p => !p.tags || p.tags.length === 0).map(p => (
+                                 <div 
+                                   key={p.id}
+                                   onClick={() => {
+                                     setUrl(p.baseUrl);
+                                     setInputUrl(p.baseUrl);
+                                     setActiveTab('player');
+                                   }}
+                                   className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
+                                 >
+                                   <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
+                                     <Globe size={18} />
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <h4 className="text-sm font-medium text-zinc-300 truncate">{p.name}</h4>
+                                     <p className="text-xs text-zinc-600 truncate mt-0.5">{p.baseUrl.replace('https://', '').replace(/\/$/, '')}</p>
+                                   </div>
+                                 </div>
+                               ))}
+                           </div>
+                         </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Search Results */}
@@ -903,23 +1159,7 @@ export default function App() {
                         <button
                           key={flow.id}
                           onClick={async () => {
-                            console.log('Running flow:', flow.name, 'on url:', url);
-                            let currentVar = url;
-                            for (const step of flow.steps) {
-                              console.log("Executing Step:", step.type, step.params);
-                              // Simple variable replacement
-                              const replaceVars = (str: string) => str ? str.replace(/\{\{CURRENT_URL\}\}/g, url).replace(/\{\{PREV\}\}/g, currentVar) : str;
-
-                              if (step.type === 'navigate') {
-                                ahk.call('UpdatePlayerUrl', replaceVars(step.params.url || ''));
-                                currentVar = replaceVars(step.params.url || '');
-                                await new Promise(r => setTimeout(r, 1000)); // wait for load
-                              } else if (step.type === 'inject') {
-                                ahk.call('InjectJS', replaceVars(step.params.code || ''));
-                              } else if (step.type === 'callFlow' || step.type === 'callPlugin') {
-                                alert('Nested flows/plugins coming soon!');
-                              }
-                            }
+                            await runFlow(flow);
                             setActiveTab('player');
                           }}
                           className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 py-1 rounded whitespace-nowrap"
@@ -1502,6 +1742,85 @@ export default function App() {
                               />
                             </div>
                           </div>
+                          <div className="mt-6 pt-6 border-t border-zinc-800/50">
+                            <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center justify-between">
+                                SmartFetch Selector Tester
+                                {isTestingSearch && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
+                            </h4>
+                            <div className="flex gap-2 mb-3">
+                              <input
+                                type="text"
+                                value={testSearchUrl}
+                                onChange={(e) => setTestSearchUrl(e.target.value)}
+                                placeholder="Paste a full search URL to test (e.g. https://imdb.com/find?q=matrix)"
+                                className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (!testSearchUrl) return;
+                                  setIsTestingSearch(true);
+                                  try {
+                                    const jsQuery = `
+                                      function extractValue(el, selector, defaultAttr) {
+                                        if (!el) return '';
+                                        if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
+                                        if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
+                                        if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
+                                        let targetSel = selector;
+                                        let attr = defaultAttr;
+                                        if (selector.includes('@')) {
+                                          const parts = selector.split('@');
+                                          targetSel = parts[0];
+                                          attr = parts[1];
+                                        }
+                                        const targetEl = targetSel ? (el.querySelector(targetSel) || el) : el;
+                                        if (attr) { return targetEl.getAttribute(attr) || ''; }
+                                        let text = targetEl.textContent ? targetEl.textContent.trim() : '';
+                                        if (!text && targetEl.hasAttribute('alt')) text = targetEl.getAttribute('alt') || '';
+                                        if (!text && targetEl.hasAttribute('title')) text = targetEl.getAttribute('title') || '';
+                                        return text;
+                                      }
+                                      const itemSelector = '${editingPlugin.search.itemSel ? editingPlugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
+                                      const items = Array.from(document.querySelectorAll(itemSelector));
+                                      const results = items.slice(0, 5).map(item => ({
+                                        title: extractValue(item, '${editingPlugin.search.titleSel ? editingPlugin.search.titleSel.replace(/'/g, "\\'") : ''}', null),
+                                        href: extractValue(item, '${editingPlugin.search.linkSel ? editingPlugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
+                                        htmlPreview: item.outerHTML.substring(0, 150) + '...'
+                                      }));
+                                      return { count: items.length, items: results };
+                                    `;
+                                    const fetchResults: any = await window.SmartFetch(testSearchUrl, jsQuery);
+                                    if (fetchResults) {
+                                      setTestSearchResults({
+                                        status: 'success',
+                                        nodesCount: fetchResults.count,
+                                        results: fetchResults.items
+                                      });
+                                    } else {
+                                      setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Fetch returned null/empty' }] });
+                                    }
+                                  } catch (e: any) {
+                                    setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: e.message || 'Unknown error' }] });
+                                  }
+                                  setIsTestingSearch(false);
+                                }}
+                                className="px-4 py-2 bg-indigo-500/20 text-indigo-400 font-medium text-sm rounded-lg hover:bg-indigo-500/30 transition-colors whitespace-nowrap"
+                              >
+                                Test Fetch
+                              </button>
+                            </div>
+                            
+                            {testSearchResults.status !== 'idle' && (
+                              <div className="bg-zinc-950 rounded-lg border border-zinc-800/80 p-3 overflow-y-auto max-h-64 no-scrollbar">
+                                <div className="text-xs font-mono text-zinc-400 mb-2 border-b border-zinc-800/50 pb-2 flex justify-between">
+                                  <span>Nodes Scraped By itemSel (<span className="text-white">{editingPlugin.search.itemSel || 'body'}</span>): <span className={testSearchResults.nodesCount > 0 ? "text-emerald-400" : "text-amber-400"}>{testSearchResults.nodesCount}</span></span>
+                                </div>
+                                <pre className="text-[10px] text-zinc-300 font-mono whitespace-pre-wrap break-all">
+                                  {JSON.stringify(testSearchResults.results, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -1709,7 +2028,7 @@ export default function App() {
                         const newFlow = { id: Date.now().toString(), name: 'New Flow', description: '', steps: [] };
                         const newFlows = [...flows, newFlow];
                         setFlows(newFlows);
-                        ahk.call('SaveData', 'flows.json', JSON.stringify(newFlows));
+                        ahk.call('SaveFlow', `flow_${newFlow.id}.json`, JSON.stringify(newFlow, null, 2));
                         setEditingFlow(newFlow);
                       }}
                       className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors"
@@ -1731,7 +2050,7 @@ export default function App() {
                               e.stopPropagation();
                               const newFlows = flows.filter(f => f.id !== flow.id);
                               setFlows(newFlows);
-                              ahk.call('SaveData', 'flows.json', JSON.stringify(newFlows));
+                              ahk.call('DeleteFlow', `flow_${flow.id}.json`);
                               if (editingFlow?.id === flow.id) setEditingFlow(null);
                             }}
                             className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
@@ -1764,22 +2083,7 @@ export default function App() {
                         <div className="flex items-center gap-3">
                           <button
                             onClick={async () => {
-                              // Execute flow logic
-                              console.log('Executing flow:', editingFlow.name);
-                              for (const step of editingFlow.steps) {
-                                console.log('Executing step:', step.type, step.params);
-                                if (step.type === 'navigate') {
-                                  setUrl(step.params.url);
-                                  setInputUrl(step.params.url);
-                                  setActiveTab('browser');
-                                } else if (step.type === 'inject') {
-                                  ahk.call('InjectJS', step.params.code);
-                                } else if (step.type === 'RawFetchHTML') {
-                                  const html = await ahk.call('RawFetchHTML', step.params.url);
-                                  console.log('Fetched HTML length:', html?.length);
-                                }
-                                // Add more step executions as needed
-                              }
+                              await runFlow(editingFlow);
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm font-medium transition-colors"
                           >
@@ -1789,7 +2093,7 @@ export default function App() {
                             onClick={() => {
                               const updatedFlows = flows.map(f => f.id === editingFlow.id ? editingFlow : f);
                               setFlows(updatedFlows);
-                              ahk.call('SaveData', 'flows.json', JSON.stringify(updatedFlows));
+                              ahk.call('SaveFlow', `flow_${editingFlow.id}.json`, JSON.stringify(editingFlow, null, 2));
                             }}
                             className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors shadow-[0_0_15px_rgba(99,102,241,0.3)]"
                           >
@@ -2000,6 +2304,116 @@ export default function App() {
                     <div className="h-full flex flex-col items-center justify-center text-zinc-500">
                       <ListTree size={48} className="mb-4 opacity-20" />
                       <p>Select a flow to edit or create a new one.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'userscripts' && (
+              <div className="flex w-full h-full bg-zinc-950 overflow-hidden">
+                <div className="w-1/3 min-w-[300px] border-r border-zinc-900 flex flex-col h-full bg-zinc-950/50">
+                  <div className="p-5 border-b border-zinc-900/50 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
+                        <Code size={20} className="text-indigo-400" /> Userscripts
+                      </h2>
+                      <p className="text-xs text-zinc-500 mt-1">Inject JS dynamically.</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newScript: Userscript = {
+                          id: Date.now().toString(),
+                          name: 'New Script',
+                          domains: ['*'],
+                          code: '// ==UserScript==\n// @match *\n// ==/UserScript==\n\nconsole.log("Hello from userscript");',
+                          enabled: true
+                        };
+                        setUserscripts([...userscripts, newScript]);
+                        setEditingUserscriptId(newScript.id);
+                      }}
+                      className="p-1.5 bg-indigo-500/10 text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-colors"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
+                    {userscripts.map(s => (
+                      <div
+                        key={s.id}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer group ${editingUserscriptId === s.id ? 'bg-zinc-900 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-transparent border-zinc-900/50 hover:bg-zinc-900 hover:border-zinc-800'}`}
+                        onClick={() => setEditingUserscriptId(s.id)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="font-medium text-sm text-zinc-200">{s.name}</div>
+                          <div className="flex gap-2 items-center">
+                            <CustomCheckbox
+                              checked={s.enabled}
+                              onChange={(enabled) => {
+                                setUserscripts(userscripts.map(u => u.id === s.id ? { ...u, enabled } : u));
+                              }}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                ahk.call('DeleteScript', `script_${s.id}.json`);
+                                setUserscripts(userscripts.filter(u => u.id !== s.id));
+                                if (editingUserscriptId === s.id) setEditingUserscriptId(null);
+                              }}
+                              className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-xs text-zinc-500 mt-1 truncate">Domains: {s.domains.join(', ')}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
+                  {editingUserscriptId && userscripts.find(u => u.id === editingUserscriptId) ? (
+                    <div className="flex-1 flex flex-col h-full overflow-hidden">
+                      <div className="h-14 border-b border-zinc-900 flex items-center px-4 gap-4 flex-shrink-0">
+                        <input
+                          type="text"
+                          value={userscripts.find(u => u.id === editingUserscriptId)?.name}
+                          onChange={(e) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, name: e.target.value } : u))}
+                          className="bg-transparent border-none text-sm font-medium text-zinc-200 outline-none min-w-[150px]"
+                        />
+                        <div className="w-px h-4 bg-zinc-800" />
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 shrink-0">
+                          Domains:
+                        </div>
+                        <div className="flex-1 max-w-sm">
+                          <TagsInput
+                            tags={userscripts.find(u => u.id === editingUserscriptId)?.domains || []}
+                            onChange={(domains) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, domains } : u))}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto w-full relative group">
+                        <div className="absolute inset-0 pl-12 font-mono text-sm leading-relaxed overflow-hidden">
+                          <Editor
+                            value={userscripts.find(u => u.id === editingUserscriptId)?.code || ''}
+                            onValueChange={(code) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, code } : u))}
+                            highlight={code => Prism.highlight(code, Prism.languages.javascript, 'javascript')}
+                            padding={24}
+                            style={{
+                              fontFamily: '"Fira Code", "JetBrains Mono", Consolas, monospace',
+                              fontSize: 14,
+                              minHeight: '100%',
+                            }}
+                            className="bg-transparent text-zinc-300 transition-colors focus-within:bg-zinc-900/30"
+                            textareaClassName="focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-zinc-500">
+                      <Code size={48} className="mb-4 opacity-20" />
+                      <p>Select a userscript to edit or create a new one.</p>
                     </div>
                   )}
                 </div>

@@ -94,6 +94,68 @@ AHK_DeleteSite(filename) {
     return true
 }
 
+AHK_ListScripts(*) {
+    if !DirExist(A_ScriptDir "\settings\scripts")
+        DirCreate(A_ScriptDir "\settings\scripts")
+    fileList := ""
+    Loop Files, A_ScriptDir "\settings\scripts\*.json"
+        fileList .= A_LoopFileName "|"
+    return RTrim(fileList, "|")
+}
+
+AHK_SaveScript(filename, data) {
+    if !DirExist(A_ScriptDir "\settings\scripts")
+        DirCreate(A_ScriptDir "\settings\scripts")
+    filepath := A_ScriptDir "\settings\scripts\" filename
+    if FileExist(filepath)
+        FileDelete(filepath)
+    FileAppend(data, filepath, "UTF-8")
+    return true
+}
+
+AHK_LoadScript(filename) {
+    filepath := A_ScriptDir "\settings\scripts\" filename
+    return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
+}
+
+AHK_DeleteScript(filename) {
+    filepath := A_ScriptDir "\settings\scripts\" filename
+    if FileExist(filepath)
+        FileDelete(filepath)
+    return true
+}
+
+AHK_ListFlows(*) {
+    if !DirExist(A_ScriptDir "\settings\flows")
+        DirCreate(A_ScriptDir "\settings\flows")
+    fileList := ""
+    Loop Files, A_ScriptDir "\settings\flows\*.json"
+        fileList .= A_LoopFileName "|"
+    return RTrim(fileList, "|")
+}
+
+AHK_SaveFlow(filename, data) {
+    if !DirExist(A_ScriptDir "\settings\flows")
+        DirCreate(A_ScriptDir "\settings\flows")
+    filepath := A_ScriptDir "\settings\flows\" filename
+    if FileExist(filepath)
+        FileDelete(filepath)
+    FileAppend(data, filepath, "UTF-8")
+    return true
+}
+
+AHK_LoadFlow(filename) {
+    filepath := A_ScriptDir "\settings\flows\" filename
+    return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
+}
+
+AHK_DeleteFlow(filename) {
+    filepath := A_ScriptDir "\settings\flows\" filename
+    if FileExist(filepath)
+        FileDelete(filepath)
+    return true
+}
+
 AHK_RawFetchHTML(url) {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
@@ -174,7 +236,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                 PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
 
                 PlayerWV.AddHostObjectToScript("ahk", {
-                    UpdateURL: AHK_UpdateURL
+                    UpdateURL: AHK_UpdateURL,
+                    GetUserscriptPayload: AHK_GetUserscriptPayload
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
@@ -368,6 +431,14 @@ WV.AddHostObjectToScript("ahk", {
     UpdateURL: AHK_UpdateURL,
     UpdateUserscriptPayload: AHK_UpdateUserscriptPayload,
     GetUserscriptPayload: AHK_GetUserscriptPayload,
+    ListScripts: AHK_ListScripts,
+    SaveScript: AHK_SaveScript,
+    LoadScript: AHK_LoadScript,
+    DeleteScript: AHK_DeleteScript,
+    ListFlows: AHK_ListFlows,
+    SaveFlow: AHK_SaveFlow,
+    LoadFlow: AHK_LoadFlow,
+    DeleteFlow: AHK_DeleteFlow,
     StartSmartFetch: AHK_StartSmartFetch,
     StartRawFetchParse: AHK_StartRawFetchParse
 })
