@@ -29,7 +29,7 @@ MainGui.Show("w800 h600")
 ; Initialize WebViewToo
 WV := MainGui.Control.wv
 
-MainGui.Control.CreateCoreWebView2ControllerOptions()
+;MainGui.Control.CreateCoreWebView2ControllerOptions()
 
 ; Define global functions for WebView2 Interop
 
@@ -93,7 +93,7 @@ AHK_DeleteSite(filename) {
     return true
 }
 
-AHK_FetchHTML(url) {
+AHK_RawFetchHTML(url) {
     try {
         req := ComObject("WinHttp.WinHttpRequest.5.1")
         req.Open("GET", url, false)
@@ -104,6 +104,11 @@ AHK_FetchHTML(url) {
         return ""
     }
 }
+
+fetcherScript() {
+    MsgBox "Hello from fetcher script"
+}
+
 
 AHK_ExecuteSearch(query, engine) {
     Run(engine . query)
@@ -125,14 +130,15 @@ global PlayerRectX := 0
 global PlayerRectY := 0
 global PlayerRectW := 0
 global PlayerRectH := 0
-global AdblockScript := FileRead("adblock.js", "UTF-8")
+global AdblockScript := FileRead("js/adblock.js", "UTF-8")
+global GlobalScript := FileRead("js/global.js", "UTF-8")
 
-InjectAdblocker() {
-    global PlayerWV
+AHK_UpdateURL(url) {
+    global WV, PlayerCurrentUrl
     try {
-        if (AdblockScript) {
-            PlayerWV.ExecuteScriptAsync(AdblockScript)
-        }
+        PlayerCurrentUrl := url
+        js := 'window.dispatchEvent(new CustomEvent("player-url-changed", { detail: { url: "' url '" } }))'
+        WV.ExecuteScriptAsync(js)
     } catch {
     }
 }
@@ -152,9 +158,12 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                 PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
                 PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
 
-                ;PlayerWV.OnEvent("NavigationCompleted", InjectAdblocker)
-                ;PlayerWV.NavigationCompleted(InjectAdblocker, 0)
+                PlayerWV.AddHostObjectToScript("ahk", {
+                    UpdateURL: AHK_UpdateURL
+                })
+                PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
+                ;PlayerWV.SourceChanged(xWebView2.Handler(AHK_PlayerUrlChanged))
                 if (PendingPlayerUrl != "") {
                     PlayerCurrentUrl := PendingPlayerUrl
                     PlayerWV.Navigate(PendingPlayerUrl)
@@ -192,11 +201,9 @@ AHK_UpdatePlayerUrl(url) {
             PlayerCurrentUrl := url
             PlayerWV.Navigate(url)
         }
-
-        SetTimer(InjectAdblocker, -2000)
+        ;SetTimer(InjectAdblocker, -2000)
     }
     SetTimer(DoUpdateUrl, -1)
-
 }
 
 ; Expose AHK functions to the WebView (JavaScript) using a plain object
@@ -210,12 +217,14 @@ WV.AddHostObjectToScript("ahk", {
     SaveSite: AHK_SaveSite,
     LoadSite: AHK_LoadSite,
     DeleteSite: AHK_DeleteSite,
-    FetchHTML: AHK_FetchHTML,
+    RawFetchHTML: AHK_RawFetchHTML,
     ExecuteSearch: AHK_ExecuteSearch,
     InjectJS: AHK_InjectJS,
     UpdatePlayerRect: AHK_UpdatePlayerRect,
-    UpdatePlayerUrl: AHK_UpdatePlayerUrl
+    UpdatePlayerUrl: AHK_UpdatePlayerUrl,
+    UpdateURL: AHK_UpdateURL
 })
+;WV.AddHostObjectToScript("UpdateURL", AHK_UpdateURL)
 
 ; Inject Adblocker and Preloads on document creation
 try {

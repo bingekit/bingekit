@@ -10,7 +10,7 @@ import {
   Play, LayoutGrid, Shield, ShieldOff, Plus,
   Puzzle, Save, Trash2, Download, Upload, KeyRound,
   Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell,
-  Compass, Zap
+  Compass, Zap, Clock, Folder, Lock, EyeOff, Eye
 } from 'lucide-react';
 
 // --- Types ---
@@ -19,6 +19,22 @@ interface BookmarkItem {
   title: string;
   url: string;
   icon?: string;
+  tags?: string[];
+  folder?: string;
+}
+
+interface WatchLaterItem {
+  id: string;
+  title: string;
+  url: string;
+  addedAt: number;
+}
+
+interface CredentialItem {
+  id: string;
+  domain: string;
+  username: string;
+  passwordBase64: string;
 }
 
 interface FollowedItem {
@@ -34,7 +50,7 @@ interface FollowedItem {
 
 interface FlowStep {
   id: string;
-  type: 'fetchHtml' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject';
+  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin';
   params: Record<string, any>;
 }
 
@@ -42,6 +58,7 @@ interface CustomFlow {
   id: string;
   name: string;
   description: string;
+  variables?: string[];
   steps: FlowStep[];
 }
 
@@ -83,6 +100,7 @@ interface SitePlugin {
     playerSel: string;
     focusCss: string;
   };
+  tags?: string[];
   customFunctions: {
     name: string;
     description: string;
@@ -99,6 +117,7 @@ const DEFAULT_PLUGIN: SitePlugin = {
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },
+  tags: [],
   customFunctions: []
 };
 
@@ -118,24 +137,98 @@ const ahk = {
   }
 };
 
+const CustomCheckbox = ({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) => (
+  <button
+    type="button"
+    onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
+    className={`w-4 h-4 rounded flex items-center justify-center border transition-colors ${checked ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-zinc-900 border-zinc-700 hover:border-zinc-500'}`}
+  >
+    {checked && <svg viewBox="0 0 14 14" fill="none" className="w-3 h-3 stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7l3 3 5-5" /></svg>}
+  </button>
+);
+
+const TagsInput = ({ tags = [], onChange }: { tags: string[], onChange: (tags: string[]) => void }) => {
+  const [input, setInput] = useState('');
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = input.trim().replace(/^,|,$/g, '');
+      if (val && !tags.includes(val)) {
+        onChange([...tags, val]);
+      }
+      setInput('');
+    } else if (e.key === 'Backspace' && !input && tags.length > 0) {
+      onChange(tags.slice(0, -1));
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 focus-within:border-indigo-500 transition-colors cursor-text min-h-[38px]" onClick={(e) => (e.currentTarget.querySelector('input') as HTMLInputElement)?.focus()}>
+      {tags.map((tag, i) => (
+        <span key={i} className="flex items-center gap-1 bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-md">
+          {tag}
+          <button type="button" onClick={() => onChange(tags.filter((_, idx) => idx !== i))} className="hover:text-red-400">
+            <X size={12} />
+          </button>
+        </span>
+      ))}
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={tags.length === 0 ? "Enter tags..." : ""}
+        className="flex-1 min-w-[80px] bg-transparent border-none text-sm text-zinc-200 outline-none p-0 focus:ring-0"
+      />
+    </div>
+  );
+};
+
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-zinc-800/50">
+          <h2 className="text-lg font-medium text-zinc-100">{title}</h2>
+          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 transition-colors p-1 rounded-lg hover:bg-zinc-800"><X size={18} /></button>
+        </div>
+        <div className="p-5 overflow-y-auto no-scrollbar">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
   const [isSimpleUrlBar, setIsSimpleUrlBar] = useState(false);
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
   const [followedItems, setFollowedItems] = useState<FollowedItem[]>([]);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
   const [flows, setFlows] = useState<CustomFlow[]>([]);
   const [editingFlow, setEditingFlow] = useState<CustomFlow | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'plugins' | 'activity' | 'settings' | 'flows'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows'>('dashboard');
   const [multiSearchQuery, setMultiSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [watchLater, setWatchLater] = useState<WatchLaterItem[]>([]);
+  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
+  const [newCred, setNewCred] = useState({ domain: '', username: '', password: '' });
+  const [bookmarkSearchQuery, setBookmarkSearchQuery] = useState('');
+  const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
+  const [showCredModal, setShowCredModal] = useState(false);
+  const [searchParamMode, setSearchParamMode] = useState<'navigate' | 'fetch'>('navigate');
+  const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
+  const lastSyncUrl = useRef<string | null>(null);
 
   // Sync player dimensions with AHK child GUI
   useEffect(() => {
@@ -151,12 +244,12 @@ export default function App() {
         }
       });
       observer.observe(playerRef.current);
-      
+
       const rect = playerRef.current.getBoundingClientRect();
       const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)}`;
       lastRectRef.current = rectStr;
       ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), true);
-      
+
       return () => {
         observer.disconnect();
         lastRectRef.current = '';
@@ -171,9 +264,25 @@ export default function App() {
   // Sync the URL when the user changes it or opens the player tab
   useEffect(() => {
     if (activeTab === 'player') {
-      ahk.call('UpdatePlayerUrl', url);
+      if (lastSyncUrl.current !== url) {
+        lastSyncUrl.current = url;
+        ahk.call('UpdatePlayerUrl', url);
+      }
     }
   }, [activeTab, url]);
+
+  // Listen for url updates from AHK
+  useEffect(() => {
+    const handleEvent = (e: any) => {
+      if (e.detail && e.detail.url) {
+        lastSyncUrl.current = e.detail.url;
+        setUrl(e.detail.url);
+        setInputUrl(e.detail.url);
+      }
+    };
+    window.addEventListener('player-url-changed', handleEvent);
+    return () => window.removeEventListener('player-url-changed', handleEvent);
+  }, []);
 
   // Load data on mount
   useEffect(() => {
@@ -198,6 +307,18 @@ export default function App() {
     const savedFlows = ahk.call('LoadData', 'flows.json');
     if (savedFlows) {
       try { setFlows(JSON.parse(savedFlows)); } catch (e) { }
+    }
+
+    // Load Watch Later
+    const savedWatchLater = ahk.call('LoadData', 'watchlater.json');
+    if (savedWatchLater) {
+      try { setWatchLater(JSON.parse(savedWatchLater)); } catch (e) { }
+    }
+
+    // Load Credentials
+    const savedCreds = ahk.call('LoadData', 'credentials.json');
+    if (savedCreds) {
+      try { setCredentials(JSON.parse(savedCreds)); } catch (e) { }
     }
 
     // Load Plugins
@@ -226,6 +347,20 @@ export default function App() {
     }
   }, [bookmarks]);
 
+  // Save watch later when changed
+  useEffect(() => {
+    if (watchLater.length > 0) {
+      ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater));
+    }
+  }, [watchLater]);
+
+  // Save credentials when changed
+  useEffect(() => {
+    if (credentials.length > 0) {
+      ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials));
+    }
+  }, [credentials]);
+
   // Save followed items when changed
   useEffect(() => {
     if (followedItems.length > 0) {
@@ -242,7 +377,7 @@ export default function App() {
       const plugin = plugins.find(p => p.id === item.siteId);
       if (!plugin) continue;
 
-      const html = ahk.call('FetchHTML', item.url);
+      const html = ahk.call('RawFetchHTML', item.url);
       if (!html) continue;
 
       const parser = new DOMParser();
@@ -299,7 +434,7 @@ export default function App() {
     loadPlugins();
   };
 
-  const updateEditingPlugin = (section: keyof SitePlugin, field: string, value: any) => {
+  const updateEditingPlugin = (section: keyof SitePlugin | 'root', field: string, value: any) => {
     if (!editingPlugin) return;
     if (section === 'root') {
       setEditingPlugin({ ...editingPlugin, [field]: value });
@@ -308,6 +443,19 @@ export default function App() {
         ...editingPlugin,
         [section]: { ...(editingPlugin[section as keyof SitePlugin] as any), [field]: value }
       });
+    }
+  };
+
+  const fetchTitleForUrl = (targetUrl: string): string => {
+    try {
+      const html = ahk.call('RawFetchHTML', targetUrl);
+      if (html) {
+        const match = html.match(/<title>(.*?)<\/title>/i);
+        if (match && match[1]) return match[1].trim();
+      }
+      return new URL(targetUrl).hostname;
+    } catch {
+      return targetUrl;
     }
   };
 
@@ -356,12 +504,25 @@ export default function App() {
                 type="button"
                 onClick={() => {
                   if (!bookmarks.find(b => b.url === url)) {
-                    setBookmarks([...bookmarks, { id: Date.now().toString(), title: (() => { try { return new URL(url).hostname; } catch (e) { return url; } })(), url }]);
+                    setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
                   }
                 }}
                 className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
+                title="Bookmark"
               >
                 <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!watchLater.find(w => w.url === url)) {
+                    setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
+                  }
+                }}
+                className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
+                title="Watch Later"
+              >
+                <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
               </button>
             </form>
           )}
@@ -403,6 +564,12 @@ export default function App() {
             className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'bookmarks' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
           >
             <Bookmark size={20} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={() => setActiveTab('watchlater')}
+            className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'watchlater' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+          >
+            <Clock size={20} strokeWidth={1.5} />
           </button>
           <button
             onClick={() => setActiveTab('activity')}
@@ -455,44 +622,144 @@ export default function App() {
                   <h1 className="text-5xl font-light tracking-tight text-zinc-100">StreamView</h1>
                 </div>
 
-                <div className="w-full max-w-2xl relative mb-8">
-                  <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    type="text"
-                    value={multiSearchQuery}
-                    onChange={(e) => setMultiSearchQuery(e.target.value)}
-                    placeholder="Search across all plugins..."
-                    className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-lg text-zinc-200 focus:border-indigo-500 focus:bg-zinc-900 outline-none transition-all shadow-xl"
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter' && multiSearchQuery) {
-                        setIsSearching(true);
-                        setSearchResults([]);
-                        // Multi-search logic
-                        const results: any[] = [];
-                        for (const plugin of plugins) {
-                          if (plugin.search.urlFormat) {
-                            const searchUrl = plugin.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
-                            // In a real app, we'd fetch and parse here
-                            // For now, we'll just add a dummy result to show the UI
-                            results.push({
-                              id: Date.now() + Math.random(),
-                              title: `Search ${plugin.name} for "${multiSearchQuery}"`,
-                              url: searchUrl,
-                              pluginName: plugin.name,
+                <div className="w-full max-w-2xl relative mb-8 flex flex-col gap-3">
+                  <div className="relative w-full">
+                    <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      type="text"
+                      value={multiSearchQuery}
+                      onChange={(e) => setMultiSearchQuery(e.target.value)}
+                      placeholder="Search across all plugins or enter URL..."
+                      className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-lg text-zinc-200 focus:border-indigo-500 focus:bg-zinc-900 outline-none transition-all shadow-xl"
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter' && multiSearchQuery) {
+                          setIsSearching(true);
+                          setSearchResults([]);
+
+                          if (searchParamMode === 'navigate') {
+                            const navResults = plugins.map(p => ({
+                              id: p.id,
+                              title: `Search ${p.name}`,
+                              url: p.search?.urlFormat ? p.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery)) : p.baseUrl,
+                              pluginName: p.name,
+                              type: 'search'
+                            }));
+
+                            let dest = multiSearchQuery;
+                            if (!dest.startsWith('http')) {
+                              dest = dest.includes('.') && !dest.includes(' ') ? `https://${dest}` : `https://duckduckgo.com/?q=${encodeURIComponent(dest)}`;
+                            }
+                            navResults.unshift({
+                              id: 'direct-nav',
+                              title: `Navigate to ${multiSearchQuery}`,
+                              url: dest,
+                              pluginName: 'Browser URL',
                               type: 'search'
                             });
+
+                            setSearchResults(navResults);
+                            setIsSearching(false);
+                            return;
                           }
+
+                          // Multi-search Logic (Fetch mode)
+                          const results: any[] = [];
+                          for (const plugin of plugins) {
+                            if (plugin.search.urlFormat) {
+                              console.log(`[Search] Starting fetch for ${plugin.name}...`);
+                              const searchUrl = plugin.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
+                              try {
+                                //const html = await (await fetch(searchUrl)).text();
+                                const html = ahk.call('RawFetchHTML', searchUrl);
+                                console.log(`[Search] ${plugin.name} returned HTML layout (${html ? Math.round(html.length / 1024) + 'kb' : 'failed'})`);
+
+                                if (html) {
+                                  const parser = new DOMParser();
+                                  const doc = parser.parseFromString(html, 'text/html');
+                                  const items = plugin.search.itemSel ? doc.querySelectorAll(plugin.search.itemSel) : [];
+                                  console.log(`[Search] ${plugin.name} matched ${items.length} items using itemSel: '${plugin.search.itemSel}'`);
+
+                                  if (items.length > 0) {
+                                    Array.from(items).slice(0, 10).forEach((item, i) => {
+                                      const titleEl = plugin.search.titleSel ? item.querySelector(plugin.search.titleSel) : item;
+                                      let extractedTitle = titleEl?.textContent?.trim();
+
+                                      // If title selector specifically targeted an attribute (e.g. img@alt format) we'd parse it here, but falling back:
+                                      if (!extractedTitle && titleEl?.hasAttribute('alt')) extractedTitle = titleEl.getAttribute('alt') || '';
+                                      if (!extractedTitle && titleEl?.hasAttribute('title')) extractedTitle = titleEl.getAttribute('title') || '';
+
+                                      const linkEl = plugin.search.linkSel ? (item.querySelector(plugin.search.linkSel) || item) : item;
+                                      let href = linkEl?.getAttribute('href');
+                                      if (href && !href.startsWith('http')) {
+                                        try { href = new URL(href, plugin.baseUrl).href; } catch { }
+                                      }
+
+                                      if (extractedTitle && href) {
+                                        results.push({
+                                          id: plugin.id + '_' + i,
+                                          title: extractedTitle,
+                                          url: href,
+                                          pluginName: plugin.name,
+                                          type: 'result'
+                                        });
+                                      }
+                                    });
+                                  } else {
+                                    console.log(`[Search] ${plugin.name} found 0 results mapping. Generating empty marker.`);
+                                    results.push({
+                                      id: plugin.id + '_empty',
+                                      title: 'No matches found',
+                                      url: searchUrl,
+                                      pluginName: plugin.name,
+                                      type: 'empty'
+                                    });
+                                  }
+                                } else {
+                                  console.log(`[Search] ${plugin.name} failed to return HTML body.`);
+                                  results.push({
+                                    id: plugin.id + '_error',
+                                    title: 'Failed to fetch HTTP',
+                                    url: searchUrl,
+                                    pluginName: plugin.name,
+                                    type: 'empty'
+                                  });
+                                }
+                              } catch (e) {
+                                console.error(`[Search] Error evaluating ${plugin.name}:`, e);
+                                results.push({ id: plugin.id + '_error', title: 'Error executing script', url: searchUrl, pluginName: plugin.name, type: 'empty' });
+                              }
+                            }
+                          }
+                          console.log(`[Search] Completed multi-search. Generated ${results.length} total card blocks.`);
+                          setSearchResults(results);
+                          setIsSearching(false);
                         }
-                        setSearchResults(results);
-                        setIsSearching(false);
-                      }
-                    }}
-                  />
-                  {isSearching && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                      <RefreshCw size={18} className="text-indigo-500 animate-spin" />
+                      }}
+                    />
+                    {isSearching && (
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        <RefreshCw size={18} className="text-indigo-500 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mode Toggle */}
+                  <div className="flex justify-center mt-2">
+                    <div className="inline-flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800/50">
+                      <button
+                        onClick={() => setSearchParamMode('navigate')}
+                        className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'navigate' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      >
+                        Web Navigate
+                      </button>
+                      <button
+                        onClick={() => setSearchParamMode('fetch')}
+                        className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'fetch' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                      >
+                        Deep Fetch HTML
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 {/* Tags / Custom Search Lists */}
@@ -506,29 +773,67 @@ export default function App() {
 
                 {/* Search Results */}
                 {searchResults.length > 0 && (
-                  <div className="w-full max-w-4xl space-y-4">
+                  <div className="w-full max-w-5xl space-y-6">
                     <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Search Results</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {searchResults.map((result) => (
-                        <div
-                          key={result.id}
-                          onClick={() => {
-                            setUrl(result.url);
-                            setInputUrl(result.url);
-                            setActiveTab('player');
-                          }}
-                          className="p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all flex items-center gap-4 group"
-                        >
-                          <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-colors">
-                            <Search size={18} />
+
+                    {searchParamMode === 'navigate' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {searchResults.map((result) => (
+                          <div
+                            key={result.id}
+                            onClick={() => {
+                              setUrl(result.url);
+                              setInputUrl(result.url);
+                              setActiveTab('player');
+                            }}
+                            className="p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all flex items-center gap-4 group"
+                          >
+                            <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-indigo-400 group-hover:bg-indigo-500/10 transition-colors">
+                              <Search size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-zinc-200 truncate">{result.title}</h4>
+                              <p className="text-xs text-zinc-500 truncate mt-1">{result.pluginName}</p>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-zinc-200 truncate">{result.title}</h4>
-                            <p className="text-xs text-zinc-500 truncate mt-1">{result.pluginName}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {Array.from(new Set(searchResults.map(r => r.pluginName))).map(pName => {
+                          const grouping = searchResults.filter(r => r.pluginName === pName);
+                          return (
+                            <div key={pName} className="bg-zinc-900/40 border border-zinc-800/60 rounded-xl p-5">
+                              <h4 className="text-sm font-medium text-indigo-400 mb-4 flex items-center gap-2">
+                                <Puzzle size={16} /> {pName}
+                                <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full ml-auto">{grouping.length} Items</span>
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                                {grouping.map(result => (
+                                  <div
+                                    key={result.id}
+                                    onClick={() => {
+                                      setUrl(result.url);
+                                      setInputUrl(result.url);
+                                      setActiveTab('player');
+                                    }}
+                                    className={`p-3 bg-zinc-950/50 border border-zinc-800/80 hover:border-indigo-500/40 rounded-xl cursor-pointer transition-all flex items-start gap-4 ${result.type === 'empty' ? 'opacity-50 hover:opacity-100' : ''}`}
+                                  >
+                                    <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center flex-shrink-0 text-zinc-500 mt-0.5">
+                                      {result.type === 'empty' ? <Minus size={16} /> : <Film size={16} />}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h5 className="text-sm font-medium text-zinc-200 line-clamp-2 leading-tight">{result.title}</h5>
+                                      {result.type !== 'empty' && <p className="text-[10px] text-zinc-500 truncate mt-1.5">{result.url}</p>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -536,102 +841,341 @@ export default function App() {
 
             {activeTab === 'player' && (
               <div className="w-full h-full bg-zinc-950 flex flex-col relative">
-                {/* Quick Options Bar */}
-                <div className="h-10 bg-zinc-950 border-b border-zinc-900 flex items-center px-4 gap-4 z-10">
-                  <button
-                    onClick={() => {
-                      // Example: Find mirrors logic
-                      setMultiSearchQuery(new URL(url).hostname);
-                      setActiveTab('dashboard');
-                    }}
-                    className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors"
-                  >
-                    <Search size={14} /> Find Mirrors
-                  </button>
-                  <div className="w-px h-4 bg-zinc-800" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-zinc-600 font-medium">Run Flow:</span>
-                    {flows.map(flow => (
-                      <button
-                        key={flow.id}
-                        onClick={() => {
-                          // Execute flow logic here
-                          console.log('Running flow:', flow.name, 'on url:', url);
-                        }}
-                        className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 py-1 rounded"
-                      >
-                        <Zap size={12} /> {flow.name}
-                      </button>
-                    ))}
-                    {flows.length === 0 && (
-                      <span className="text-xs text-zinc-600 italic">No flows available</span>
-                    )}
+                {/* Quick Options Bar & Toggle */}
+                {!isQuickOptionsHidden && (
+                  <div className="h-10 bg-zinc-950 border-b border-zinc-900 flex items-center px-4 gap-4 z-10 shrink-0">
+                    <button
+                      onClick={() => {
+                        setMultiSearchQuery(new URL(url).hostname);
+                        setActiveTab('dashboard');
+                      }}
+                      className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Search size={14} /> Find Mirrors
+                    </button>
+                    <div className="w-px h-4 bg-zinc-800" />
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                      <span className="text-xs text-zinc-600 font-medium whitespace-nowrap">Run Flow:</span>
+                      {flows.map(flow => (
+                        <button
+                          key={flow.id}
+                          onClick={async () => {
+                            console.log('Running flow:', flow.name, 'on url:', url);
+                            let currentVar = url;
+                            for (const step of flow.steps) {
+                              console.log("Executing Step:", step.type, step.params);
+                              // Simple variable replacement
+                              const replaceVars = (str: string) => str ? str.replace(/\{\{CURRENT_URL\}\}/g, url).replace(/\{\{PREV\}\}/g, currentVar) : str;
+
+                              if (step.type === 'navigate') {
+                                ahk.call('UpdatePlayerUrl', replaceVars(step.params.url || ''));
+                                currentVar = replaceVars(step.params.url || '');
+                                await new Promise(r => setTimeout(r, 1000)); // wait for load
+                              } else if (step.type === 'inject') {
+                                ahk.call('InjectJS', replaceVars(step.params.code || ''));
+                              } else if (step.type === 'callFlow' || step.type === 'callPlugin') {
+                                alert('Nested flows/plugins coming soon!');
+                              }
+                            }
+                            setActiveTab('player');
+                          }}
+                          className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 py-1 rounded whitespace-nowrap"
+                        >
+                          <Zap size={12} /> {flow.name}
+                        </button>
+                      ))}
+                      {flows.length === 0 && (
+                        <span className="text-xs text-zinc-600 italic whitespace-nowrap">No flows</span>
+                      )}
+                    </div>
+                    <div className="flex-1" />
+                    <button
+                      title="Inject Login Credentials"
+                      onClick={() => {
+                        const plugin = plugins.find(p => url.includes(p.baseUrl));
+                        if (plugin && plugin.auth.usernameValue && plugin.auth.passwordValue) {
+                          const js = `
+                            (function() {
+                              const userEl = document.querySelector("${plugin.auth.userSel}");
+                              const passEl = document.querySelector("${plugin.auth.passSel}");
+                              if (userEl) {
+                                userEl.value = "${plugin.auth.usernameValue}";
+                                userEl.dispatchEvent(new Event('input', { bubbles: true }));
+                              }
+                              if (passEl) {
+                                passEl.value = "${plugin.auth.passwordValue}";
+                                passEl.dispatchEvent(new Event('input', { bubbles: true }));
+                              }
+                              const submitEl = document.querySelector("${plugin.auth.submitSel}");
+                              if (submitEl) submitEl.click();
+                            })();
+                          `;
+                          ahk.call('InjectJS', js);
+                        } else {
+                          // Try general credentials
+                          const hostname = new URL(url).hostname;
+                          const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
+                          if (cred) {
+                            // Basic injection for standard forms if no plugin matches
+                            const js = `
+                              (function() {
+                                const pass = atob("${cred.passwordBase64}");
+                                const userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"]');
+                                const passInputs = document.querySelectorAll('input[type="password"]');
+                                if (userInputs.length > 0) { userInputs[0].value = "${cred.username}"; userInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+                                if (passInputs.length > 0) { passInputs[0].value = pass; passInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+                              })();
+                            `;
+                            ahk.call('InjectJS', js);
+                          } else {
+                            alert('No matching plugin or saved credentials found.');
+                          }
+                        }
+                      }}
+                      className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0"
+                    >
+                      <KeyRound size={14} /> Auto-Login
+                    </button>
                   </div>
-                  <div className="flex-1" />
-                  <button
-                    title="Inject Login Credentials"
-                    onClick={() => {
-                      const plugin = plugins.find(p => url.includes(p.baseUrl));
-                      if (plugin && plugin.auth.usernameValue && plugin.auth.passwordValue) {
-                        const js = `
-                          (function() {
-                            const userEl = document.querySelector("${plugin.auth.userSel}");
-                            const passEl = document.querySelector("${plugin.auth.passSel}");
-                            if (userEl) {
-                              userEl.value = "${plugin.auth.usernameValue}";
-                              userEl.dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                            if (passEl) {
-                              passEl.value = "${plugin.auth.passwordValue}";
-                              passEl.dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                            const submitEl = document.querySelector("${plugin.auth.submitSel}");
-                            if (submitEl) submitEl.click();
-                          })();
-                        `;
-                        ahk.call('InjectJS', js);
-                      } else {
-                        alert('No matching plugin found or credentials not set.');
-                      }
-                    }}
-                    className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors"
-                  >
-                    <KeyRound size={14} /> Auto-Login
-                  </button>
-                </div>
+                )}
+                {/* Toggle Button for Quick Options */}
+                <button
+                  onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
+                  className={`absolute right-4 z-20 p-1.5 bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800/50 rounded-lg text-zinc-500 hover:text-zinc-300 transition-all shadow-lg backdrop-blur-sm ${isQuickOptionsHidden ? 'top-4' : 'top-12'}`}
+                  title={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}
+                >
+                  {isQuickOptionsHidden ? <ChevronLeft size={14} /> : <X size={14} />}
+                </button>
+
                 <div ref={playerRef} className="w-full flex-1 bg-zinc-900 border-none relative" />
               </div>
             )}
 
             {activeTab === 'bookmarks' && (
-              <div className="p-8 max-w-4xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
+              <div className="p-8 max-w-5xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-2xl font-light tracking-tight text-zinc-100">Bookmarks</h2>
-                  <button className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full transition-colors">
-                    <Plus size={16} /> Add Current
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                      <input
+                        type="text"
+                        placeholder="Search bookmarks..."
+                        value={bookmarkSearchQuery}
+                        onChange={e => setBookmarkSearchQuery(e.target.value)}
+                        className="bg-zinc-900 border border-zinc-800 rounded-full py-2 pl-9 pr-4 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-colors w-64"
+                      />
+                    </div>
+                    {selectedBookmarks.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setBookmarks(bookmarks.filter(b => !selectedBookmarks.includes(b.id)));
+                          setSelectedBookmarks([]);
+                        }}
+                        className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 px-4 py-2 rounded-full transition-colors"
+                      >
+                        <Trash2 size={16} /> Delete Selected ({selectedBookmarks.length})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        const newId = Date.now().toString();
+                        const newUrl = inputUrl && inputUrl !== 'https://example.com/stream' ? inputUrl : 'https://';
+                        const urlHostname = (() => { try { return new URL(newUrl).hostname } catch { return 'New Site' } })();
+                        setBookmarks([{ id: newId, title: urlHostname, url: newUrl, folder: 'General', tags: [urlHostname.split('.')[0]] }, ...bookmarks]);
+                        setEditingBookmarkId(newId);
+                      }}
+                      className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full transition-colors"
+                    >
+                      <Plus size={16} /> Add Bookmark
+                    </button>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {bookmarks.map(bookmark => (
+                {Array.from(new Set(['All', ...bookmarks.map(b => b.folder).filter(Boolean)])).map(folder => {
+                  const itemsInFolder = bookmarks.filter(b => (folder === 'All' && !b.folder) || b.folder === folder)
+                    .filter(b => b.title.toLowerCase().includes(bookmarkSearchQuery.toLowerCase()) || b.url.toLowerCase().includes(bookmarkSearchQuery.toLowerCase()) || b.tags?.some(t => t.toLowerCase().includes(bookmarkSearchQuery.toLowerCase())));
+
+                  if (itemsInFolder.length === 0) return null;
+
+                  return (
+                    <div key={folder || 'All'} className="mb-8">
+                      <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <Folder size={16} /> {folder}
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {itemsInFolder.map(bookmark => (
+                          <div
+                            key={bookmark.id}
+                            className="group relative p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-2xl transition-all duration-300 flex items-start gap-4"
+                          >
+                            <div className="absolute top-3 right-3 z-10 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <CustomCheckbox
+                                checked={selectedBookmarks.includes(bookmark.id)}
+                                onChange={(checked) => {
+                                  if (checked) setSelectedBookmarks([...selectedBookmarks, bookmark.id]);
+                                  else setSelectedBookmarks(selectedBookmarks.filter(id => id !== bookmark.id));
+                                }}
+                              />
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setEditingBookmarkId(bookmark.id); }}
+                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors"
+                              >
+                                <Settings size={14} />
+                              </button>
+                            </div>
+                            <div
+                              className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all cursor-pointer"
+                              onClick={() => {
+                                setUrl(bookmark.url);
+                                setInputUrl(bookmark.url);
+                                setActiveTab('player');
+                              }}
+                            >
+                              <Tv size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0 pr-8">
+                              <h4 className="text-sm font-medium text-zinc-200 truncate cursor-pointer" onClick={() => { setUrl(bookmark.url); setInputUrl(bookmark.url); setActiveTab('player'); }}>
+                                {bookmark.title}
+                              </h4>
+                              <p className="text-xs text-zinc-500 truncate mt-0.5">{bookmark.url}</p>
+                              {(bookmark.folder || (bookmark.tags && bookmark.tags.length > 0)) && (
+                                <div className="flex gap-1.5 mt-2 flex-wrap max-h-[44px] overflow-hidden">
+                                  {bookmark.folder && (
+                                    <span className="bg-zinc-800 text-zinc-400 text-[10px] px-2 py-0.5 rounded flex items-center gap-1"><Folder size={10} /> {bookmark.folder}</span>
+                                  )}
+                                  {bookmark.tags?.map((t, idx) => (
+                                    <span key={idx} className="bg-zinc-800/50 text-zinc-500 text-[10px] px-2 py-0.5 rounded">{t}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {bookmarks.filter(b => b.title.toLowerCase().includes(bookmarkSearchQuery.toLowerCase()) || b.url.toLowerCase().includes(bookmarkSearchQuery.toLowerCase()) || b.tags?.some(t => t.toLowerCase().includes(bookmarkSearchQuery.toLowerCase()))).length === 0 && (
+                  <div className="text-center py-20 text-zinc-500">
+                    <Bookmark size={48} className="mx-auto mb-4 opacity-20" />
+                    No bookmarks found matching your search.
+                  </div>
+                )}
+
+                {/* Edit Bookmark Modal */}
+                <Modal
+                  isOpen={!!editingBookmarkId}
+                  onClose={() => setEditingBookmarkId(null)}
+                  title="Edit Bookmark"
+                >
+                  {editingBookmarkId && (() => {
+                    const bm = bookmarks.find(b => b.id === editingBookmarkId);
+                    if (!bm) return null;
+                    return (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Title</label>
+                          <input
+                            value={bm.title}
+                            onChange={(e) => setBookmarks(bookmarks.map(b => b.id === bm.id ? { ...b, title: e.target.value } : b))}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">URL</label>
+                          <input
+                            value={bm.url}
+                            onChange={(e) => setBookmarks(bookmarks.map(b => b.id === bm.id ? { ...b, url: e.target.value } : b))}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Folder</label>
+                            <input
+                              value={bm.folder || ''}
+                              onChange={(e) => setBookmarks(bookmarks.map(b => b.id === bm.id ? { ...b, folder: e.target.value } : b))}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
+                              placeholder="General"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Tags</label>
+                            <TagsInput
+                              tags={bm.tags || []}
+                              onChange={newTags => setBookmarks(bookmarks.map(b => b.id === bm.id ? { ...b, tags: newTags } : b))}
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                          <button
+                            onClick={() => {
+                              setBookmarks(bookmarks.filter(b => b.id !== bm.id));
+                              setEditingBookmarkId(null);
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            onClick={() => setEditingBookmarkId(null)}
+                            className="px-4 py-2 text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </Modal>
+              </div>
+            )}
+
+            {activeTab === 'watchlater' && (
+              <div className="p-8 max-w-4xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-light tracking-tight text-zinc-100">Watch Later</h2>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3">
+                  {watchLater.map(item => (
                     <div
-                      key={bookmark.id}
+                      key={item.id}
                       onClick={() => {
-                        setUrl(bookmark.url);
-                        setInputUrl(bookmark.url);
-                        setActiveTab('browser');
+                        setUrl(item.url);
+                        setInputUrl(item.url);
+                        setActiveTab('player');
                       }}
-                      className="group p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-2xl cursor-pointer transition-all duration-300 flex items-start gap-4"
+                      className="group p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all duration-300 flex items-center gap-4"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:scale-105 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all">
-                        <Tv size={18} />
+                      <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all">
+                        <Clock size={18} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-zinc-200 truncate">{bookmark.title}</h3>
-                        <p className="text-xs text-zinc-500 truncate mt-1">{bookmark.url}</p>
+                        <h3 className="text-sm font-medium text-zinc-200 truncate">{item.title}</h3>
+                        <p className="text-xs text-zinc-500 truncate mt-1">{item.url}</p>
+                      </div>
+                      <div className="px-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setWatchLater(watchLater.filter(w => w.id !== item.id));
+                          }}
+                          className="p-2 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
+                  {watchLater.length === 0 && (
+                    <div className="text-center py-12 text-zinc-500 text-sm">
+                      <Clock size={32} className="mx-auto mb-4 opacity-20" />
+                      Your watch later list is empty.
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -682,7 +1226,7 @@ export default function App() {
                         }
                         setUrl(item.url);
                         setInputUrl(item.url);
-                        setActiveTab('browser');
+                        setActiveTab('player');
                       }}
                       className={`group p-4 bg-zinc-900/50 border ${item.hasUpdate ? 'border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'border-zinc-800/50 hover:border-zinc-700'} rounded-2xl cursor-pointer transition-all duration-300 flex items-start gap-4 relative overflow-hidden`}
                     >
@@ -803,6 +1347,13 @@ export default function App() {
                             />
                           </div>
                         </div>
+                        <div className="mt-4">
+                          <label className="block text-xs text-zinc-500 mb-1.5">Tags</label>
+                          <TagsInput
+                            tags={editingPlugin.tags || []}
+                            onChange={newTags => updateEditingPlugin('root', 'tags', newTags)}
+                          />
+                        </div>
                       </div>
 
                       {/* Authentication Flow */}
@@ -843,32 +1394,6 @@ export default function App() {
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">Username Value (to inject)</label>
-                              <input
-                                type="text" value={editingPlugin.auth.usernameValue} placeholder="user@email.com"
-                                onChange={(e) => updateEditingPlugin('auth', 'usernameValue', e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">Password Value (to inject)</label>
-                              <input
-                                type="password" value={editingPlugin.auth.passwordValue} placeholder="••••••••"
-                                onChange={(e) => updateEditingPlugin('auth', 'passwordValue', e.target.value)}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                              />
-                            </div>
-                          </div>
-                          <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
-                            <input
-                              type="checkbox" checked={editingPlugin.auth.encryptCreds}
-                              onChange={(e) => updateEditingPlugin('auth', 'encryptCreds', e.target.checked)}
-                              className="rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-indigo-500"
-                            />
-                            Encrypt credentials locally (AHK Crypt)
-                          </label>
                         </div>
                       </div>
 
@@ -1206,8 +1731,8 @@ export default function App() {
                                   setActiveTab('browser');
                                 } else if (step.type === 'inject') {
                                   ahk.call('InjectJS', step.params.code);
-                                } else if (step.type === 'fetchHtml') {
-                                  const html = await ahk.call('FetchHTML', step.params.url);
+                                } else if (step.type === 'RawFetchHTML') {
+                                  const html = await ahk.call('RawFetchHTML', step.params.url);
                                   console.log('Fetched HTML length:', html?.length);
                                 }
                                 // Add more step executions as needed
@@ -1259,7 +1784,7 @@ export default function App() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
-                                const newStep: FlowStep = { id: Date.now().toString(), type: 'fetchHtml', params: { url: '' } };
+                                const newStep: FlowStep = { id: Date.now().toString(), type: 'RawFetchHTML', params: { url: '' } };
                                 setEditingFlow({ ...editingFlow, steps: [...editingFlow.steps, newStep] });
                               }}
                               className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded hover:bg-indigo-500/30 flex items-center gap-1"
@@ -1287,7 +1812,7 @@ export default function App() {
                                     }}
                                     className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
                                   >
-                                    <option value="fetchHtml">Fetch HTML</option>
+                                    <option value="RawFetchHTML">Fetch HTML</option>
                                     <option value="parseHtml">Parse HTML</option>
                                     <option value="pluginAction">Run Plugin Action</option>
                                     <option value="navigate">Navigate Browser</option>
@@ -1308,7 +1833,7 @@ export default function App() {
 
                               {/* Step Params Editor based on Type */}
                               <div className="pl-9 space-y-3">
-                                {step.type === 'fetchHtml' && (
+                                {step.type === 'RawFetchHTML' && (
                                   <div>
                                     <label className="block text-xs text-zinc-500 mb-1.5">URL</label>
                                     <input
@@ -1483,6 +2008,117 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Lock size={16} className="text-indigo-400" /> Credential Manager</h3>
+                        <p className="text-xs text-zinc-500 mt-1">Manage logins for external sites (Auto-Login bypass).</p>
+                      </div>
+                      <button
+                        onClick={() => setShowCredModal(true)}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/30 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Plus size={14} /> Add New
+                      </button>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto no-scrollbar">
+                        {credentials.map(c => (
+                          <div key={c.id} className="group relative flex justify-between items-center p-3.5 bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-800/80 rounded-xl transition-all">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center flex-shrink-0 text-zinc-500">
+                                <KeyRound size={14} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-zinc-200 truncate">{c.domain}</p>
+                                <p className="text-xs text-zinc-500 truncate">{c.username}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => setCredentials(credentials.filter(x => x.id !== c.id))}
+                              className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-1.5 bg-zinc-900 rounded-lg"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      {credentials.length === 0 && (
+                        <div className="text-xs text-zinc-600 italic py-6 text-center bg-zinc-950/30 rounded-xl border border-zinc-800/30">
+                          <Lock size={24} className="mx-auto mb-2 opacity-20" />
+                          No credentials saved.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add Credential Modal */}
+                  <Modal
+                    isOpen={showCredModal}
+                    onClose={() => { setShowCredModal(false); setNewCred({ domain: '', username: '', password: '' }); }}
+                    title="Add Credential"
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Domain or Plugin</label>
+                        <div className="flex gap-2 mb-2">
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                try { setNewCred({ ...newCred, domain: new URL(e.target.value).hostname }) } catch { setNewCred({ ...newCred, domain: e.target.value }) }
+                              }
+                            }}
+                            className="bg-zinc-950 border border-zinc-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500 text-zinc-200 flex-1"
+                          >
+                            <option value="">Select a known site...</option>
+                            {plugins.map(p => <option key={p.id} value={p.baseUrl}>{p.name} ({p.baseUrl})</option>)}
+                          </select>
+                        </div>
+                        <input
+                          type="text" placeholder="Or type domain (e.g. netflix.com)"
+                          value={newCred.domain} onChange={e => setNewCred({ ...newCred, domain: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Username / Email</label>
+                        <input
+                          type="text" placeholder="user@gmail.com"
+                          value={newCred.username} onChange={e => setNewCred({ ...newCred, username: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Password</label>
+                        <input
+                          type="password" placeholder="••••••••"
+                          value={newCred.password} onChange={e => setNewCred({ ...newCred, password: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                        />
+                      </div>
+
+                      <div className="mt-6 flex justify-end pt-4 border-t border-zinc-800/50">
+                        <button
+                          onClick={() => {
+                            if (newCred.domain && newCred.username && newCred.password) {
+                              setCredentials([...credentials, {
+                                id: Date.now().toString(),
+                                domain: newCred.domain,
+                                username: newCred.username,
+                                passwordBase64: btoa(newCred.password)
+                              }]);
+                              setNewCred({ domain: '', username: '', password: '' });
+                              setShowCredModal(false);
+                            }
+                          }}
+                          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors w-full"
+                        >
+                          Save Credential
+                        </button>
+                      </div>
+                    </div>
+                  </Modal>
                 </div>
               </div>
             )}

@@ -22,12 +22,29 @@
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 body {
-  background-color: #09090b; /* zinc-950 */
-  color: #fafafa; /* zinc-50 */
-  overflow: hidden; /* Prevent body scroll, handle in components */
+  background-color: #09090b;
+  /* zinc-950 */
+  color: #fafafa;
+  /* zinc-50 */
+  overflow: hidden;
+  /* Prevent body scroll, handle in components */
+}
+
+button {
+  cursor: pointer;
+}
+
+.no-drag>form {
+  display: none;
+}
+
+body>#root>div:nth-child(1):has(> div:nth-child(2)> div:nth-child(1)> button:nth-child(2).text-indigo-400)>div:nth-child(1) .no-drag>form {
+  display: flex;
 }
