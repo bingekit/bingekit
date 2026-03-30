@@ -113,7 +113,33 @@ export const DashboardView = () => {
 
                 for (const op of searchOperations) {
                   const { plugin, name: opName, cfg } = op;
-                  if (cfg.urlFormat) {
+                  if (cfg.delegateFlowId) {
+                    console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
+                    const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
+                    if (tFlow) {
+                       try {
+                         const flowRes = await runFlow(tFlow, multiSearchQuery, cfg.delegateFlowInputs || {});
+                         let parsed: any[] = [];
+                         if (typeof flowRes === 'string') {
+                            try { parsed = JSON.parse(flowRes); } catch(e) {}
+                         } else if (Array.isArray(flowRes)) {
+                            parsed = flowRes;
+                         }
+                         parsed.forEach((item: any) => {
+                            if (!item.title) return;
+                            results.push({
+                               id: `${plugin.id}-${Date.now()}-${Math.random()}`,
+                               title: item.title,
+                               url: item.href || item.url,
+                               pluginName: opName,
+                               type: 'search'
+                            });
+                         });
+                       } catch (e) {
+                         console.error('Flow delegation error:', e);
+                       }
+                    }
+                  } else if (cfg.urlFormat) {
                     console.log(`[Search] Starting fetch for ${opName}...`);
                     const searchUrl = cfg.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
                     try {

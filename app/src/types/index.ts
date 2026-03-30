@@ -41,7 +41,7 @@ export interface FollowedItem {
 
 export interface FlowStep {
   id: string;
-  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin';
+  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin' | 'smartFetch' | 'smartSearch';
   params: Record<string, any>;
 }
 
@@ -79,6 +79,8 @@ export interface SearchConfig {
   searchWaitMode?: 'ajax' | 'navigation';
   formSubmitDelay?: number;
   formExtraActions?: FormExtraAction[];
+  delegateFlowId?: string;
+  delegateFlowInputs?: Record<string, string>;
 }
 
 export interface SitePlugin {
@@ -108,6 +110,8 @@ export interface SitePlugin {
     searchWaitMode?: 'ajax' | 'navigation';
     formSubmitDelay?: number;
     formExtraActions?: FormExtraAction[];
+    delegateFlowId?: string;
+    delegateFlowInputs?: Record<string, string>;
   };
   additionalSearches?: SearchConfig[];
   enabled?: boolean;
@@ -118,6 +122,8 @@ export interface SitePlugin {
     ratingSel: string;
     posterSel: string;
     similarSel: string;
+    delegateFlowId?: string;
+    delegateFlowInputs?: Record<string, string>;
   };
   media: {
     seasonSel: string;

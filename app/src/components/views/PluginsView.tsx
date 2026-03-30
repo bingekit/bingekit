@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
+import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe, Copy } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
+import { CustomSelect } from '../ui/CustomSelect';
 import { TagsInput } from '../ui/TagsInput';
 import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
@@ -213,24 +214,83 @@ export const PluginsView = () => {
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
               <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
-                <div className="flex items-center gap-3 mb-2">
+                
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-zinc-800/50">
                   <CustomCheckbox
-                    checked={editingPlugin.search.isFormSearch || false}
-                    onChange={(val) => updateEditingPlugin('search', 'isFormSearch', val)}
+                    checked={!!editingPlugin.search.delegateFlowId}
+                    onChange={(val) => {
+                      if (val) {
+                        updateEditingPlugin('search', 'delegateFlowId', flows[0]?.id || '');
+                        updateEditingPlugin('search', 'delegateFlowInputs', {});
+                      } else {
+                        const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.search;
+                        updateEditingPlugin('root', 'search', rest);
+                      }
+                    }}
                   />
-                  <span className="text-sm text-zinc-300">Use Form Search instead of URL Formatting</span>
+                  <span className="text-sm font-medium text-indigo-300">Delegate execution to a Custom Flow</span>
                 </div>
 
-                {!editingPlugin.search.isFormSearch ? (
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
-                    <input
-                      type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
-                      onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
+                {editingPlugin.search.delegateFlowId ? (
+                  <div className="space-y-4 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+                    <div>
+                      <label className="block text-xs text-indigo-300 mb-1.5">Target Flow</label>
+                      <CustomSelect
+                        searchable
+                        options={flows.map(f => ({ label: f.name, value: f.id }))}
+                        value={editingPlugin.search.delegateFlowId}
+                        onChange={(val) => updateEditingPlugin('search', 'delegateFlowId', val)}
+                      />
+                    </div>
+                    
+                    {(() => {
+                      const selectedFlow = flows.find(f => f.id === editingPlugin.search.delegateFlowId);
+                      if (!selectedFlow || !selectedFlow.variables || selectedFlow.variables.length === 0) {
+                        return <div className="text-xs text-zinc-500 pt-2">This flow does not accept any variables.</div>;
+                      }
+                      return (
+                        <div className="pt-2 border-t border-indigo-500/20 space-y-3">
+                          <label className="block text-xs text-indigo-300 mb-1.5">Map Flow Variables</label>
+                          {selectedFlow.variables.map(v => (
+                            <div key={v} className="flex items-center gap-3">
+                              <span className="text-xs text-zinc-400 w-1/3 truncate font-mono">{v}</span>
+                              <input
+                                type="text"
+                                placeholder="Value (e.g. {query})"
+                                value={editingPlugin.search.delegateFlowInputs?.[v] || ''}
+                                onChange={(e) => {
+                                  const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
+                                  inputs[v] = e.target.value;
+                                  updateEditingPlugin('search', 'delegateFlowInputs', inputs);
+                                }}
+                                className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <CustomCheckbox
+                        checked={editingPlugin.search.isFormSearch || false}
+                        onChange={(val) => updateEditingPlugin('search', 'isFormSearch', val)}
+                      />
+                      <span className="text-sm text-zinc-300">Use Form Search instead of URL Formatting</span>
+                    </div>
+    
+                    {!editingPlugin.search.isFormSearch ? (
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
+                        <input
+                          type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
+                          onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                        />
+                      </div>
+                    ) : (
                   <div className="space-y-4 border border-zinc-800/80 rounded-lg p-4 bg-zinc-950/30">
                     <div>
                       <label className="block text-xs text-zinc-500 mb-1.5">Form Page URL (Start URL)</label>
@@ -577,6 +637,8 @@ export const PluginsView = () => {
                     </div>
                   )}
                 </div>
+                </>
+              )}
               </div>
             </div>
 
@@ -687,15 +749,31 @@ export const PluginsView = () => {
                           />
                         </div>
                       </div>
-                      <button
-                        onClick={() => {
-                          const arr = editingPlugin.additionalSearches!.filter((_, i) => i !== idx);
-                          updateEditingPlugin('root', 'additionalSearches', arr);
-                        }}
-                        className="ml-4 p-2 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors shrink-0"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex flex-col ml-4 gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            const newId = Date.now().toString();
+                            const arr = [...editingPlugin.additionalSearches!];
+                            const cloned = JSON.parse(JSON.stringify(searchMethod));
+                            cloned.id = newId;
+                            cloned.name = `${cloned.name} (Copy)`;
+                            arr.splice(idx + 1, 0, cloned);
+                            updateEditingPlugin('root', 'additionalSearches', arr);
+                          }}
+                          className="p-2 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                        >
+                          <Copy size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const arr = editingPlugin.additionalSearches!.filter((_, i) => i !== idx);
+                            updateEditingPlugin('root', 'additionalSearches', arr);
+                          }}
+                          className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -711,15 +789,73 @@ export const PluginsView = () => {
             {/* Details Parsing */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><ListTree size={16} /> Details Parsing</h3>
-              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
-                  <input
-                    type="text" value={editingPlugin.details.titleSel} placeholder="h1.title"
-                    onChange={(e) => updateEditingPlugin('details', 'titleSel', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
+                
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-zinc-800/50">
+                  <CustomCheckbox
+                    checked={!!editingPlugin.details.delegateFlowId}
+                    onChange={(val) => {
+                      if (val) {
+                        updateEditingPlugin('details', 'delegateFlowId', flows[0]?.id || '');
+                        updateEditingPlugin('details', 'delegateFlowInputs', {});
+                      } else {
+                        const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.details;
+                        updateEditingPlugin('root', 'details', rest);
+                      }
+                    }}
                   />
+                  <span className="text-sm font-medium text-indigo-300">Delegate fetching explicit details to a Custom Flow</span>
                 </div>
+
+                {editingPlugin.details.delegateFlowId ? (
+                  <div className="space-y-4 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+                    <div>
+                      <label className="block text-xs text-indigo-300 mb-1.5">Target Flow</label>
+                      <CustomSelect
+                        searchable
+                        options={flows.map(f => ({ label: f.name, value: f.id }))}
+                        value={editingPlugin.details.delegateFlowId}
+                        onChange={(val) => updateEditingPlugin('details', 'delegateFlowId', val)}
+                      />
+                    </div>
+                    {(() => {
+                      const selectedFlow = flows.find(f => f.id === editingPlugin.details.delegateFlowId);
+                      if (!selectedFlow || !selectedFlow.variables || selectedFlow.variables.length === 0) {
+                        return <div className="text-xs text-zinc-500 pt-2">This flow does not accept any variables.</div>;
+                      }
+                      return (
+                        <div className="pt-2 border-t border-indigo-500/20 space-y-3">
+                          <label className="block text-xs text-indigo-300 mb-1.5">Map Context Variables</label>
+                          {selectedFlow.variables.map(v => (
+                            <div key={v} className="flex items-center gap-3">
+                              <span className="text-xs text-zinc-400 w-1/3 truncate font-mono">{v}</span>
+                              <input
+                                type="text"
+                                placeholder="Value (e.g. {url})"
+                                value={editingPlugin.details.delegateFlowInputs?.[v] || ''}
+                                onChange={(e) => {
+                                  const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
+                                  inputs[v] = e.target.value;
+                                  updateEditingPlugin('details', 'delegateFlowInputs', inputs);
+                                }}
+                                className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
+                      <input
+                        type="text" value={editingPlugin.details.titleSel} placeholder="h1.title"
+                        onChange={(e) => updateEditingPlugin('details', 'titleSel', e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                      />
+                    </div>
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1.5">Description Selector</label>
                   <input
@@ -760,6 +896,8 @@ export const PluginsView = () => {
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
                   />
                 </div>
+              </div>
+                )}
               </div>
             </div>
 

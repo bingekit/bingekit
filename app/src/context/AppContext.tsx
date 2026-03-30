@@ -410,8 +410,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch { return targetUrl; }
   };
 
-  const runFlow = async (flow: CustomFlow, initialUrl: string = url) => {
-    console.log('Running flow:', flow.name, 'on url:', initialUrl);
+  const runFlow = async (flow: CustomFlow, initialUrl: string = url, customVars: Record<string, string> = {}) => {
+    console.log('Running flow:', flow.name, 'with inputs:', customVars);
     let currentVar = initialUrl;
 
     const resolveVars = async (str: string) => {
@@ -419,12 +419,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
         .replace(/\{\{PREV\}\}/g, currentVar)
         .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
+      
+      Object.entries(customVars).forEach(([key, val]) => {
+        res = res.replace(new RegExp(`\\{${key}\\}`, 'g'), val);
+      });
 
       const promptRegex = /\{\{prompt:([^}]+)\}\}/g;
       let match;
       while ((match = promptRegex.exec(res)) !== null) {
         const promptTitle = match[1];
-        const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
+        const userInput = window.prompt(`Flow Input Required:\n${promptTitle}`, "");
         res = res.replace(match[0], userInput || "");
       }
       return res;
@@ -475,8 +479,28 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             if (input) input.focus();
           }, 100);
         }
+      } else if (step.type === 'smartFetch') {
+        const targetUrl = await resolveVars(step.params.url || '');
+        const targetPluginId = await resolveVars(step.params.pluginId || '');
+        const targetPlugin = plugins.find(p => p.id === targetPluginId);
+        
+        if (targetPlugin && targetUrl && window.SmartFetch) {
+           const jsQuery = `
+              const items = Array.from(document.querySelectorAll('${targetPlugin.search.itemSel.replace(/'/g, "\\'") || 'body'}'));
+              return items.slice(0, 10).map(item => {
+                 let el = item.querySelector('${targetPlugin.search.titleSel.replace(/'/g, "\\'")}');
+                 const title = el ? el.textContent.trim() : '';
+                 el = item.querySelector('${targetPlugin.search.linkSel.replace(/'/g, "\\'")}');
+                 const href = el ? el.getAttribute('href') : '';
+                 return { title, href };
+              });
+           `;
+           const res = await window.SmartFetch(targetUrl, jsQuery);
+           if (res) currentVar = res;
+        }
       }
     }
+    return currentVar;
   };
 
   const value = {
