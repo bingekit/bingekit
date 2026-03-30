@@ -2,6 +2,17 @@
 #Include Lib\WebViewToo.ahk
 #SingleInstance Force
 
+
+EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+    "--edge-webview-no-dpi-workaround " .
+    "--disable-gpu " .
+    "--edge-webview-is-background " .
+    "--msWebView2CodeCache " .
+    "--no-first-run " .
+    "--msWebView2CancelInitialNavigation " .
+    "--disable-web-security " .
+    "")
+
 if (A_IsCompiled) {
     WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
     WebViewSettings := { DllPath: WebViewCtrl.TempDir "\" (A_PtrSize * 8) "bit\WebView2Loader.dll" }
