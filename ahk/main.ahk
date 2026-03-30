@@ -1,19 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include Lib\WebViewToo.ahk
-
-
-EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
-    "--edge-webview-no-dpi-workaround " .
-    "--disable-gpu " .
-    "--edge-webview-is-background " .
-    "--msWebView2CodeCache " .
-    "--no-first-run " .
-    "--msWebView2CancelInitialNavigation " .
-    "--disable-web-security " .
-    "--allow-insecure-localhost " .
-    "--allow-running-insecure-content " .
-    "--disable-features=RendererLegacyCanvas " .
-    "")
+#SingleInstance Force
 
 if (A_IsCompiled) {
     WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
@@ -112,8 +99,93 @@ AHK_ExecuteSearch(query, engine) {
 }
 
 AHK_InjectJS(js) {
-    global WV
+    global WV, PlayerWV, PlayerGui
     WV.ExecuteScript(js, 0)
+    if (PlayerGui && PlayerWV) {
+        PlayerWV.wv.ExecuteScript(js, 0)
+    }
+}
+
+global PlayerGui := ""
+global PlayerWV := ""
+global PlayerCurrentUrl := ""
+global PendingPlayerUrl := ""
+global PlayerRectX := 0
+global PlayerRectY := 0
+global PlayerRectW := 0
+global PlayerRectH := 0
+global AdblockScript := FileRead("adblock.js", "UTF-8")
+
+InjectAdblocker() {
+    global PlayerWV
+    try {
+        if (AdblockScript) {
+            PlayerWV.ExecuteScriptAsync(AdblockScript)
+        }
+    } catch {
+    }
+}
+
+AHK_UpdatePlayerRect(x, y, w, h, visible) {
+    DoUpdateRect() {
+        global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
+        global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+
+        PlayerRectX := x
+        PlayerRectY := y
+        PlayerRectW := w
+        PlayerRectH := h
+
+        if (visible) {
+            if (!PlayerGui) {
+                PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+                PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
+
+                ;PlayerWV.OnEvent("NavigationCompleted", InjectAdblocker)
+                ;PlayerWV.NavigationCompleted(InjectAdblocker, 0)
+                PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
+                if (PendingPlayerUrl != "") {
+                    PlayerCurrentUrl := PendingPlayerUrl
+                    PlayerWV.Navigate(PendingPlayerUrl)
+                    PendingPlayerUrl := ""
+                }
+            }
+
+            WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+            ScreenX := CX + x
+            ScreenY := CY + y
+
+            PlayerWV.wvc.IsVisible := 1
+            PlayerWV.Move(0, 0, w, h)
+            PlayerWV.wvc.Fill()
+
+            PlayerGui.Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
+        } else {
+            if (PlayerGui) {
+                PlayerWV.wvc.IsVisible := 0
+                PlayerGui.Hide()
+            }
+        }
+    }
+    SetTimer(DoUpdateRect, -1)
+}
+
+global PendingPlayerUrl := ""
+
+AHK_UpdatePlayerUrl(url) {
+    DoUpdateUrl() {
+        global PlayerWV, PlayerCurrentUrl, PendingPlayerUrl
+        if (!PlayerWV) {
+            PendingPlayerUrl := url
+        } else if (url != "" && PlayerCurrentUrl != url) {
+            PlayerCurrentUrl := url
+            PlayerWV.Navigate(url)
+        }
+
+        SetTimer(InjectAdblocker, -2000)
+    }
+    SetTimer(DoUpdateUrl, -1)
+
 }
 
 ; Expose AHK functions to the WebView (JavaScript) using a plain object
@@ -129,15 +201,17 @@ WV.AddHostObjectToScript("ahk", {
     DeleteSite: AHK_DeleteSite,
     FetchHTML: AHK_FetchHTML,
     ExecuteSearch: AHK_ExecuteSearch,
-    InjectJS: AHK_InjectJS
+    InjectJS: AHK_InjectJS,
+    UpdatePlayerRect: AHK_UpdatePlayerRect,
+    UpdatePlayerUrl: AHK_UpdatePlayerUrl
 })
 
 ; Inject Adblocker and Preloads on document creation
 try {
-    AdblockScript := FileRead("adblock.ahk.html", "UTF-8")
-    if (AdblockScript) {
-        WV.CoreWebView2.AddScriptToExecuteOnDocumentCreated(AdblockScript, 0)
-    }
+    ;AdblockScript := FileRead("adblock.js", "UTF-8")
+    ;if (AdblockScript) {
+    ;    WV.CoreWebView2.AddScriptToExecuteOnDocumentCreated(AdblockScript, 0)
+    ;}
 }
 
 ; Load the local React build (or dev server if testing)
@@ -146,6 +220,19 @@ WV.Navigate("http://localhost:3000") ; For development
 
 ; Show the GUI
 MainGui.Show("w1280 h800")
+
+OnMessage(0x0003, AHK_OnMove) ; WM_MOVE
+OnMessage(0x0005, AHK_OnMove) ; WM_SIZE
+
+AHK_OnMove(wParam, lParam, msg, hwnd) {
+    global MainGui, PlayerGui, PlayerWV, PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+    if (IsSet(MainGui) && hwnd == MainGui.Hwnd && IsSet(PlayerGui) && PlayerGui) {
+        if (PlayerWV.wvc.IsVisible) {
+            WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+            PlayerGui.Move(CX + PlayerRectX, CY + PlayerRectY, PlayerRectW, PlayerRectH)
+        }
+    }
+}
 
 ; Allow dragging the window by clicking the custom titlebar
 OnMessage(0x0084, WM_NCHITTEST)

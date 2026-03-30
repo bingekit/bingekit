@@ -134,6 +134,46 @@ export default function App() {
   const [multiSearchQuery, setMultiSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const playerRef = useRef<HTMLDivElement>(null);
+  const lastRectRef = useRef('');
+
+  // Sync player dimensions with AHK child GUI
+  useEffect(() => {
+    if (activeTab === 'player' && playerRef.current) {
+      const observer = new ResizeObserver(() => {
+        if (playerRef.current) {
+          const rect = playerRef.current.getBoundingClientRect();
+          const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)}`;
+          if (lastRectRef.current !== rectStr) {
+            lastRectRef.current = rectStr;
+            ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), true);
+          }
+        }
+      });
+      observer.observe(playerRef.current);
+      
+      const rect = playerRef.current.getBoundingClientRect();
+      const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)}`;
+      lastRectRef.current = rectStr;
+      ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), true);
+      
+      return () => {
+        observer.disconnect();
+        lastRectRef.current = '';
+        ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false);
+      };
+    } else if (activeTab !== 'player') {
+      lastRectRef.current = '';
+      ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false);
+    }
+  }, [activeTab]);
+
+  // Sync the URL when the user changes it or opens the player tab
+  useEffect(() => {
+    if (activeTab === 'player') {
+      ahk.call('UpdatePlayerUrl', url);
+    }
+  }, [activeTab, url]);
 
   // Load data on mount
   useEffect(() => {
@@ -559,13 +599,7 @@ export default function App() {
                     <KeyRound size={14} /> Auto-Login
                   </button>
                 </div>
-                <iframe
-                  src={url}
-                  className="w-full flex-1 border-none bg-zinc-900"
-                  title="Player View"
-                  sandbox="allow-scripts allow-popups allow-forms allow-same-origin allow-pointer-lock allow-presentation"
-                  allow="(*)"
-                />
+                <div ref={playerRef} className="w-full flex-1 bg-zinc-900 border-none relative" />
               </div>
             )}
 
