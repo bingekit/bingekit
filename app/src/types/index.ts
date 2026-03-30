@@ -1,3 +1,10 @@
+export interface FormExtraAction {
+  id: string;
+  selector: string;
+  action: 'setValue' | 'check' | 'uncheck' | 'click' | 'setAttribute' | 'removeAttribute';
+  value: string;
+}
+
 export interface BookmarkItem {
   id: string;
   title: string;
@@ -75,6 +82,12 @@ export interface SitePlugin {
     imgSel: string;
     yearSel: string;
     typeSel: string;
+    isFormSearch?: boolean;
+    formInputSel?: string;
+    formSubmitSel?: string;
+    searchWaitMode?: 'ajax' | 'navigation';
+    formSubmitDelay?: number;
+    formExtraActions?: FormExtraAction[];
   };
   details: {
     titleSel: string;
@@ -107,7 +120,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   name: 'New Site Plugin',
   baseUrl: 'https://',
   auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
-  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '' },
+  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },

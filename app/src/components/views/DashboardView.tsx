@@ -79,6 +79,9 @@ export const DashboardView = () => {
                     console.log(`[Search] Starting fetch for ${plugin.name}...`);
                     const searchUrl = plugin.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
                     try {
+                      const isFormSearch = !!plugin.search.isFormSearch;
+                      const encodedExtras = JSON.stringify(plugin.search.formExtraActions || []);
+
                       const jsQuery = `
                                   function extractValue(el, selector, defaultAttr) {
                                     if (!el) return '';
@@ -105,17 +108,106 @@ export const DashboardView = () => {
                                     return text;
                                   }
                                   
-                                  const itemSelector = '${plugin.search.itemSel ? plugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
-                                  const items = Array.from(document.querySelectorAll(itemSelector));
-                                  return items.slice(0, 10).map(item => {
-                                    let titleStr = extractValue(item, '${plugin.search.titleSel ? plugin.search.titleSel.replace(/'/g, "\\'") : ''}', null);
-                                    let linkStr = extractValue(item, '${plugin.search.linkSel ? plugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href');
-                                    
-                                    if (linkStr && !linkStr.startsWith('http')) {
-                                      try { linkStr = new URL(linkStr, '${plugin.baseUrl}').href; } catch(e) {}
-                                    }
-                                    return { title: titleStr, href: linkStr };
-                                  });
+                                  function scrapeItems() {
+                                    const itemSelector = '${plugin.search.itemSel ? plugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
+                                    const items = Array.from(document.querySelectorAll(itemSelector));
+                                    return items.slice(0, 10).map(item => {
+                                      let titleStr = extractValue(item, '${plugin.search.titleSel ? plugin.search.titleSel.replace(/'/g, "\\'") : ''}', null);
+                                      let linkStr = extractValue(item, '${plugin.search.linkSel ? plugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href');
+                                      
+                                      if (linkStr && !linkStr.startsWith('http')) {
+                                        try { linkStr = new URL(linkStr, '${plugin.baseUrl}').href; } catch(e) {}
+                                      }
+                                      return { title: titleStr, href: linkStr };
+                                    });
+                                  }
+
+                                  function processExtras(actions) {
+                                    actions.forEach(act => {
+                                      const el = document.querySelector(act.selector);
+                                      if (!el) return;
+                                      if (act.action === 'setValue') {
+                                         el.value = act.value;
+                                         el.dispatchEvent(new Event('input', {bubbles: true}));
+                                         el.dispatchEvent(new Event('change', {bubbles: true}));
+                                      } else if (act.action === 'check') {
+                                         el.checked = true;
+                                         el.dispatchEvent(new Event('change', {bubbles: true}));
+                                      } else if (act.action === 'uncheck') {
+                                         el.checked = false;
+                                         el.dispatchEvent(new Event('change', {bubbles: true}));
+                                      } else if (act.action === 'click') {
+                                         el.click();
+                                      } else if (act.action === 'setAttribute') {
+                                         const parts = act.value.split('=');
+                                         el.setAttribute(parts[0], parts.slice(1).join('='));
+                                      } else if (act.action === 'removeAttribute') {
+                                         el.removeAttribute(act.value);
+                                      }
+                                    });
+                                  }
+
+                                  if (${isFormSearch}) {
+                                    return new Promise((resolve) => {
+                                      const isAjax = "${plugin.search.searchWaitMode}" === "ajax";
+                                      const query = "${multiSearchQuery.replace(/"/g, '\\"')}";
+                                      const extras = ${encodedExtras};
+                                      
+                                      if (sessionStorage.getItem('sv_search_phase')) {
+                                        sessionStorage.removeItem('sv_search_phase');
+                                        setTimeout(() => resolve(scrapeItems()), 1000);
+                                        return;
+                                      }
+                                      
+                                      const inputSel = "${(plugin.search.formInputSel || '').replace(/"/g, '\\"')}";
+                                      const submitSel = "${(plugin.search.formSubmitSel || '').replace(/"/g, '\\"')}";
+                                      
+                                      console.log('[SmartFetch Debug] Form Search Start (Dashboard)', { isAjax, inputSel, submitSel, query, extrasCount: extras.length });
+
+                                      const input = inputSel ? document.querySelector(inputSel) : null;
+                                      const submit = submitSel ? document.querySelector(submitSel) : null;
+                                      console.log('[SmartFetch Debug] Found elements:', { input: !!input, submit: !!submit });
+                                      
+                                      if (input) {
+                                        console.log('[SmartFetch Debug] Setting input value');
+                                        input.value = query;
+                                        input.dispatchEvent(new Event('input', {bubbles: true}));
+                                        input.dispatchEvent(new Event('change', {bubbles: true}));
+                                      } else if (inputSel) {
+                                        console.warn('[SmartFetch Debug] Input selector was provided but element not found:', inputSel);
+                                      }
+                                      
+                                      console.log('[SmartFetch Debug] Processing extra actions...');
+                                      processExtras(extras);
+                                      
+                                      if (submit) {
+                                        if (isAjax) {
+                                          console.log('[SmartFetch Debug] AJAX Mode: Clicking submit and waiting ${plugin.search.formSubmitDelay || 2000}ms');
+                                          submit.click();
+                                          setTimeout(() => {
+                                            console.log('[SmartFetch Debug] AJAX Delay finished, scraping items...');
+                                            resolve(scrapeItems());
+                                          }, ${plugin.search.formSubmitDelay || 2000});
+                                        } else {
+                                          console.log('[SmartFetch Debug] Navigation Mode: Setting session marker and clicking submit');
+                                          sessionStorage.setItem('sv_search_phase', '1');
+                                          submit.click();
+                                          // Fallback: If navigation doesn't happen within 8 seconds, resolve to avoid hanging
+                                          setTimeout(() => {
+                                            console.log('[SmartFetch Debug] Navigation timeout (8s) hit! Resolving empty to prevent hang.');
+                                            sessionStorage.removeItem('sv_search_phase');
+                                            resolve([]);
+                                          }, 8000);
+                                        }
+                                      } else {
+                                        if (submitSel) console.warn('[SmartFetch Debug] Submit selector was provided but element not found:', submitSel);
+                                        console.log('[SmartFetch Debug] No submit element, falling back to basic wait and resolve.');
+                                        setTimeout(() => resolve(scrapeItems()), ${plugin.search.formSubmitDelay || 2000});
+                                      }
+                                    });
+                                  } else {
+                                    return scrapeItems();
+                                  }
                                 `;
 
                       const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);

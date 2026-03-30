@@ -15,7 +15,7 @@ export const PluginsView = () => {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
-    editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
+    editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
@@ -193,14 +193,138 @@ export const PluginsView = () => {
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
               <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
-                  <input
-                    type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
-                    onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                <div className="flex items-center gap-3 mb-2">
+                  <CustomCheckbox
+                    checked={editingPlugin.search.isFormSearch || false}
+                    onChange={(val) => updateEditingPlugin('search', 'isFormSearch', val)}
                   />
+                  <span className="text-sm text-zinc-300">Use Form Search instead of URL Formatting</span>
                 </div>
+
+                {!editingPlugin.search.isFormSearch ? (
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
+                    <input
+                      type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
+                      onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4 border border-zinc-800/80 rounded-lg p-4 bg-zinc-950/30">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5">Form Page URL (Start URL)</label>
+                      <input
+                        type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/"
+                        onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Input Selector</label>
+                        <input
+                          type="text" value={editingPlugin.search.formInputSel || ''} placeholder="input[name='q']"
+                          onChange={(e) => updateEditingPlugin('search', 'formInputSel', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Submit Selector</label>
+                        <input
+                          type="text" value={editingPlugin.search.formSubmitSel || ''} placeholder="button[type='submit']"
+                          onChange={(e) => updateEditingPlugin('search', 'formSubmitSel', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5">Submission Wait Mode</label>
+                        <select
+                          value={editingPlugin.search.searchWaitMode || 'navigation'}
+                          onChange={(e) => updateEditingPlugin('search', 'searchWaitMode', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                        >
+                          <option value="navigation">Navigation (Page Reloads)</option>
+                          <option value="ajax">AJAX / Popup (No Reload)</option>
+                        </select>
+                      </div>
+                      {editingPlugin.search.searchWaitMode === 'ajax' && (
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">AJAX Delay (ms)</label>
+                          <input
+                            type="number" value={editingPlugin.search.formSubmitDelay || 2000}
+                            onChange={(e) => updateEditingPlugin('search', 'formSubmitDelay', parseInt(e.target.value))}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="pt-2 border-t border-zinc-800/80">
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-xs text-zinc-500">Extra Form Actions (Before Submit)</label>
+                        <button
+                          onClick={() => {
+                            const newActions = [...(editingPlugin.search.formExtraActions || []), { id: Date.now().toString(), selector: '', action: 'setValue', value: '' }];
+                            updateEditingPlugin('search', 'formExtraActions', newActions);
+                          }}
+                          className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded flex items-center gap-1"
+                        >
+                          <Plus size={12} /> Add Action
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {(editingPlugin.search.formExtraActions || []).map((act, idx) => (
+                          <div key={act.id || idx} className="flex gap-2 items-center">
+                            <input
+                              type="text" placeholder="Selector" value={act.selector}
+                              onChange={(e) => {
+                                const arr = [...editingPlugin.search.formExtraActions!];
+                                arr[idx].selector = e.target.value;
+                                updateEditingPlugin('search', 'formExtraActions', arr);
+                              }}
+                              className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                            <select
+                              value={act.action}
+                              onChange={(e) => {
+                                const arr = [...editingPlugin.search.formExtraActions!];
+                                arr[idx].action = e.target.value as any;
+                                updateEditingPlugin('search', 'formExtraActions', arr);
+                              }}
+                              className="w-28 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none"
+                            >
+                              <option value="setValue">Set Value</option>
+                              <option value="check">Check</option>
+                              <option value="uncheck">Uncheck</option>
+                              <option value="click">Click</option>
+                              <option value="setAttribute">Set Attr</option>
+                              <option value="removeAttribute">Remove Attr</option>
+                            </select>
+                            <input
+                              type="text" placeholder={act.action === 'setAttribute' ? "name=val" : "Value"} value={act.value}
+                              onChange={(e) => {
+                                const arr = [...editingPlugin.search.formExtraActions!];
+                                arr[idx].value = e.target.value;
+                                updateEditingPlugin('search', 'formExtraActions', arr);
+                              }}
+                              style={{ display: ['setValue', 'setAttribute', 'removeAttribute'].includes(act.action) ? 'block' : 'none' }}
+                              className="w-32 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                            <button
+                              onClick={() => {
+                                const arr = editingPlugin.search.formExtraActions!.filter((_, i) => i !== idx);
+                                updateEditingPlugin('search', 'formExtraActions', arr);
+                              }}
+                              className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-zinc-500 mb-1.5">List Item Selector</label>
@@ -259,16 +383,29 @@ export const PluginsView = () => {
                   <div className="flex gap-2 mb-3">
                     <input
                       type="text"
-                      value={testSearchUrl}
-                      onChange={(e) => setTestSearchUrl(e.target.value)}
-                      placeholder="Paste a full search URL to test (e.g. https://imdb.com/find?q=matrix)"
+                      value={testSearchQuery}
+                      onChange={(e) => setTestSearchQuery(e.target.value)}
+                      placeholder="Enter a search query to test (e.g. matrix)"
                       className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
                     />
                     <button
                       onClick={async () => {
-                        if (!testSearchUrl) return;
+                        if (!testSearchQuery) return;
                         setIsTestingSearch(true);
                         try {
+                          const isFormSearch = !!editingPlugin.search.isFormSearch;
+                          const startUrl = isFormSearch 
+                            ? editingPlugin.search.urlFormat 
+                            : editingPlugin.search.urlFormat.replace('{query}', encodeURIComponent(testSearchQuery));
+                            
+                          if (!startUrl || !startUrl.startsWith('http')) {
+                            setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Invalid URL Format configured.' }] });
+                            setIsTestingSearch(false);
+                            return;
+                          }
+
+                          const encodedExtras = JSON.stringify(editingPlugin.search.formExtraActions || []);
+
                           const jsQuery = `
                                       function extractValue(el, selector, defaultAttr) {
                                         if (!el) return '';
@@ -289,16 +426,106 @@ export const PluginsView = () => {
                                         if (!text && targetEl.hasAttribute('title')) text = targetEl.getAttribute('title') || '';
                                         return text;
                                       }
-                                      const itemSelector = '${editingPlugin.search.itemSel ? editingPlugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
-                                      const items = Array.from(document.querySelectorAll(itemSelector));
-                                      const results = items.slice(0, 5).map(item => ({
-                                        title: extractValue(item, '${editingPlugin.search.titleSel ? editingPlugin.search.titleSel.replace(/'/g, "\\'") : ''}', null),
-                                        href: extractValue(item, '${editingPlugin.search.linkSel ? editingPlugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
-                                        htmlPreview: item.outerHTML.substring(0, 150) + '...'
-                                      }));
-                                      return { count: items.length, items: results };
+                                      
+                                      function scrapeItems() {
+                                        const itemSelector = '${editingPlugin.search.itemSel ? editingPlugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
+                                        const items = Array.from(document.querySelectorAll(itemSelector));
+                                        const results = items.slice(0, 5).map(item => ({
+                                          title: extractValue(item, '${editingPlugin.search.titleSel ? editingPlugin.search.titleSel.replace(/'/g, "\\'") : ''}', null),
+                                          href: extractValue(item, '${editingPlugin.search.linkSel ? editingPlugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
+                                          htmlPreview: item.outerHTML.substring(0, 150) + '...'
+                                        }));
+                                        return { count: items.length, items: results };
+                                      }
+                                      
+                                      function processExtras(actions) {
+                                        actions.forEach(act => {
+                                          const el = document.querySelector(act.selector);
+                                          if (!el) return;
+                                          if (act.action === 'setValue') {
+                                             el.value = act.value;
+                                             el.dispatchEvent(new Event('input', {bubbles: true}));
+                                             el.dispatchEvent(new Event('change', {bubbles: true}));
+                                          } else if (act.action === 'check') {
+                                             el.checked = true;
+                                             el.dispatchEvent(new Event('change', {bubbles: true}));
+                                          } else if (act.action === 'uncheck') {
+                                             el.checked = false;
+                                             el.dispatchEvent(new Event('change', {bubbles: true}));
+                                          } else if (act.action === 'click') {
+                                             el.click();
+                                          } else if (act.action === 'setAttribute') {
+                                             const parts = act.value.split('=');
+                                             el.setAttribute(parts[0], parts.slice(1).join('='));
+                                          } else if (act.action === 'removeAttribute') {
+                                             el.removeAttribute(act.value);
+                                          }
+                                        });
+                                      }
+
+                                      if (${isFormSearch}) {
+                                        return new Promise((resolve) => {
+                                          const isAjax = "${editingPlugin.search.searchWaitMode}" === "ajax";
+                                          const query = "${testSearchQuery.replace(/"/g, '\\"')}";
+                                          const extras = ${encodedExtras};
+                                          
+                                          if (sessionStorage.getItem('sv_test_phase')) {
+                                            sessionStorage.removeItem('sv_test_phase');
+                                            setTimeout(() => resolve(scrapeItems()), 1000);
+                                            return;
+                                          }
+                                          
+                                          const inputSel = "${(editingPlugin.search.formInputSel || '').replace(/"/g, '\\"')}";
+                                          const submitSel = "${(editingPlugin.search.formSubmitSel || '').replace(/"/g, '\\"')}";
+                                          
+                                          console.log('[SmartFetch Debug] Form Search Start', { isAjax, inputSel, submitSel, query, extrasCount: extras.length });
+
+                                          const input = inputSel ? document.querySelector(inputSel) : null;
+                                          const submit = submitSel ? document.querySelector(submitSel) : null;
+                                          console.log('[SmartFetch Debug] Found elements:', { input: !!input, submit: !!submit });
+                                          
+                                          if (input) {
+                                            console.log('[SmartFetch Debug] Setting input value');
+                                            input.value = query;
+                                            input.dispatchEvent(new Event('input', {bubbles: true}));
+                                            input.dispatchEvent(new Event('change', {bubbles: true}));
+                                          } else if (inputSel) {
+                                            console.warn('[SmartFetch Debug] Input selector was provided but element not found:', inputSel);
+                                          }
+                                          
+                                          console.log('[SmartFetch Debug] Processing extra actions...');
+                                          processExtras(extras);
+                                          
+                                          if (submit) {
+                                            if (isAjax) {
+                                              console.log('[SmartFetch Debug] AJAX Mode: Clicking submit and waiting ${editingPlugin.search.formSubmitDelay || 2000}ms');
+                                              submit.click();
+                                              setTimeout(() => {
+                                                console.log('[SmartFetch Debug] AJAX Delay finished, scraping items...');
+                                                resolve(scrapeItems());
+                                              }, ${editingPlugin.search.formSubmitDelay || 2000});
+                                            } else {
+                                              console.log('[SmartFetch Debug] Navigation Mode: Setting session marker and clicking submit');
+                                              sessionStorage.setItem('sv_test_phase', '1');
+                                              submit.click();
+                                              // Fallback: If navigation doesn't happen within 8 seconds, resolve to avoid hanging
+                                              setTimeout(() => {
+                                                console.log('[SmartFetch Debug] Navigation timeout (8s) hit! Resolving to prevent hang.');
+                                                sessionStorage.removeItem('sv_test_phase');
+                                                resolve({ count: 0, items: [{ error: 'Navigation timeout - page did not reload' }] });
+                                              }, 8000);
+                                            }
+                                          } else {
+                                            if (submitSel) console.warn('[SmartFetch Debug] Submit selector was provided but element not found:', submitSel);
+                                            console.log('[SmartFetch Debug] No submit element, falling back to basic wait and scrape.');
+                                            setTimeout(() => resolve(scrapeItems()), ${editingPlugin.search.formSubmitDelay || 2000});
+                                          }
+                                        });
+                                      } else {
+                                        return scrapeItems();
+                                      }
                                     `;
-                          const fetchResults: any = await window.SmartFetch(testSearchUrl, jsQuery);
+                          const fetchResults: any = await window.SmartFetch(startUrl, jsQuery);
                           if (fetchResults) {
                             setTestSearchResults({
                               status: 'success',

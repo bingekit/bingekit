@@ -17,7 +17,7 @@ interface AppContextType {
   isCheckingUpdates: boolean; setIsCheckingUpdates: React.Dispatch<React.SetStateAction<boolean>>;
   plugins: SitePlugin[]; setPlugins: React.Dispatch<React.SetStateAction<SitePlugin[]>>;
   editingPlugin: SitePlugin | null; setEditingPlugin: React.Dispatch<React.SetStateAction<SitePlugin | null>>;
-  testSearchUrl: string; setTestSearchUrl: React.Dispatch<React.SetStateAction<string>>;
+  testSearchQuery: string; setTestSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   testSearchResults: any; setTestSearchResults: React.Dispatch<React.SetStateAction<any>>;
   isTestingSearch: boolean; setIsTestingSearch: React.Dispatch<React.SetStateAction<boolean>>;
   flows: CustomFlow[]; setFlows: React.Dispatch<React.SetStateAction<CustomFlow[]>>;
@@ -79,7 +79,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
-  const [testSearchUrl, setTestSearchUrl] = useState('');
+  const [testSearchQuery, setTestSearchQuery] = useState('matrix');
   const [testSearchResults, setTestSearchResults] = useState<{ status: string, nodesCount: number, results: any[] }>({ status: 'idle', nodesCount: 0, results: [] });
   const [isTestingSearch, setIsTestingSearch] = useState(false);
   const [flows, setFlows] = useState<CustomFlow[]>([]);
@@ -483,7 +483,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
-    editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
+    editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
