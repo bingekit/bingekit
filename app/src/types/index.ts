@@ -51,6 +51,7 @@ export interface CustomFlow {
   description: string;
   variables?: string[];
   steps: FlowStep[];
+  enabled?: boolean;
 }
 
 export interface Userscript {
@@ -59,6 +60,25 @@ export interface Userscript {
   domains: string[];
   code: string;
   enabled: boolean;
+}
+
+export interface SearchConfig {
+  id: string;
+  name: string;
+  tags?: string[];
+  urlFormat: string;
+  itemSel: string;
+  titleSel: string;
+  linkSel: string;
+  imgSel: string;
+  yearSel: string;
+  typeSel: string;
+  isFormSearch?: boolean;
+  formInputSel?: string;
+  formSubmitSel?: string;
+  searchWaitMode?: 'ajax' | 'navigation';
+  formSubmitDelay?: number;
+  formExtraActions?: FormExtraAction[];
 }
 
 export interface SitePlugin {
@@ -89,6 +109,8 @@ export interface SitePlugin {
     formSubmitDelay?: number;
     formExtraActions?: FormExtraAction[];
   };
+  additionalSearches?: SearchConfig[];
+  enabled?: boolean;
   details: {
     titleSel: string;
     descSel: string;
@@ -121,6 +143,8 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   baseUrl: 'https://',
   auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
+  additionalSearches: [],
+  enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },

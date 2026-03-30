@@ -38,7 +38,7 @@ export const FlowsView = () => {
           </div>
           <button
             onClick={() => {
-              const newFlow = { id: Date.now().toString(), name: 'New Flow', description: '', steps: [] };
+              const newFlow = { id: Date.now().toString(), name: 'New Flow', description: '', steps: [], enabled: true };
               const newFlows = [...flows, newFlow];
               setFlows(newFlows);
               ahk.call('SaveFlow', `flow_${newFlow.id}.json`, JSON.stringify(newFlow, null, 2));
@@ -58,18 +58,28 @@ export const FlowsView = () => {
             >
               <div className="flex items-center justify-between mb-1">
                 <h3 className={`font-medium ${editingFlow?.id === flow.id ? 'text-indigo-400' : 'text-zinc-200'}`}>{flow.name}</h3>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const newFlows = flows.filter(f => f.id !== flow.id);
-                    setFlows(newFlows);
-                    ahk.call('DeleteFlow', `flow_${flow.id}.json`);
-                    if (editingFlow?.id === flow.id) setEditingFlow(null);
-                  }}
-                  className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <CustomCheckbox
+                    checked={flow.enabled !== false}
+                    onChange={(val) => {
+                      const updated = { ...flow, enabled: val };
+                      setFlows(flows.map(f => f.id === flow.id ? updated : f));
+                      ahk.call('SaveFlow', `flow_${flow.id}.json`, JSON.stringify(updated, null, 2));
+                    }}
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newFlows = flows.filter(f => f.id !== flow.id);
+                      setFlows(newFlows);
+                      ahk.call('DeleteFlow', `flow_${flow.id}.json`);
+                      if (editingFlow?.id === flow.id) setEditingFlow(null);
+                    }}
+                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-zinc-500 truncate">{flow.description || 'No description'}</p>
               <div className="mt-3 flex items-center gap-2">

@@ -48,17 +48,37 @@ export const PluginsView = () => {
           {plugins.map(plugin => (
             <div
               key={plugin.id}
-              onClick={() => setEditingPlugin(plugin)}
+              onClick={() => {
+                const safePlugin = {
+                  ...DEFAULT_PLUGIN,
+                  ...plugin,
+                  search: { ...DEFAULT_PLUGIN.search, ...(plugin.search || {}) },
+                  additionalSearches: plugin.additionalSearches || [],
+                  enabled: plugin.enabled !== false
+                };
+                setEditingPlugin(safePlugin);
+              }}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${editingPlugin?.id === plugin.id ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700'}`}
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-zinc-200">{plugin.name}</h3>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deletePlugin(plugin); }}
-                  className="text-zinc-600 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <CustomCheckbox
+                    checked={plugin.enabled !== false}
+                    onChange={(val) => {
+                      const updated = { ...plugin, enabled: val };
+                      setPlugins(plugins.map(p => p.id === plugin.id ? updated : p));
+                      const filename = `${updated.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${updated.id}.json`;
+                      ahk.call('SaveSite', filename, JSON.stringify(updated, null, 2));
+                    }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deletePlugin(plugin); }}
+                    className="text-zinc-600 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-zinc-500 mt-1 truncate">{plugin.baseUrl}</p>
             </div>
@@ -557,6 +577,134 @@ export const PluginsView = () => {
                     </div>
                   )}
                 </div>
+              </div>
+            </div>
+
+            {/* Additional Searches */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-emerald-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Additional Search Methods</h3>
+                <button
+                  onClick={() => {
+                    const newId = Date.now().toString();
+                    const newSearch = { 
+                      id: newId, name: 'New Search', tags: [], urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '' 
+                    };
+                    updateEditingPlugin('root', 'additionalSearches', [...(editingPlugin.additionalSearches || []), newSearch]);
+                  }}
+                  className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/30 flex items-center gap-1"
+                >
+                  <Plus size={14} /> Add Search Method
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {(editingPlugin.additionalSearches || []).map((searchMethod, idx) => (
+                  <div key={searchMethod.id} className="p-5 bg-zinc-900/30 border border-zinc-800/50 hover:border-emerald-500/30 transition-colors rounded-xl space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Method Name / Label</label>
+                          <input
+                            type="text" value={searchMethod.name} placeholder="e.g. Movies Search"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].name = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Tags (Dashboard Filter)</label>
+                          <TagsInput
+                            tags={searchMethod.tags || []}
+                            onChange={(newTags) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].tags = newTags;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
+                          <input
+                            type="text" value={searchMethod.urlFormat || ''} placeholder="https://site.com/search?type=movie&q={query}"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].urlFormat = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Item Selector</label>
+                          <input
+                            type="text" value={searchMethod.itemSel || ''} placeholder=".result-item"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].itemSel = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
+                          <input
+                            type="text" value={searchMethod.titleSel || ''} placeholder=".title"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].titleSel = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Link Selector</label>
+                          <input
+                            type="text" value={searchMethod.linkSel || ''} placeholder="a.play"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].linkSel = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Image Selector</label>
+                          <input
+                            type="text" value={searchMethod.imgSel || ''} placeholder="img"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].imgSel = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const arr = editingPlugin.additionalSearches!.filter((_, i) => i !== idx);
+                          updateEditingPlugin('root', 'additionalSearches', arr);
+                        }}
+                        className="ml-4 p-2 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors shrink-0"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                {(!editingPlugin.additionalSearches || editingPlugin.additionalSearches.length === 0) && (
+                  <div className="text-center p-8 border border-dashed border-zinc-800 rounded-xl text-zinc-500 text-sm">
+                    No additional search methods defined.
+                  </div>
+                )}
               </div>
             </div>
 
