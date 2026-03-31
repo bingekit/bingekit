@@ -219,11 +219,9 @@ const MainLayout = () => {
         {/* Window Controls */}
         <div className="flex items-center no-drag ml-auto">
           {activeTab === 'player' && (
-            <TooltipWrapper text="Toggle URL Bar">
-              <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}>
-                {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </TooltipWrapper>
+            <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="p-5 px-5 transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
+            </button>
           )}
           {activeTab === 'player' && (
             <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>

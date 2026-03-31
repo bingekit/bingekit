@@ -48,7 +48,11 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
     DoUpdateRect() {
         global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
         global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
-        global GlobalScript, AdblockScript
+        global GlobalScript, AdblockScript, IsPiPMode
+
+        if (IsPiPMode ?? false) {
+            return
+        }
 
         w := w - 3
         h := h - 3
@@ -61,6 +65,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
         if (visible) {
             if (!PlayerGui) {
                 PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+                PlayerGui.OnEvent("Size", AHK_PlayerGuiResized)
                 PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
 
                 PlayerWV.Settings.IsGeneralAutofillEnabled := 0
@@ -72,7 +77,11 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     CacheGet: AHK_CacheGet,
                     CacheClear: AHK_CacheClear,
                     AddNetworkFilter: AHK_AddNetworkFilter,
-                    GetSiteBlockers: AHK_GetSiteBlockers
+                    GetSiteBlockers: AHK_GetSiteBlockers,
+                    TogglePiP: AHK_TogglePiP,
+                    ResizePiP: AHK_ResizePiP,
+                    DragMove: AHK_DragMove,
+                    ResizeEdge: AHK_ResizeEdge,
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
@@ -227,5 +236,15 @@ AHK_PlayerResourceRequested(sender, args) {
         } catch {
             ; Fallback if Environment isn't directly exposed
         }
+    }
+}
+
+AHK_PlayerGuiResized(guiObj, minMax, width, height) {
+    global PlayerWV
+    if (minMax = -1)
+        return
+    if (PlayerWV) {
+        PlayerWV.Move(0, 0, width, height)
+        PlayerWV.wvc.Fill()
     }
 }

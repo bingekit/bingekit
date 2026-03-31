@@ -20,7 +20,8 @@ InitEnvironment()
 ; Enable Window Message hooks for custom titlebar dragging & PiP
 OnMessage(0x0003, AHK_OnMove) ; WM_MOVE
 OnMessage(0x0005, AHK_OnMove) ; WM_SIZE
-OnMessage(0x0084, WM_NCHITTEST)
+OnMessage(0x0083, WM_NCCALCSIZE) ; WM_NCCALCSIZE
+OnMessage(0x0084, WM_NCHITTEST) ; WM_NCHITTEST
 
 AHK_OnMove(wParam, lParam, msg, hwnd) {
     global MainGui, PlayerGui, PlayerWV, PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
@@ -33,7 +34,14 @@ AHK_OnMove(wParam, lParam, msg, hwnd) {
 }
 
 WM_NCHITTEST(wParam, lParam, msg, hwnd) {
-    ; Basic drag implementation if needed
+    ; Empty
+}
+
+WM_NCCALCSIZE(wParam, lParam, msg, hwnd) {
+    global PlayerGui
+    if (IsSet(PlayerGui) && PlayerGui && hwnd == PlayerGui.Hwnd) {
+        return 0
+    }
 }
 
 ; 4. Interop Setup: Expose AHK functions to the WebView (JavaScript)
@@ -84,7 +92,11 @@ WV.AddHostObjectToScript("ahk", {
     CloneWorkspace: AHK_CloneWorkspace,
     DeleteWorkspace: AHK_DeleteWorkspace,
     RestartWorkspace: AHK_RestartWorkspace,
-    GetCurrentWorkspace: AHK_GetCurrentWorkspace
+    GetCurrentWorkspace: AHK_GetCurrentWorkspace,
+    TogglePiP: AHK_TogglePiP,
+    ResizePiP: AHK_ResizePiP,
+    DragMove: AHK_DragMove,
+    ResizeEdge: AHK_ResizeEdge,
 })
 
 ; Error handling / Splash loading checks
@@ -107,11 +119,11 @@ CheckSplashTimeout() {
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
-        MsgBox("Critical Error: StreamView UI did not respond within 15 seconds.`n`nThis usually indicates the frontend development server/URL is not available. Please verify the URL.", "StreamView Timeout", 16)
+        MsgBox("Critical Error: StreamView UI did not respond within 10 seconds.`n`nThis usually indicates the frontend development server/URL is not available. Please verify the URL.", "StreamView Timeout", 16)
         ExitApp()
     }
 }
-SetTimer(CheckSplashTimeout, -15000)
+SetTimer(CheckSplashTimeout, -10000)
 
 ; Display logic
 WV.Navigate(AppStartupUrl)
@@ -157,3 +169,8 @@ WinSetTransparent(0, MainGui.Hwnd)
 ;         }
 ;     }
 ; }
+
+#HotIf IsSet(IsPiPMode) && IsPiPMode && IsSet(PlayerGui) && WinActive("ahk_id " PlayerGui.Hwnd)
+Escape::AHK_TogglePiP()
+!F4::AHK_TogglePiP()
+#HotIf

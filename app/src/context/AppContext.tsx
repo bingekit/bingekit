@@ -395,7 +395,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const activeScripts = userscripts.filter(s => s.enabled);
     let payload = '';
 
-    if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
+    if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs) || Object.keys(theme).length > 0) {
       payload = `
         (function() {
           window._svPluginStyles = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss })).filter(p => p.css))};
@@ -427,6 +427,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                 }
               } catch(e) {}
             });
+
+            var themeVars = \`${Object.entries(theme).filter(([k]) => k !== 'mode').map(([k,v]) => `--theme-${k}: ${v};`).join(' ')}\`;
+            var tStyle = document.getElementById('sv-theme-injection');
+            if (!tStyle) {
+              tStyle = document.createElement('style');
+              tStyle.id = 'sv-theme-injection';
+              (document.head || document.documentElement).appendChild(tStyle);
+            }
+            if (tStyle.innerHTML !== \`:root { \${themeVars} }\`) {
+              tStyle.innerHTML = \`:root { \${themeVars} }\`;
+            }
           }
 
           function applyStreamViewPayload() {
@@ -509,7 +520,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     ahk.call('UpdateUserscriptPayload', payload);
-  }, [userscripts, plugins, url]);
+  }, [userscripts, plugins, url, theme]);
 
   // Save userscripts to disk
   useEffect(() => {

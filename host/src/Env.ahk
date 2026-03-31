@@ -19,7 +19,7 @@ InitEnvironment() {
         "--force-dark-mode"
         "--disable-features=TranslateUI"
         "--kiosk"
-        "--disable-notifications"
+        ;"--disable-notifications"
         "--deny-permission-prompts"
         "--disable-domain-reliability"
         "--disable-sync"
