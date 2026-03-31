@@ -9,28 +9,25 @@ export const ExtensionsView = () => {
 
   return (
     <div className="w-full h-full flex flex-col relative bg-transparent">
-      <div className="flex border-b border-zinc-800/50 bg-zinc-950/20 px-8 pt-4 gap-6">
+      <div className="flex border-b border-zinc-800/50 -8 pt-4 gap-6">
         <button
           onClick={() => setActiveSubTab('plugins')}
-          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-            activeSubTab === 'plugins' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
-          }`}
+          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeSubTab === 'plugins' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
         >
           <Puzzle size={16} /> Site Plugins
         </button>
         <button
           onClick={() => setActiveSubTab('flows')}
-          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-            activeSubTab === 'flows' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
-          }`}
+          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeSubTab === 'flows' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
         >
           <ListTree size={16} /> Flows
         </button>
         <button
           onClick={() => setActiveSubTab('userscripts')}
-          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
-            activeSubTab === 'userscripts' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
-          }`}
+          className={`pb-3 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${activeSubTab === 'userscripts' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
         >
           <Code size={16} /> Userscripts
         </button>

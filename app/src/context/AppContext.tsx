@@ -75,7 +75,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     border: '#27272a',
     accent: '#6366f1',
     textMain: '#fafafa',
-    textSec: '#a1a1aa'
+    textSec: '#a1a1aa',
+    titlebarText: '#a1a1aa',
+    titlebarTextHover: '#fafafa',
+    titlebarAccent: '#6366f1',
+    titlebarAlt: '#18181b',
+    titlebarAlt2: '#27272a'
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -280,7 +285,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           border: parsed.border || '#27272a',
           accent: parsed.accent || '#6366f1',
           textMain: parsed.textMain || '#fafafa',
-          textSec: parsed.textSec || '#a1a1aa'
+          textSec: parsed.textSec || '#a1a1aa',
+          titlebarText: parsed.titlebarText || parsed.textSec || '#a1a1aa',
+          titlebarTextHover: parsed.titlebarTextHover || parsed.textMain || '#fafafa',
+          titlebarAccent: parsed.titlebarAccent || parsed.accent || '#6366f1',
+          titlebarAlt: parsed.titlebarAlt || '#18181b',
+          titlebarAlt2: parsed.titlebarAlt2 || '#27272a'
         });
       } catch (e) { }
     }

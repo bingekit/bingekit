@@ -44,6 +44,12 @@ const MainLayout = () => {
           --theme-accent: ${theme.accent};
           --theme-text-main: ${theme.textMain};
           --theme-text-sec: ${theme.textSec};
+          
+          --theme-titlebar-text: ${theme.titlebarText || theme.textSec || '#a1a1aa'};
+          --theme-titlebar-text-hover: ${theme.titlebarTextHover || theme.textMain || '#fafafa'};
+          --theme-titlebar-accent: ${theme.titlebarAccent || theme.accent || '#6366f1'};
+          --theme-titlebar-alt: ${theme.titlebarAlt || '#18181b'};
+          --theme-titlebar-alt2: ${theme.titlebarAlt2 || '#27272a'};
         }
 
 
@@ -105,6 +111,31 @@ const MainLayout = () => {
           background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;
           color: var(--theme-accent) !important;
         }
+
+        /* Titlebar Variables Overrides */
+        #titlebar-region { color: var(--theme-titlebar-text) !important; }
+        #titlebar-region .text-zinc-500, #titlebar-region .text-zinc-400 { color: var(--theme-titlebar-text) !important; }
+        
+        #titlebar-region .hover\\:text-zinc-100:hover, #titlebar-region .hover\\:text-zinc-200:hover, #titlebar-region .hover\\:text-zinc-300:hover, #titlebar-region .hover\\:text-white:hover { color: var(--theme-titlebar-text-hover) !important; filter: drop-shadow(0 0 2px var(--theme-titlebar-text-hover)); }
+        #titlebar-region input.text-xs { color: var(--theme-titlebar-text-hover) !important; }
+        #titlebar-region input::placeholder { color: color-mix(in srgb, var(--theme-titlebar-text) 50%, transparent) !important; }
+        
+        #titlebar-region .text-indigo-400, #titlebar-region .text-indigo-500 { color: var(--theme-titlebar-accent) !important; filter: drop-shadow(0 0 4px var(--theme-titlebar-accent)); }
+        #titlebar-region .fill-indigo-400 { fill: var(--theme-titlebar-accent) !important; }
+        #titlebar-region .border-indigo-500\\/50 { border-color: var(--theme-titlebar-accent) !important; }
+        #titlebar-region .hover\\:text-indigo-400:hover { color: var(--theme-titlebar-accent) !important; filter: drop-shadow(0 0 4px var(--theme-titlebar-accent)); }
+        
+        #titlebar-region .bg-zinc-800, #titlebar-region .bg-zinc-900, #titlebar-region form { background-color: var(--theme-titlebar-alt) !important; }
+        #titlebar-region .border-zinc-800, #titlebar-region .border-zinc-800\\/80 { border-color: var(--theme-titlebar-alt2) !important; }
+        
+        #titlebar-region .hover\\:bg-zinc-800:hover, #titlebar-region button.hover\\:bg-zinc-800:hover { background-color: var(--theme-titlebar-alt2) !important; color: var(--theme-titlebar-text-hover) !important; }
+        
+        #titlebar-region form:focus-within { background-color: var(--theme-titlebar-alt2) !important; border-color: var(--theme-titlebar-accent) !important; }
+        #titlebar-region .bg-indigo-500\\/10 { background-color: color-mix(in srgb, var(--theme-titlebar-accent) 15%, transparent) !important; }
+        #titlebar-region .hover\\:bg-indigo-500\\/20:hover { background-color: color-mix(in srgb, var(--theme-titlebar-accent) 25%, transparent) !important; }
+        
+        #titlebar-region .bg-red-500\\/90:hover { background-color: rgb(239 68 68 / 0.9) !important; color: white !important; filter: none !important; }
+        #titlebar-region .w-px.bg-zinc-800 { background-color: var(--theme-titlebar-alt2) !important; }
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
@@ -188,7 +219,7 @@ const MainLayout = () => {
         <div className="flex items-center no-drag ml-auto">
           {activeTab === 'player' && (
             <TooltipWrapper text="Toggle URL Bar">
-              <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800'}`}>
+              <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}>
                 {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </TooltipWrapper>
@@ -197,19 +228,19 @@ const MainLayout = () => {
             <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
               <button
                 onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
-                className={`p-5 px-5 transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800'}`}
+                className={`p-5 px-5 transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}
               >
                 <Zap size={14} />
               </button>
             </TooltipWrapper>
           )}
           <TooltipWrapper text="Minimize">
-            <button onClick={() => ahk.call('Minimize')} className="p-5 px-5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => ahk.call('Minimize')} className="p-5 px-5 text-zinc-500 hover:bg-zinc-800 transition-colors">
               <Minus size={14} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Maximize">
-            <button onClick={() => ahk.call('Maximize')} className="p-5 px-5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => ahk.call('Maximize')} className="p-5 px-5 text-zinc-500 hover:bg-zinc-800 transition-colors">
               <Square size={12} />
             </button>
           </TooltipWrapper>

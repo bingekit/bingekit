@@ -106,12 +106,47 @@ export const SettingsView = () => {
                 <input type="text" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
               </div>
             </div>
-            <div className="col-span-1 md:col-span-2">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Titlebar Text</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarText || '#a1a1aa'} onChange={e => setTheme({ ...theme, titlebarText: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarText || '#a1a1aa'} onChange={e => setTheme({ ...theme, titlebarText: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Titlebar Text Hover</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarTextHover || '#fafafa'} onChange={e => setTheme({ ...theme, titlebarTextHover: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarTextHover || '#fafafa'} onChange={e => setTheme({ ...theme, titlebarTextHover: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Titlebar Accent</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarAccent || '#6366f1'} onChange={e => setTheme({ ...theme, titlebarAccent: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarAccent || '#6366f1'} onChange={e => setTheme({ ...theme, titlebarAccent: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Titlebar Base (Alt 1)</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarAlt || '#18181b'} onChange={e => setTheme({ ...theme, titlebarAlt: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarAlt || '#18181b'} onChange={e => setTheme({ ...theme, titlebarAlt: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Titlebar Hover (Alt 2)</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarAlt2 || '#27272a'} onChange={e => setTheme({ ...theme, titlebarAlt2: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarAlt2 || '#27272a'} onChange={e => setTheme({ ...theme, titlebarAlt2: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div className="col-span-1 md:col-span-3">
               <label className="block text-xs text-zinc-500 mb-1.5">1-Click Presets</label>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b', border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">Dark</button>
-                <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#f4f4f5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#3b82f6', textMain: '#18181b', textSec: '#52525b' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Light</button>
-                <button onClick={() => setTheme({ mode: 'dracula', titlebarBg: '#282a36', sidebarBg: '#21222c', mainBg: '#282a36', border: '#44475a', accent: '#bd93f9', textMain: '#f8f8f2', textSec: '#6272a4' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Drac</button>
+                <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b', border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa', titlebarText: '#a1a1aa', titlebarTextHover: '#fafafa', titlebarAccent: '#6366f1', titlebarAlt: '#18181b', titlebarAlt2: '#27272a' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">Dark</button>
+                <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#f4f4f5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#3b82f6', textMain: '#18181b', textSec: '#52525b', titlebarText: '#52525b', titlebarTextHover: '#18181b', titlebarAccent: '#3b82f6', titlebarAlt: '#ffffff', titlebarAlt2: '#e4e4e7' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Light</button>
+                <button onClick={() => setTheme({ mode: 'dracula', titlebarBg: '#282a36', sidebarBg: '#21222c', mainBg: '#282a36', border: '#44475a', accent: '#bd93f9', textMain: '#f8f8f2', textSec: '#6272a4', titlebarText: '#6272a4', titlebarTextHover: '#f8f8f2', titlebarAccent: '#bd93f9', titlebarAlt: '#191a21', titlebarAlt2: '#44475a' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Drac</button>
               </div>
             </div>
           </div>
