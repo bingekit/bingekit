@@ -5,6 +5,7 @@ import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
 import { CustomSelect } from '../ui/CustomSelect';
+import { SearchConfigEditor } from './SearchConfigEditor';
 import { TagsInput } from '../ui/TagsInput';
 import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
@@ -212,463 +213,14 @@ export const PluginsView = () => {
 
             {/* Search Parsing */}
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
-              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
-                
-                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-zinc-800/50">
-                  <CustomCheckbox
-                    checked={!!editingPlugin.search.delegateFlowId}
-                    onChange={(val) => {
-                      if (val) {
-                        updateEditingPlugin('root', 'search', {
-                          ...editingPlugin.search,
-                          delegateFlowId: flows[0]?.id || '',
-                          delegateFlowInputs: {}
-                        });
-                      } else {
-                        const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.search;
-                        updateEditingPlugin('root', 'search', rest);
-                      }
-                    }}
-                  />
-                  <span className="text-sm font-medium text-indigo-400">Delegate execution to a Custom Flow</span>
-                </div>
-
-                {editingPlugin.search.delegateFlowId ? (
-                  <div className="space-y-4 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
-                    <div>
-                      <label className="block text-xs text-indigo-300 mb-1.5">Target Flow</label>
-                      <CustomSelect
-                        searchable
-                        options={flows.map(f => ({ label: f.name, value: f.id }))}
-                        value={editingPlugin.search.delegateFlowId}
-                        onChange={(val) => updateEditingPlugin('search', 'delegateFlowId', val)}
-                      />
-                    </div>
-                    
-                    {(() => {
-                      const selectedFlow = flows.find(f => f.id === editingPlugin.search.delegateFlowId);
-                      if (!selectedFlow || !selectedFlow.variables || selectedFlow.variables.length === 0) {
-                        return <div className="text-xs text-zinc-500 pt-2">This flow does not accept any variables.</div>;
-                      }
-                      return (
-                        <div className="pt-2 border-t border-indigo-500/20 space-y-3">
-                          <label className="block text-xs text-indigo-300 mb-1.5">Map Flow Variables</label>
-                          {selectedFlow.variables.map(v => {
-                            const valStr = editingPlugin.search.delegateFlowInputs?.[v] || '';
-                            const isSel = valStr.startsWith('selector:');
-                            const isJs = valStr.startsWith('js:');
-                            const type = isSel ? 'selector' : isJs ? 'js' : 'string';
-                            const cleanVal = isSel ? valStr.substring(9) : isJs ? valStr.substring(3) : valStr;
-
-                            return (
-                              <div key={v} className="flex gap-2 items-start">
-                                <span className="text-xs text-zinc-400 w-1/4 truncate font-mono mt-2">{v}</span>
-                                <div className="flex-1 flex flex-col gap-2">
-                                  <select 
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 outline-none hover:border-zinc-700 transition-colors"
-                                    value={type}
-                                    onChange={(e) => {
-                                      const newType = e.target.value;
-                                      const prefix = newType === 'selector' ? 'selector:' : newType === 'js' ? 'js:' : '';
-                                      const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
-                                      inputs[v] = prefix + cleanVal;
-                                      updateEditingPlugin('root', 'search', { ...editingPlugin.search, delegateFlowInputs: inputs });
-                                    }}
-                                  >
-                                    <option value="string">String / Native (e.g. {'{url}'})</option>
-                                    <option value="selector">CSS Selector (on current page)</option>
-                                    <option value="js">JavaScript (evaluated on page)</option>
-                                  </select>
-                                  <input
-                                    type="text"
-                                    placeholder={type === 'selector' ? 'img.poster@src' : type === 'js' ? 'return document.title;' : '{query}'}
-                                    value={cleanVal}
-                                    onChange={(e) => {
-                                      const prefix = type === 'selector' ? 'selector:' : type === 'js' ? 'js:' : '';
-                                      const inputs = { ...(editingPlugin.search.delegateFlowInputs || {}) };
-                                      inputs[v] = prefix + e.target.value;
-                                      updateEditingPlugin('root', 'search', { ...editingPlugin.search, delegateFlowInputs: inputs });
-                                    }}
-                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3 mb-2">
-                      <CustomCheckbox
-                        checked={editingPlugin.search.isFormSearch || false}
-                        onChange={(val) => updateEditingPlugin('search', 'isFormSearch', val)}
-                      />
-                      <span className="text-sm text-zinc-300">Use Form Search instead of URL Formatting</span>
-                    </div>
-    
-                    {!editingPlugin.search.isFormSearch ? (
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
-                        <input
-                          type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
-                          onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                        />
-                      </div>
-                    ) : (
-                  <div className="space-y-4 border border-zinc-800/80 rounded-lg p-4 bg-zinc-950/30">
-                    <div>
-                      <label className="block text-xs text-zinc-500 mb-1.5">Form Page URL (Start URL)</label>
-                      <input
-                        type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/"
-                        onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Input Selector</label>
-                        <input
-                          type="text" value={editingPlugin.search.formInputSel || ''} placeholder="input[name='q']"
-                          onChange={(e) => updateEditingPlugin('search', 'formInputSel', e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Submit Selector</label>
-                        <input
-                          type="text" value={editingPlugin.search.formSubmitSel || ''} placeholder="button[type='submit']"
-                          onChange={(e) => updateEditingPlugin('search', 'formSubmitSel', e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Submission Wait Mode</label>
-                        <select
-                          value={editingPlugin.search.searchWaitMode || 'navigation'}
-                          onChange={(e) => updateEditingPlugin('search', 'searchWaitMode', e.target.value)}
-                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                        >
-                          <option value="navigation">Navigation (Page Reloads)</option>
-                          <option value="ajax">AJAX / Popup (No Reload)</option>
-                        </select>
-                      </div>
-                      {editingPlugin.search.searchWaitMode === 'ajax' && (
-                        <div>
-                          <label className="block text-xs text-zinc-500 mb-1.5">AJAX Delay (ms)</label>
-                          <input
-                            type="number" value={editingPlugin.search.formSubmitDelay || 2000}
-                            onChange={(e) => updateEditingPlugin('search', 'formSubmitDelay', parseInt(e.target.value))}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="pt-2 border-t border-zinc-800/80">
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs text-zinc-500">Extra Form Actions (Before Submit)</label>
-                        <button
-                          onClick={() => {
-                            const newActions = [...(editingPlugin.search.formExtraActions || []), { id: Date.now().toString(), selector: '', action: 'setValue', value: '' }];
-                            updateEditingPlugin('search', 'formExtraActions', newActions);
-                          }}
-                          className="text-[10px] bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-2 py-1 rounded flex items-center gap-1"
-                        >
-                          <Plus size={12} /> Add Action
-                        </button>
-                      </div>
-                      <div className="space-y-2">
-                        {(editingPlugin.search.formExtraActions || []).map((act, idx) => (
-                          <div key={act.id || idx} className="flex gap-2 items-center">
-                            <input
-                              type="text" placeholder="Selector" value={act.selector}
-                              onChange={(e) => {
-                                const arr = [...editingPlugin.search.formExtraActions!];
-                                arr[idx].selector = e.target.value;
-                                updateEditingPlugin('search', 'formExtraActions', arr);
-                              }}
-                              className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                            />
-                            <select
-                              value={act.action}
-                              onChange={(e) => {
-                                const arr = [...editingPlugin.search.formExtraActions!];
-                                arr[idx].action = e.target.value as any;
-                                updateEditingPlugin('search', 'formExtraActions', arr);
-                              }}
-                              className="w-28 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none"
-                            >
-                              <option value="setValue">Set Value</option>
-                              <option value="check">Check</option>
-                              <option value="uncheck">Uncheck</option>
-                              <option value="click">Click</option>
-                              <option value="setAttribute">Set Attr</option>
-                              <option value="removeAttribute">Remove Attr</option>
-                            </select>
-                            <input
-                              type="text" placeholder={act.action === 'setAttribute' ? "name=val" : "Value"} value={act.value}
-                              onChange={(e) => {
-                                const arr = [...editingPlugin.search.formExtraActions!];
-                                arr[idx].value = e.target.value;
-                                updateEditingPlugin('search', 'formExtraActions', arr);
-                              }}
-                              style={{ display: ['setValue', 'setAttribute', 'removeAttribute'].includes(act.action) ? 'block' : 'none' }}
-                              className="w-32 bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                            />
-                            <button
-                              onClick={() => {
-                                const arr = editingPlugin.search.formExtraActions!.filter((_, i) => i !== idx);
-                                updateEditingPlugin('search', 'formExtraActions', arr);
-                              }}
-                              className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                            >
-                              <Trash2 size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">List Item Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.itemSel} placeholder=".result-item"
-                      onChange={(e) => updateEditingPlugin('search', 'itemSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.titleSel} placeholder=".title > a"
-                      onChange={(e) => updateEditingPlugin('search', 'titleSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Link Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.linkSel} placeholder="a.play-btn"
-                      onChange={(e) => updateEditingPlugin('search', 'linkSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Thumbnail Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.imgSel} placeholder="img.poster"
-                      onChange={(e) => updateEditingPlugin('search', 'imgSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Year Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.yearSel} placeholder=".year"
-                      onChange={(e) => updateEditingPlugin('search', 'yearSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Type Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.typeSel} placeholder=".type"
-                      onChange={(e) => updateEditingPlugin('search', 'typeSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                </div>
-                <div className="mt-6 pt-6 border-t border-zinc-800/50">
-                  <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center justify-between">
-                    SmartFetch Selector Tester
-                    {isTestingSearch && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
-                  </h4>
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={testSearchQuery}
-                      onChange={(e) => setTestSearchQuery(e.target.value)}
-                      placeholder="Enter a search query to test (e.g. matrix)"
-                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!testSearchQuery) return;
-                        setIsTestingSearch(true);
-                        try {
-                          const isFormSearch = !!editingPlugin.search.isFormSearch;
-                          const startUrl = isFormSearch 
-                            ? editingPlugin.search.urlFormat 
-                            : editingPlugin.search.urlFormat.replace('{query}', encodeURIComponent(testSearchQuery));
-                            
-                          if (!startUrl || !startUrl.startsWith('http')) {
-                            setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Invalid URL Format configured.' }] });
-                            setIsTestingSearch(false);
-                            return;
-                          }
-
-                          const encodedExtras = JSON.stringify(editingPlugin.search.formExtraActions || []);
-
-                          const jsQuery = `
-                                      function extractValue(el, selector, defaultAttr) {
-                                        if (!el) return '';
-                                        if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
-                                        if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
-                                        if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
-                                        let targetSel = selector;
-                                        let attr = defaultAttr;
-                                        if (selector.includes('@')) {
-                                          const parts = selector.split('@');
-                                          targetSel = parts[0];
-                                          attr = parts[1];
-                                        }
-                                        const targetEl = targetSel ? (el.querySelector(targetSel) || el) : el;
-                                        if (attr) { return targetEl.getAttribute(attr) || ''; }
-                                        let text = targetEl.textContent ? targetEl.textContent.trim() : '';
-                                        if (!text && targetEl.hasAttribute('alt')) text = targetEl.getAttribute('alt') || '';
-                                        if (!text && targetEl.hasAttribute('title')) text = targetEl.getAttribute('title') || '';
-                                        return text;
-                                      }
-                                      
-                                      function scrapeItems() {
-                                        const itemSelector = '${editingPlugin.search.itemSel ? editingPlugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
-                                        const items = Array.from(document.querySelectorAll(itemSelector));
-                                        const results = items.slice(0, 5).map(item => ({
-                                          title: extractValue(item, '${editingPlugin.search.titleSel ? editingPlugin.search.titleSel.replace(/'/g, "\\'") : ''}', null),
-                                          href: extractValue(item, '${editingPlugin.search.linkSel ? editingPlugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
-                                          htmlPreview: item.outerHTML.substring(0, 150) + '...'
-                                        }));
-                                        return { count: items.length, items: results };
-                                      }
-                                      
-                                      function processExtras(actions) {
-                                        actions.forEach(act => {
-                                          const el = document.querySelector(act.selector);
-                                          if (!el) return;
-                                          if (act.action === 'setValue') {
-                                             el.value = act.value;
-                                             el.dispatchEvent(new Event('input', {bubbles: true}));
-                                             el.dispatchEvent(new Event('change', {bubbles: true}));
-                                          } else if (act.action === 'check') {
-                                             el.checked = true;
-                                             el.dispatchEvent(new Event('change', {bubbles: true}));
-                                          } else if (act.action === 'uncheck') {
-                                             el.checked = false;
-                                             el.dispatchEvent(new Event('change', {bubbles: true}));
-                                          } else if (act.action === 'click') {
-                                             el.click();
-                                          } else if (act.action === 'setAttribute') {
-                                             const parts = act.value.split('=');
-                                             el.setAttribute(parts[0], parts.slice(1).join('='));
-                                          } else if (act.action === 'removeAttribute') {
-                                             el.removeAttribute(act.value);
-                                          }
-                                        });
-                                      }
-
-                                      if (${isFormSearch}) {
-                                        return new Promise((resolve) => {
-                                          const isAjax = "${editingPlugin.search.searchWaitMode}" === "ajax";
-                                          const query = "${testSearchQuery.replace(/"/g, '\\"')}";
-                                          const extras = ${encodedExtras};
-                                          
-                                          if (sessionStorage.getItem('sv_test_phase')) {
-                                            sessionStorage.removeItem('sv_test_phase');
-                                            setTimeout(() => resolve(scrapeItems()), 1000);
-                                            return;
-                                          }
-                                          
-                                          const inputSel = "${(editingPlugin.search.formInputSel || '').replace(/"/g, '\\"')}";
-                                          const submitSel = "${(editingPlugin.search.formSubmitSel || '').replace(/"/g, '\\"')}";
-                                          
-                                          console.log('[SmartFetch Debug] Form Search Start', { isAjax, inputSel, submitSel, query, extrasCount: extras.length });
-
-                                          const input = inputSel ? document.querySelector(inputSel) : null;
-                                          const submit = submitSel ? document.querySelector(submitSel) : null;
-                                          console.log('[SmartFetch Debug] Found elements:', { input: !!input, submit: !!submit });
-                                          
-                                          if (input) {
-                                            console.log('[SmartFetch Debug] Setting input value');
-                                            input.value = query;
-                                            input.dispatchEvent(new Event('input', {bubbles: true}));
-                                            input.dispatchEvent(new Event('change', {bubbles: true}));
-                                          } else if (inputSel) {
-                                            console.warn('[SmartFetch Debug] Input selector was provided but element not found:', inputSel);
-                                          }
-                                          
-                                          console.log('[SmartFetch Debug] Processing extra actions...');
-                                          processExtras(extras);
-                                          
-                                          if (submit) {
-                                            if (isAjax) {
-                                              console.log('[SmartFetch Debug] AJAX Mode: Clicking submit and waiting ${editingPlugin.search.formSubmitDelay || 2000}ms');
-                                              submit.click();
-                                              setTimeout(() => {
-                                                console.log('[SmartFetch Debug] AJAX Delay finished, scraping items...');
-                                                resolve(scrapeItems());
-                                              }, ${editingPlugin.search.formSubmitDelay || 2000});
-                                            } else {
-                                              console.log('[SmartFetch Debug] Navigation Mode: Setting session marker and clicking submit');
-                                              sessionStorage.setItem('sv_test_phase', '1');
-                                              submit.click();
-                                              // Fallback: If navigation doesn't happen within 8 seconds, resolve to avoid hanging
-                                              setTimeout(() => {
-                                                console.log('[SmartFetch Debug] Navigation timeout (8s) hit! Resolving to prevent hang.');
-                                                sessionStorage.removeItem('sv_test_phase');
-                                                resolve({ count: 0, items: [{ error: 'Navigation timeout - page did not reload' }] });
-                                              }, 8000);
-                                            }
-                                          } else {
-                                            if (submitSel) console.warn('[SmartFetch Debug] Submit selector was provided but element not found:', submitSel);
-                                            console.log('[SmartFetch Debug] No submit element, falling back to basic wait and scrape.');
-                                            setTimeout(() => resolve(scrapeItems()), ${editingPlugin.search.formSubmitDelay || 2000});
-                                          }
-                                        });
-                                      } else {
-                                        return scrapeItems();
-                                      }
-                                    `;
-                          const fetchResults: any = await window.SmartFetch(startUrl, jsQuery);
-                          if (fetchResults) {
-                            setTestSearchResults({
-                              status: 'success',
-                              nodesCount: fetchResults.count,
-                              results: fetchResults.items
-                            });
-                          } else {
-                            setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Fetch returned null/empty' }] });
-                          }
-                        } catch (e: any) {
-                          setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: e.message || 'Unknown error' }] });
-                        }
-                        setIsTestingSearch(false);
-                      }}
-                      className="px-4 py-2 bg-indigo-500/20 text-indigo-400 font-medium text-sm rounded-lg hover:bg-indigo-500/30 transition-colors whitespace-nowrap"
-                    >
-                      Test Fetch
-                    </button>
-                  </div>
-
-                  {testSearchResults.status !== 'idle' && (
-                    <div className="bg-zinc-950 rounded-lg border border-zinc-800/80 p-3 overflow-y-auto max-h-64 no-scrollbar">
-                      <div className="text-xs font-mono text-zinc-400 mb-2 border-b border-zinc-800/50 pb-2 flex justify-between">
-                        <span>Nodes Scraped By itemSel (<span className="text-white">{editingPlugin.search.itemSel || 'body'}</span>): <span className={testSearchResults.nodesCount > 0 ? "text-emerald-400" : "text-amber-400"}>{testSearchResults.nodesCount}</span></span>
-                      </div>
-                      <pre className="text-[10px] text-zinc-300 font-mono whitespace-pre-wrap break-all">
-                        {JSON.stringify(testSearchResults.results, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-                </>
-              )}
-              </div>
+              <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
+              <SearchConfigEditor
+                config={editingPlugin.search}
+                onChange={(key, val) => updateEditingPlugin('root', 'search', { ...editingPlugin.search, [key]: val })}
+                flows={flows}
+                testSearchQuery={testSearchQuery}
+                setTestSearchQuery={setTestSearchQuery}
+              />
             </div>
 
             {/* Additional Searches */}
@@ -691,8 +243,8 @@ export const PluginsView = () => {
               
               <div className="space-y-4">
                 {(editingPlugin.additionalSearches || []).map((searchMethod, idx) => (
-                  <div key={searchMethod.id} className="p-5 bg-zinc-900/30 border border-zinc-800/50 hover:border-emerald-500/30 transition-colors rounded-xl space-y-4">
-                    <div className="flex items-start justify-between">
+                  <div key={searchMethod.id} className="p-5 bg-zinc-900/30 border border-zinc-800/50 hover:border-theme-accent/30 transition-colors rounded-xl space-y-4">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex-1 grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs text-zinc-500 mb-1.5">Method Name / Label</label>
@@ -703,7 +255,7 @@ export const PluginsView = () => {
                               arr[idx].name = e.target.value;
                               updateEditingPlugin('root', 'additionalSearches', arr);
                             }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none"
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-theme-accent outline-none"
                           />
                         </div>
                         <div>
@@ -715,66 +267,6 @@ export const PluginsView = () => {
                               arr[idx].tags = newTags;
                               updateEditingPlugin('root', 'additionalSearches', arr);
                             }}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
-                          <input
-                            type="text" value={searchMethod.urlFormat || ''} placeholder="https://site.com/search?type=movie&q={query}"
-                            onChange={(e) => {
-                              const arr = [...editingPlugin.additionalSearches!];
-                              arr[idx].urlFormat = e.target.value;
-                              updateEditingPlugin('root', 'additionalSearches', arr);
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-zinc-500 mb-1.5">Item Selector</label>
-                          <input
-                            type="text" value={searchMethod.itemSel || ''} placeholder=".result-item"
-                            onChange={(e) => {
-                              const arr = [...editingPlugin.additionalSearches!];
-                              arr[idx].itemSel = e.target.value;
-                              updateEditingPlugin('root', 'additionalSearches', arr);
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
-                          <input
-                            type="text" value={searchMethod.titleSel || ''} placeholder=".title"
-                            onChange={(e) => {
-                              const arr = [...editingPlugin.additionalSearches!];
-                              arr[idx].titleSel = e.target.value;
-                              updateEditingPlugin('root', 'additionalSearches', arr);
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-zinc-500 mb-1.5">Link Selector</label>
-                          <input
-                            type="text" value={searchMethod.linkSel || ''} placeholder="a.play"
-                            onChange={(e) => {
-                              const arr = [...editingPlugin.additionalSearches!];
-                              arr[idx].linkSel = e.target.value;
-                              updateEditingPlugin('root', 'additionalSearches', arr);
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-zinc-500 mb-1.5">Image Selector</label>
-                          <input
-                            type="text" value={searchMethod.imgSel || ''} placeholder="img"
-                            onChange={(e) => {
-                              const arr = [...editingPlugin.additionalSearches!];
-                              arr[idx].imgSel = e.target.value;
-                              updateEditingPlugin('root', 'additionalSearches', arr);
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono"
                           />
                         </div>
                       </div>
@@ -789,7 +281,7 @@ export const PluginsView = () => {
                             arr.splice(idx + 1, 0, cloned);
                             updateEditingPlugin('root', 'additionalSearches', arr);
                           }}
-                          className="p-2 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                          className="p-2 text-zinc-500 hover:text-theme-accent hover:bg-theme-accent/10 rounded-lg transition-colors"
                         >
                           <Copy size={16} />
                         </button>
@@ -803,6 +295,20 @@ export const PluginsView = () => {
                           <Trash2 size={16} />
                         </button>
                       </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-zinc-800/50">
+                      <SearchConfigEditor
+                        config={searchMethod}
+                        onChange={(key, val) => {
+                          const arr = [...editingPlugin.additionalSearches!];
+                          arr[idx] = { ...arr[idx], [key]: val };
+                          updateEditingPlugin('root', 'additionalSearches', arr);
+                        }}
+                        flows={flows}
+                        testSearchQuery={testSearchQuery}
+                        setTestSearchQuery={setTestSearchQuery}
+                      />
                     </div>
                   </div>
                 ))}

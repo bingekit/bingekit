@@ -48,7 +48,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onCh
       </button>
 
       {isOpen && (
-        <div style={{ backgroundColor: 'var(--theme-titlebar)' }} className="absolute z-50 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40">
+        <div style={{ backgroundColor: 'var(--theme-sidebar)' }} className="absolute z-50 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40">
           {searchable && (
             <div className="p-2 border-b border-zinc-800 flex items-center gap-2 text-zinc-400 bg-zinc-950/50">
                 <Search size={14} />
@@ -62,7 +62,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({ options, value, onCh
                 />
             </div>
           )}
-          <div className="max-h-60 overflow-y-auto no-scrollbar py-1">
+          <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-sm text-zinc-500 text-center">No results found</div>
             ) : (

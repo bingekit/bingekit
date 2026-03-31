@@ -69,6 +69,28 @@ AHK_LoadData(filename) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
+AHK_CacheSet(key, data) {
+    if !DirExist(A_ScriptDir "\settings\cache")
+        DirCreate(A_ScriptDir "\settings\cache")
+    filepath := A_ScriptDir "\settings\cache\" key ".txt"
+    if FileExist(filepath)
+        FileDelete(filepath)
+    try FileAppend(data, filepath, "UTF-8")
+    return true
+}
+
+AHK_CacheGet(key) {
+    filepath := A_ScriptDir "\settings\cache\" key ".txt"
+    return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
+}
+
+AHK_CacheClear(*) {
+    if !DirExist(A_ScriptDir "\settings\cache")
+        return true
+    try DirDelete(A_ScriptDir "\settings\cache", true)
+    return true
+}
+
 AHK_ListSites(*) {
     if !DirExist(A_ScriptDir "\settings\sites")
         DirCreate(A_ScriptDir "\settings\sites")
@@ -243,7 +265,10 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
 
                 PlayerWV.AddHostObjectToScript("ahk", {
                     UpdateURL: AHK_UpdateURL,
-                    GetUserscriptPayload: AHK_GetUserscriptPayload
+                    GetUserscriptPayload: AHK_GetUserscriptPayload,
+                    CacheSet: AHK_CacheSet,
+                    CacheGet: AHK_CacheGet,
+                    CacheClear: AHK_CacheClear
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
@@ -307,6 +332,11 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj }
 
         hiddenWV.wv.AddHostObjectToScript(hostObjName, hostObj)
+        hiddenWV.wv.AddHostObjectToScript("ahk", {
+            CacheSet: AHK_CacheSet,
+            CacheGet: AHK_CacheGet,
+            CacheClear: AHK_CacheClear
+        })
 
         wrapperJs := "window.addEventListener('DOMContentLoaded', function() {`n"
         wrapperJs .= "    console.log('[SmartFetch Debug] DOMContentLoaded triggered. Waiting 1000ms for idle...');`n"
@@ -485,6 +515,9 @@ WV.AddHostObjectToScript("ahk", {
     Close: AHK_Close,
     SaveData: AHK_SaveData,
     LoadData: AHK_LoadData,
+    CacheSet: AHK_CacheSet,
+    CacheGet: AHK_CacheGet,
+    CacheClear: AHK_CacheClear,
     ListSites: AHK_ListSites,
     SaveSite: AHK_SaveSite,
     LoadSite: AHK_LoadSite,

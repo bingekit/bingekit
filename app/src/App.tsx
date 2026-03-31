@@ -3,6 +3,9 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ahk } from './lib/ahk';
 import './lib/bridge';
 
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-javascript';
+
 import {
   Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap
 } from 'lucide-react';
@@ -41,6 +44,7 @@ const MainLayout = () => {
           --theme-text-main: ${theme.textMain};
           --theme-text-sec: ${theme.textSec};
         }
+
 
         /* Essential Layout Backgrounds mapped to IDs */
         #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: var(--theme-border) !important; }
@@ -93,6 +97,13 @@ const MainLayout = () => {
 
         /* Hard Toolbar Fix */
         form#toolbar-form { display: flex !important; }
+
+        /* Global Selection */
+        
+        ::selection {
+          background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;
+          color: var(--theme-accent) !important;
+        }
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}

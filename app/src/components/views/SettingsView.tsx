@@ -4,6 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
+import { CustomSelect } from '../ui/CustomSelect';
 import { TagsInput } from '../ui/TagsInput';
 import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
@@ -11,9 +12,9 @@ import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
 export const SettingsView = () => {
-  const { 
+  const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, 
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
@@ -25,228 +26,264 @@ export const SettingsView = () => {
   } = useAppContext();
 
   return (
-    
-              <div className="p-8 max-w-2xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
-                <h2 className="text-2xl font-light tracking-tight text-zinc-100 mb-8">Settings</h2>
 
-                <div className="space-y-6">
-                  {/* Theme Configuration */}
-                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
-                    <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Zap size={16} className="text-indigo-400" /> Theme Configuration</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Top Titlebar</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Side Menu</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Main Content</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Borders</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Accent Color (Buttons)</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Main Text</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Secondary Text</label>
-                        <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
-                          <input type="color" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
-                          <input type="text" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
-                        </div>
-                      </div>
-                      <div className="col-span-1 md:col-span-2">
-                        <label className="block text-xs text-zinc-500 mb-1.5">1-Click Presets</label>
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b', border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">Dark</button>
-                          <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#f4f4f5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#3b82f6', textMain: '#18181b', textSec: '#52525b' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Light</button>
-                          <button onClick={() => setTheme({ mode: 'dracula', titlebarBg: '#282a36', sidebarBg: '#21222c', mainBg: '#282a36', border: '#44475a', accent: '#bd93f9', textMain: '#f8f8f2', textSec: '#6272a4' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Drac</button>
-                        </div>
-                      </div>
+    <div className="p-8 max-w-2xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
+      <h2 className="text-2xl font-light tracking-tight text-zinc-100 mb-8">Settings</h2>
+
+      <div className="space-y-6">
+        {/* Theme Configuration */}
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
+          <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Zap size={16} className="text-indigo-400" /> Theme Configuration</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Top Titlebar</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.titlebarBg} onChange={e => setTheme({ ...theme, titlebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Side Menu</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.sidebarBg} onChange={e => setTheme({ ...theme, sidebarBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Main Content</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.mainBg} onChange={e => setTheme({ ...theme, mainBg: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Borders</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.border} onChange={e => setTheme({ ...theme, border: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Accent Color (Buttons)</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.accent} onChange={e => setTheme({ ...theme, accent: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Main Text</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.textMain} onChange={e => setTheme({ ...theme, textMain: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Secondary Text</label>
+              <div className="flex bg-zinc-950 border border-zinc-800 rounded overflow-hidden h-8">
+                <input type="color" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="w-8 h-8 cursor-pointer border-none p-0 flex-shrink-0 appearance-none bg-transparent block focus:outline-none" />
+                <input type="text" value={theme.textSec} onChange={e => setTheme({ ...theme, textSec: e.target.value })} className="flex-1 min-w-0 bg-transparent border-none text-xs text-zinc-200 px-2 outline-none font-mono uppercase" />
+              </div>
+            </div>
+            <div className="col-span-1 md:col-span-2">
+              <label className="block text-xs text-zinc-500 mb-1.5">1-Click Presets</label>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b', border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 transition-colors">Dark</button>
+                <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#f4f4f5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#3b82f6', textMain: '#18181b', textSec: '#52525b' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Light</button>
+                <button onClick={() => setTheme({ mode: 'dracula', titlebarBg: '#282a36', sidebarBg: '#21222c', mainBg: '#282a36', border: '#44475a', accent: '#bd93f9', textMain: '#f8f8f2', textSec: '#6272a4' })} className="flex-1 min-w-0 px-2 py-1 text-xs bg-zinc-800 rounded hover:bg-zinc-700 text-white transition-colors">Drac</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Native Adblocker</h3>
+              <p className="text-xs text-zinc-500 mt-1">Injects AHK scripts to block ads and trackers.</p>
+            </div>
+            <button
+              onClick={() => setIsAdblockEnabled(!isAdblockEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${isAdblockEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isAdblockEnabled ? 'left-7' : 'left-1'}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Multi-Search Engine</h3>
+              <p className="text-xs text-zinc-500 mt-1">Default engine for the floating search bar.</p>
+            </div>
+            <div className="w-48">
+              <CustomSelect
+                value="DuckDuckGo"
+                onChange={() => {}}
+                options={[
+                  { value: 'DuckDuckGo', label: 'DuckDuckGo' },
+                  { value: 'Google', label: 'Google' },
+                  { value: 'Custom AHK Script', label: 'Custom AHK Script' }
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/*
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Local Save File</h3>
+              <p className="text-xs text-zinc-500 mt-1">Data is saved to bookmarks.json via AHK.</p>
+            </div>
+            <button className="text-xs font-medium text-zinc-400 hover:text-zinc-200 px-3 py-1.5 bg-zinc-800 rounded-lg transition-colors">
+              Export Data
+            </button>
+          </div>
+        </div>
+        */}
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Lock size={16} className="text-indigo-400" /> Credential Manager</h3>
+              <p className="text-xs text-zinc-500 mt-1">Manage logins for external sites (Auto-Login bypass).</p>
+            </div>
+            <button
+              onClick={() => setShowCredModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/30 rounded-lg text-xs font-medium transition-colors"
+            >
+              <Plus size={14} /> Add New
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto no-scrollbar">
+              {credentials.map(c => (
+                <div key={c.id} className="group relative flex justify-between items-center p-3.5 bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-800/80 rounded-xl transition-all">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center flex-shrink-0 text-zinc-500">
+                      <KeyRound size={14} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-zinc-200 truncate">{c.domain}</p>
+                      <p className="text-xs text-zinc-500 truncate">{c.username}</p>
                     </div>
                   </div>
-
-                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-medium text-zinc-200">Native Adblocker</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Injects AHK scripts to block ads and trackers.</p>
-                      </div>
-                      <button
-                        onClick={() => setIsAdblockEnabled(!isAdblockEnabled)}
-                        className={`w-12 h-6 rounded-full transition-colors relative ${isAdblockEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
-                      >
-                        <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isAdblockEnabled ? 'left-7' : 'left-1'}`} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-medium text-zinc-200">Multi-Search Engine</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Default engine for the floating search bar.</p>
-                      </div>
-                      <select className="bg-zinc-800 border border-zinc-700 text-sm rounded-lg px-3 py-1.5 outline-none focus:border-indigo-500 text-zinc-200">
-                        <option>DuckDuckGo</option>
-                        <option>Google</option>
-                        <option>Custom AHK Script</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-sm font-medium text-zinc-200">Local Save File</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Data is saved to bookmarks.json via AHK.</p>
-                      </div>
-                      <button className="text-xs font-medium text-zinc-400 hover:text-zinc-200 px-3 py-1.5 bg-zinc-800 rounded-lg transition-colors">
-                        Export Data
-                      </button>
-                    </div>
-                  </div>
-                  <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Lock size={16} className="text-indigo-400" /> Credential Manager</h3>
-                        <p className="text-xs text-zinc-500 mt-1">Manage logins for external sites (Auto-Login bypass).</p>
-                      </div>
-                      <button
-                        onClick={() => setShowCredModal(true)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/30 rounded-lg text-xs font-medium transition-colors"
-                      >
-                        <Plus size={14} /> Add New
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto no-scrollbar">
-                        {credentials.map(c => (
-                          <div key={c.id} className="group relative flex justify-between items-center p-3.5 bg-zinc-950/50 hover:bg-zinc-900 border border-zinc-800/80 rounded-xl transition-all">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="w-8 h-8 rounded bg-zinc-800/50 flex items-center justify-center flex-shrink-0 text-zinc-500">
-                                <KeyRound size={14} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-zinc-200 truncate">{c.domain}</p>
-                                <p className="text-xs text-zinc-500 truncate">{c.username}</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => setCredentials(credentials.filter(x => x.id !== c.id))}
-                              className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-1.5 bg-zinc-900 rounded-lg"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                      {credentials.length === 0 && (
-                        <div className="text-xs text-zinc-600 italic py-6 text-center bg-zinc-950/30 rounded-xl border border-zinc-800/30">
-                          <Lock size={24} className="mx-auto mb-2 opacity-20" />
-                          No credentials saved.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Add Credential Modal */}
-                  <Modal
-                    isOpen={showCredModal}
-                    onClose={() => { setShowCredModal(false); setNewCred({ domain: '', username: '', password: '' }); }}
-                    title="Add Credential"
+                  <button
+                    onClick={() => setCredentials(credentials.filter(x => x.id !== c.id))}
+                    className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-all p-1.5 bg-zinc-900 rounded-lg"
                   >
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Domain or Plugin</label>
-                        <div className="flex gap-2 mb-2">
-                          <select
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                try { setNewCred({ ...newCred, domain: new URL(e.target.value).hostname }) } catch { setNewCred({ ...newCred, domain: e.target.value }) }
-                              }
-                            }}
-                            className="bg-zinc-950 border border-zinc-800 text-sm rounded-lg px-3 py-2 outline-none focus:border-indigo-500 text-zinc-200 flex-1"
-                          >
-                            <option value="">Select a known site...</option>
-                            {plugins.map(p => <option key={p.id} value={p.baseUrl}>{p.name} ({p.baseUrl})</option>)}
-                          </select>
-                        </div>
-                        <input
-                          type="text" placeholder="Or type domain (e.g. netflix.com)"
-                          value={newCred.domain} onChange={e => setNewCred({ ...newCred, domain: e.target.value })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Username / Email</label>
-                        <input
-                          type="text" placeholder="user@gmail.com"
-                          value={newCred.username} onChange={e => setNewCred({ ...newCred, username: e.target.value })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">Password</label>
-                        <input
-                          type="password" placeholder="••••••••"
-                          value={newCred.password} onChange={e => setNewCred({ ...newCred, password: e.target.value })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                        />
-                      </div>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            {credentials.length === 0 && (
+              <div className="text-xs text-zinc-600 italic py-6 text-center bg-zinc-950/30 rounded-xl border border-zinc-800/30">
+                <Lock size={24} className="mx-auto mb-2 opacity-20" />
+                No credentials saved.
+              </div>
+            )}
+          </div>
+        </div>
 
-                      <div className="mt-6 flex justify-end pt-4 border-t border-zinc-800/50">
-                        <button
-                          onClick={() => {
-                            if (newCred.domain && newCred.username && newCred.password) {
-                              setCredentials([...credentials, {
-                                id: Date.now().toString(),
-                                domain: newCred.domain,
-                                username: newCred.username,
-                                passwordBase64: btoa(newCred.password)
-                              }]);
-                              setNewCred({ domain: '', username: '', password: '' });
-                              setShowCredModal(false);
-                            }
-                          }}
-                          className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors w-full"
-                        >
-                          Save Credential
-                        </button>
-                      </div>
-                    </div>
-                  </Modal>
+        {/* Add Credential Modal */}
+        <Modal
+          isOpen={showCredModal}
+          onClose={() => { setShowCredModal(false); setNewCred({ domain: '', username: '', password: '' }); }}
+          title="Add Credential"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Domain or Plugin</label>
+              <div className="flex gap-2 mb-2">
+                <div className="flex-1 min-w-0">
+                  <CustomSelect
+                    searchable
+                    value=""
+                    onChange={(val) => {
+                      if (val) {
+                        try { setNewCred({ ...newCred, domain: new URL(val).hostname }) } catch { setNewCred({ ...newCred, domain: val }) }
+                      }
+                    }}
+                    options={[
+                      { value: '', label: 'Select a known site...' },
+                      ...plugins.map(p => ({ value: p.baseUrl, label: `${p.name} (${p.baseUrl})` }))
+                    ]}
+                  />
                 </div>
               </div>
-            
+              <input
+                type="text" placeholder="Or type domain (e.g. netflix.com)"
+                value={newCred.domain} onChange={e => setNewCred({ ...newCred, domain: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Username / Email</label>
+              <input
+                type="text" placeholder="user@gmail.com"
+                value={newCred.username} onChange={e => setNewCred({ ...newCred, username: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Password</label>
+              <input
+                type="password" placeholder="••••••••"
+                value={newCred.password} onChange={e => setNewCred({ ...newCred, password: e.target.value })}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end pt-4 border-t border-zinc-800/50">
+              <button
+                onClick={() => {
+                  if (newCred.domain && newCred.username && newCred.password) {
+                    setCredentials([...credentials, {
+                      id: Date.now().toString(),
+                      domain: newCred.domain,
+                      username: newCred.username,
+                      passwordBase64: btoa(newCred.password)
+                    }]);
+                    setNewCred({ domain: '', username: '', password: '' });
+                    setShowCredModal(false);
+                  }
+                }}
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors w-full"
+              >
+                Save Credential
+              </button>
+            </div>
+          </div>
+        </Modal>
+      </div>
+
+      {/* System Cache Map */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Save size={16} /> System Cache</h3>
+        <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Clear Runtime Data</h3>
+              <p className="text-xs text-zinc-500 mt-1">Deletes all system cached objects created by plugins or scripts.</p>
+            </div>
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to clear all system cache?')) {
+                  ahk.call('CacheClear');
+                }
+              }}
+              className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-sm font-medium rounded-lg transition-colors border border-red-500/20"
+            >
+              Clear Cache
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
   );
 };
