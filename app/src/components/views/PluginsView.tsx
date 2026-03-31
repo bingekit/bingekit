@@ -154,6 +154,20 @@ export const PluginsView = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Inline Script Blockers</label>
+                  <TagsInput
+                    tags={editingPlugin.inlineBlockers || []}
+                    onChange={newTags => updateEditingPlugin('root', 'inlineBlockers', newTags)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Redirect Blockers</label>
+                  <TagsInput
+                    tags={editingPlugin.redirectBlockers || []}
+                    onChange={newTags => updateEditingPlugin('root', 'redirectBlockers', newTags)}
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-zinc-500 mb-1.5">Custom CSS</label>
                   <textarea
                     value={editingPlugin.customCss || ''}

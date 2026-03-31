@@ -6,9 +6,27 @@
 
 (function () {
 
-    const adKeywords = ['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'];
-    const redirectKeywords = ['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'];
-    const inlineKeywords = ['debugger', 'dstate', 'eval'];
+    let adKeywords = ['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'];
+    let redirectKeywords = ['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'];
+    let inlineKeywords = ['debugger', 'dstate', 'eval'];
+
+    try {
+        const customRulesStr = window.chrome.webview.hostObjects.sync.ahk.GetSiteBlockers();
+        if (customRulesStr) {
+            const rulesMap = JSON.parse(customRulesStr);
+            Object.keys(rulesMap).forEach(domain => {
+                if (location.hostname.includes(domain) || domain.includes(location.hostname) || location.href.includes(domain) || domain.startsWith('custom:')) {
+                    const rules = rulesMap[domain];
+                    if (rules.inline && rules.inline.length) {
+                        inlineKeywords = inlineKeywords.concat(rules.inline);
+                    }
+                    if (rules.redirect && rules.redirect.length) {
+                        redirectKeywords = redirectKeywords.concat(rules.redirect);
+                    }
+                }
+            });
+        }
+    } catch(e) {}
 
     function isAdScript(src) {
         if (!src) return false;

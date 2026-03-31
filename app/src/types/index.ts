@@ -133,6 +133,8 @@ export interface SitePlugin {
   };
   additionalSearches?: SearchConfig[];
   networkBlockers?: string[];
+  inlineBlockers?: string[];
+  redirectBlockers?: string[];
   enabled?: boolean;
   details: {
     titleSel: string;
@@ -173,6 +175,9 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
   additionalSearches: [],
+  networkBlockers: [],
+  inlineBlockers: [],
+  redirectBlockers: [],
   enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '', deepJs: '' },

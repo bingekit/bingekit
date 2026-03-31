@@ -370,6 +370,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       });
       return changed ? merged : prev;
     });
+
+    const siteBlockers: Record<string, { inline: string[], redirect: string[] }> = {};
+    let hasBlockers = false;
+    plugins.filter(p => p.enabled).forEach(p => {
+      try {
+        const host = new URL(p.baseUrl).hostname || p.baseUrl;
+        if (p.inlineBlockers?.length || p.redirectBlockers?.length) {
+          siteBlockers[host] = {
+            inline: p.inlineBlockers || [],
+            redirect: p.redirectBlockers || []
+          };
+          hasBlockers = true;
+        }
+      } catch (e) { }
+    });
+    if (hasBlockers) {
+      try { ahk.call('UpdateSiteBlockers', JSON.stringify(siteBlockers)); } catch (e) { }
+    }
   }, [plugins]);
 
   // Sync payload to AHK (Runs on script/plugin changes or URL changes)
@@ -380,21 +398,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
       payload = `
         (function() {
-          function applyStreamViewPayload() {
+          window._svPluginStyles = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss })).filter(p => p.css))};
+
+          function ensureStyles() {
             var currentUrl = window.location.href;
             var currentHost = window.location.hostname;
             if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
             
-            var scripts = ${JSON.stringify(activeScripts)};
-            scripts.forEach(s => {
-              var matches = s.domains.includes('*') || s.domains.some(d => {
-                if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
-                return currentHost.includes(d) || currentUrl.includes(d);
-              });
-              if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
-            });
-            var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
-            sitePlugins.forEach(p => {
+            window._svPluginStyles.forEach(p => {
               try {
                 var pHost = '';
                 try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
@@ -413,16 +424,57 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                     style.innerHTML = p.css;
                     (document.head || document.documentElement).appendChild(style);
                   }
-                  if (p.js) {
-                    try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
-                  }
                 }
               } catch(e) {}
             });
           }
 
+          function applyStreamViewPayload() {
+            var currentUrl = window.location.href;
+            var currentHost = window.location.hostname;
+            if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+            
+            var scripts = ${JSON.stringify(activeScripts)};
+            scripts.forEach(s => {
+              var matches = s.domains.includes('*') || s.domains.some(d => {
+                if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
+                return currentHost.includes(d) || currentUrl.includes(d);
+              });
+              if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
+            });
+            
+            var siteJs = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, js: p.customJs })).filter(p => p.js))};
+            siteJs.forEach(p => {
+              try {
+                var pHost = '';
+                try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                var matchP = false;
+                if (pHost.startsWith('custom:')) {
+                  matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                } else {
+                  matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                }
+                if (matchP && p.js) {
+                  try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
+                }
+              } catch(e) {}
+            });
+            
+            ensureStyles();
+          }
+
+          window._svApplyPayload = applyStreamViewPayload;
+          window._svEnsureStyles = ensureStyles;
+
           // Apply immediately
-          applyStreamViewPayload();
+          window._svApplyPayload();
+
+          // Continuous style enforcement
+          if (!window._svStyleEnforcer) {
+            window._svStyleEnforcer = setInterval(() => {
+              if (window._svEnsureStyles) window._svEnsureStyles();
+            }, 1000);
+          }
 
           // Apply on AJAX navigations safely if not already hooked
           if (!window._svAjaxHooked) {
@@ -430,16 +482,27 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
              const origPush = window.history.pushState;
              window.history.pushState = function() {
                 var res = origPush.apply(this, arguments);
-                setTimeout(applyStreamViewPayload, 50);
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
                 return res;
              };
              const origReplace = window.history.replaceState;
              window.history.replaceState = function() {
                 var res = origReplace.apply(this, arguments);
-                setTimeout(applyStreamViewPayload, 50);
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
                 return res;
              };
-             window.addEventListener('popstate', () => setTimeout(applyStreamViewPayload, 50));
+             window.addEventListener('popstate', () => { 
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
+             });
           }
         })();
       `;
