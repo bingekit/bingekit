@@ -56,7 +56,7 @@ export const DashboardView = () => {
                   setIsSearching(false);
                   return;
                 }
-                
+
                 setIsSearching(true);
                 setSearchResults([]);
 
@@ -90,10 +90,10 @@ export const DashboardView = () => {
 
                 // Multi-search Logic (Fetch mode)
                 const results: any[] = [];
-                
+
                 // Build search operations based on selected tags
                 const searchOperations: { plugin: SitePlugin, name: string, cfg: any }[] = [];
-                
+
                 for (const plugin of enabledPlugins) {
                   if (activeSearchTags.length === 0) {
                     if (plugin.search?.urlFormat) {
@@ -105,7 +105,7 @@ export const DashboardView = () => {
                     if (activeSearchTags.some(t => pluginTags.includes(t)) && plugin.search?.urlFormat) {
                       searchOperations.push({ plugin, name: plugin.name, cfg: plugin.search });
                     }
-                    
+
                     // Check additional searches
                     if (plugin.additionalSearches) {
                       for (const addl of plugin.additionalSearches) {
@@ -124,27 +124,27 @@ export const DashboardView = () => {
                     console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
                     const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
                     if (tFlow) {
-                       try {
-                         const flowRes = await runFlow(tFlow, multiSearchQuery, cfg.delegateFlowInputs || {});
-                         let parsed: any[] = [];
-                         if (typeof flowRes === 'string') {
-                            try { parsed = JSON.parse(flowRes); } catch(e) {}
-                         } else if (Array.isArray(flowRes)) {
-                            parsed = flowRes;
-                         }
-                         parsed.forEach((item: any) => {
-                            if (!item.title) return;
-                            results.push({
-                               id: `${plugin.id}-${Date.now()}-${Math.random()}`,
-                               title: item.title,
-                               url: item.href || item.url,
-                               pluginName: opName,
-                               type: 'search'
-                            });
-                         });
-                       } catch (e) {
-                         console.error('Flow delegation error:', e);
-                       }
+                      try {
+                        const flowRes = await runFlow(tFlow, multiSearchQuery, cfg.delegateFlowInputs || {});
+                        let parsed: any[] = [];
+                        if (typeof flowRes === 'string') {
+                          try { parsed = JSON.parse(flowRes); } catch (e) { }
+                        } else if (Array.isArray(flowRes)) {
+                          parsed = flowRes;
+                        }
+                        parsed.forEach((item: any) => {
+                          if (!item.title) return;
+                          results.push({
+                            id: `${plugin.id}-${Date.now()}-${Math.random()}`,
+                            title: item.title,
+                            url: item.href || item.url,
+                            pluginName: opName,
+                            type: 'search'
+                          });
+                        });
+                      } catch (e) {
+                        console.error('Flow delegation error:', e);
+                      }
                     }
                   } else if (cfg.urlFormat) {
                     console.log(`[Search] Starting fetch for ${opName}...`);
@@ -294,17 +294,17 @@ export const DashboardView = () => {
                             const titleClean = res.title.trim().toLowerCase();
                             const isExactMatch = titleClean === queryClean;
                             let matchedDeep = false;
-                            
+
                             if (isDeepSearch && isExactMatch && (plugin.media?.deepJs || plugin.media?.epSel || plugin.media?.seasonSel)) {
-                               console.log(`[Search] Deep Scan exact match found for ${res.title}. Executing target script!`);
-                               
-                               const epSelEscaped = (plugin.media.epSel || '').replace(/'/g, "\\'");
-                               const seasonSelEscaped = (plugin.media.seasonSel || '').replace(/'/g, "\\'");
-                               const customJs = plugin.media.deepJs || '';
-                               
-                               let deepJsQuery = '';
-                               if (customJs) {
-                                 deepJsQuery = `
+                              console.log(`[Search] Deep Scan exact match found for ${res.title}. Executing target script!`);
+
+                              const epSelEscaped = (plugin.media.epSel || '').replace(/'/g, "\\'");
+                              const seasonSelEscaped = (plugin.media.seasonSel || '').replace(/'/g, "\\'");
+                              const customJs = plugin.media.deepJs || '';
+
+                              let deepJsQuery = '';
+                              if (customJs) {
+                                deepJsQuery = `
                                    return new Promise(async (resolve) => {
                                      try {
                                        const res = await (async () => {
@@ -316,8 +316,8 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                               } else {
-                                 deepJsQuery = `
+                              } else {
+                                deepJsQuery = `
                                    function getEps() {
                                      let items = [];
                                      let nodes = document.querySelectorAll('${epSelEscaped}');
@@ -343,40 +343,40 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                               }
+                              }
 
-                               try {
-                                  const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
-                                  if (Array.isArray(deepResults) && deepResults.length > 0) {
-                                    matchedDeep = true;
-                                    results.length = 0; // Clear other concurrent results
-                                    
+                              try {
+                                const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                                if (Array.isArray(deepResults) && deepResults.length > 0) {
+                                  matchedDeep = true;
+                                  results.length = 0; // Clear other concurrent results
+
+                                  results.push({
+                                    id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
+                                    title: res.title,
+                                    url: res.href,
+                                    pluginName: opName,
+                                    type: 'result'
+                                  });
+                                  deepResults.forEach((dep: any) => {
                                     results.push({
-                                      id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
-                                      title: res.title,
-                                      url: res.href,
+                                      id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
+                                      title: '↳ ' + dep.title,
+                                      url: dep.href,
                                       pluginName: opName,
                                       type: 'result'
                                     });
-                                    deepResults.forEach((dep: any) => {
-                                      results.push({
-                                        id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
-                                        title: '↳ ' + dep.title,
-                                        url: dep.href,
-                                        pluginName: opName,
-                                        type: 'result'
-                                      });
-                                    });
-                                    
-                                    setSearchResults(results);
-                                    setIsSearching(false);
-                                    return; // Break out immediately!
-                                  }
-                               } catch (e) {
-                                  console.error('[Search] Deep Search failed', e);
-                               }
+                                  });
+
+                                  setSearchResults(results);
+                                  setIsSearching(false);
+                                  return; // Break out immediately!
+                                }
+                              } catch (e) {
+                                console.error('[Search] Deep Search failed', e);
+                              }
                             }
-                            
+
                             if (!matchedDeep) {
                               results.push({
                                 id: plugin.id + '_' + Math.random().toString(36).substring(7),
@@ -443,7 +443,7 @@ export const DashboardView = () => {
         <div className="flex flex-col items-center gap-3 mt-2">
           {searchParamMode === 'fetch' && allSearchTags.length > 0 && (
             <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl">
-              <span className="text-xs text-zinc-500 mr-2"><Search size={12} className="inline mr-1"/>Filters:</span>
+              <span className="text-xs text-zinc-500 mr-2"><Search size={12} className="inline mr-1" />Filters:</span>
               {allSearchTags.map(tag => (
                 <button
                   key={tag}
@@ -454,11 +454,10 @@ export const DashboardView = () => {
                       setActiveSearchTags([...activeSearchTags, tag]);
                     }
                   }}
-                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-                    activeSearchTags.includes(tag) 
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-all ${activeSearchTags.includes(tag)
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                       : 'bg-zinc-900/50 text-zinc-400 border-zinc-800 hover:border-zinc-700'
-                  }`}
+                    }`}
                 >
                   {tag}
                 </button>
@@ -481,14 +480,14 @@ export const DashboardView = () => {
                 Web Navigate
               </button>
             </div>
-            
+
             {searchParamMode === 'fetch' && (
               <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50">
-                <input 
-                  type="checkbox" 
-                  checked={isDeepSearch} 
-                  onChange={(e) => setIsDeepSearch(e.target.checked)} 
-                  className="rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer" 
+                <input
+                  type="checkbox"
+                  checked={isDeepSearch}
+                  onChange={(e) => setIsDeepSearch(e.target.checked)}
+                  className="rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer"
                 />
                 Deep Scan Match
               </label>
@@ -500,7 +499,7 @@ export const DashboardView = () => {
       {/* Tags / Custom Search Lists */}
       <div className="w-full">
         {searchResults.length === 0 && (
-          <div className="w-full max-w-5xl mx-auto space-y-12 pb-20 mt-8">
+          <div className="w-full max-w-6xl mx-auto space-y-12 pb-20 mt-8">
             {/* Unique Tags Renderer */}
             {Array.from(new Set(plugins.filter(p => p.enabled !== false).flatMap(p => p.tags || []))).sort().map(tag => {
               const matchedPlugins = plugins.filter(p => p.enabled !== false && p.tags?.includes(tag));
@@ -524,7 +523,7 @@ export const DashboardView = () => {
                         <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
                           {p.icon ? (
                             p.icon.includes('<svg') || p.icon.includes('http') ? (
-                              <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                              <div className="w-5 h-5" dangerouslySetInnerHTML={{ __html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />` }} />
                             ) : (
                               <span className="text-lg">{p.icon}</span>
                             )
@@ -561,7 +560,7 @@ export const DashboardView = () => {
                       <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
                         {p.icon ? (
                           p.icon.includes('<svg') || p.icon.includes('http') ? (
-                            <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                            <div className="w-5 h-5" dangerouslySetInnerHTML={{ __html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />` }} />
                           ) : (
                             <span className="text-lg">{p.icon}</span>
                           )
@@ -584,7 +583,7 @@ export const DashboardView = () => {
 
       {/* Search Results */}
       {searchResults.length > 0 && (
-        <div className="w-full max-w-5xl space-y-6">
+        <div className="w-full max-w-6xl space-y-6">
           <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-4">Search Results</h3>
 
           {searchParamMode === 'navigate' ? (

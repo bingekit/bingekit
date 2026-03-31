@@ -26,7 +26,7 @@
                 }
             });
         }
-    } catch(e) {}
+    } catch (e) { }
 
     function isAdScript(src) {
         if (!src) return false;
@@ -51,6 +51,15 @@
         console.log("StreamView AdBlock: Prevented window.open popup.");
         return null;
     };
+    window.debugger = function () {
+        console.log("StreamView AdBlock: Prevented debugger call.");
+        return null;
+    };
+    window.console.clear = function () {
+        console.log("StreamView AdBlock: Prevented console.clear call.");
+        return null;
+    };
+
 
     // 2. Prevent common anti-adblock detection scripts via createElement
     const originalCreateElement = document.createElement;

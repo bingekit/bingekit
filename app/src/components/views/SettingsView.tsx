@@ -14,7 +14,7 @@ import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, Bookm
 export const SettingsView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, 
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
@@ -41,7 +41,7 @@ export const SettingsView = () => {
       }
       const activeWs = ahk.call('GetCurrentWorkspace');
       if (activeWs) {
-         setCurrentWs(activeWs);
+        setCurrentWs(activeWs);
       }
     } catch {
       setWorkspaces(['default']);
@@ -49,7 +49,7 @@ export const SettingsView = () => {
   }, []);
   return (
 
-    <div className="p-8 max-w-2xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
+    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
       <h2 className="text-2xl font-light tracking-tight text-zinc-100 mb-8">Settings</h2>
 
       <div className="space-y-6">
@@ -186,7 +186,7 @@ export const SettingsView = () => {
               <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isAdblockEnabled ? 'left-7' : 'left-1'}`} />
             </button>
           </div>
-          
+
           <div className="mt-4 pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
             <h4 className="text-[10px] font-medium sv-text opacity-50 mb-3 uppercase tracking-wider">Web Resource Filters</h4>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
@@ -385,7 +385,7 @@ export const SettingsView = () => {
       {/* System Cache Map */}
       <div className="space-y-4 pt-4">
         <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Save size={16} /> System Cache & History</h3>
-        
+
         <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -404,7 +404,7 @@ export const SettingsView = () => {
               <h3 className="text-sm font-medium text-zinc-200">Clear History</h3>
               <p className="text-xs text-zinc-500 mt-1">Deletes all recorded URLs.</p>
             </div>
-            <button onClick={() => { if(confirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs transition-colors border border-red-500/20">Clear History</button>
+            <button onClick={() => { if (confirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs transition-colors border border-red-500/20">Clear History</button>
           </div>
         </div>
 
@@ -417,50 +417,50 @@ export const SettingsView = () => {
             <div className="flex gap-2 items-center">
               <div className="w-[180px]">
                 <CustomSelect
-                  options={workspaces.map(w => ({value: w, label: w}))}
+                  options={workspaces.map(w => ({ value: w, label: w }))}
                   value={currentWs}
                   onChange={(val) => {
-                     if (val) ahk.call('RestartWorkspace', val);
+                    if (val) ahk.call('RestartWorkspace', val);
                   }}
                   searchable
                 />
               </div>
               <button onClick={() => setShowWsModal(true)} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded hover:bg-indigo-500/30 text-xs transition-colors flex items-center gap-1">
-                 <Plus size={14} /> New
+                <Plus size={14} /> New
               </button>
             </div>
           </div>
-          
+
           <Modal
             isOpen={showWsModal}
             onClose={() => { setShowWsModal(false); setNewWsName(''); }}
             title="Create New Workspace"
           >
             <div className="space-y-4">
-               <p className="text-xs text-zinc-400">A workspace perfectly isolates all your plugins, flows, bookmarks, and settings locally into a new directory.</p>
-               <div>
-                 <label className="block text-xs text-zinc-500 mb-1.5">Workspace Name</label>
-                 <input
-                   type="text" value={newWsName} onChange={e => setNewWsName(e.target.value)}
-                   placeholder="e.g. testing-env, dev, clean-slate" autoFocus
-                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                   onKeyDown={e => {
-                     if (e.key === 'Enter' && newWsName.trim()) {
-                        ahk.call('CreateWorkspace', newWsName.trim());
-                        ahk.call('RestartWorkspace', newWsName.trim());
-                     }
-                   }}
-                 />
-               </div>
-               <div className="flex gap-3 justify-end pt-4 border-t border-zinc-800/50 mt-4">
-                  <button onClick={() => { setShowWsModal(false); setNewWsName(''); }} className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">Cancel</button>
-                  <button onClick={() => {
-                     if (newWsName.trim()) {
-                        ahk.call('CreateWorkspace', newWsName.trim());
-                        ahk.call('RestartWorkspace', newWsName.trim());
-                     }
-                  }} className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-colors">Create & Switch</button>
-               </div>
+              <p className="text-xs text-zinc-400">A workspace perfectly isolates all your plugins, flows, bookmarks, and settings locally into a new directory.</p>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Workspace Name</label>
+                <input
+                  type="text" value={newWsName} onChange={e => setNewWsName(e.target.value)}
+                  placeholder="e.g. testing-env, dev, clean-slate" autoFocus
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newWsName.trim()) {
+                      ahk.call('CreateWorkspace', newWsName.trim());
+                      ahk.call('RestartWorkspace', newWsName.trim());
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-4 border-t border-zinc-800/50 mt-4">
+                <button onClick={() => { setShowWsModal(false); setNewWsName(''); }} className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">Cancel</button>
+                <button onClick={() => {
+                  if (newWsName.trim()) {
+                    ahk.call('CreateWorkspace', newWsName.trim());
+                    ahk.call('RestartWorkspace', newWsName.trim());
+                  }
+                }} className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-colors">Create & Switch</button>
+              </div>
             </div>
           </Modal>
         </div>

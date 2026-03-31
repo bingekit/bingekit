@@ -68,3 +68,7 @@ button {
 * {
   outline: 0 !important;
 }
+
+.max-w-6xl:not([class*='theme-surface']) {
+  max-width: 100% !important;
+}

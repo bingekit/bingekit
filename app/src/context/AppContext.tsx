@@ -42,6 +42,10 @@ interface AppContextType {
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
   defaultSearchEngine: string; setDefaultSearchEngine: React.Dispatch<React.SetStateAction<string>>;
   playerRef: React.RefObject<HTMLDivElement>;
+  isFocusedMode: boolean; setIsFocusedMode: React.Dispatch<React.SetStateAction<boolean>>;
+  authStatus: 'unknown' | 'loggedIn' | 'loggedOut'; setAuthStatus: React.Dispatch<React.SetStateAction<'unknown' | 'loggedIn' | 'loggedOut'>>;
+  playerStatus: 'notFound' | 'found'; setPlayerStatus: React.Dispatch<React.SetStateAction<'notFound' | 'found'>>;
+  pageTitle: string;
 
   savePlugin: () => void;
   deletePlugin: (plugin: SitePlugin) => void;
@@ -70,6 +74,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [networkFilters, setNetworkFilters] = useState<Record<string, boolean>>({});
   const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
   const isInitialThemeMount = useRef(true);
+  const isInitialHistoryMount = useRef(true);
+  const isInitialDiscoveryMount = useRef(true);
+  const isInitialHistoryEnabledMount = useRef(true);
   const [theme, setTheme] = useState({
     mode: 'dark',
     titlebarBg: '#09090b',
@@ -121,6 +128,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const lastRectRef = useRef('');
   const lastSyncUrl = useRef<string | null>(null);
 
+  const [isFocusedMode, setIsFocusedMode] = useState<boolean>(false);
+  const [authStatus, setAuthStatus] = useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
+  const [playerStatus, setPlayerStatus] = useState<'notFound' | 'found'>('notFound');
+  const [pageTitle, setPageTitle] = useState<string>('');
+  const pageTitleRef = useRef<string>('');
+
   useEffect(() => {
     if (activeTab === 'player' && playerRef.current) {
       const observer = new ResizeObserver(() => {
@@ -168,6 +181,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         lastSyncUrl.current = e.detail.url;
         setUrl(e.detail.url);
         setInputUrl(e.detail.url);
+        setPageTitle('');
+        pageTitleRef.current = '';
       }
     };
     window.addEventListener('player-url-changed', handleEvent);
@@ -179,11 +194,147 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     };
     window.addEventListener('message', handleMsg);
 
+    const handleStatusUpdate = (e: any) => {
+      if (e.detail) {
+        if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
+        if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
+        if (e.detail.title !== undefined && e.detail.title !== '') {
+          setPageTitle(e.detail.title);
+          pageTitleRef.current = e.detail.title;
+        }
+      }
+    };
+    window.addEventListener('player-status-update', handleStatusUpdate);
+
     return () => {
       window.removeEventListener('player-url-changed', handleEvent);
       window.removeEventListener('message', handleMsg);
+      window.removeEventListener('player-status-update', handleStatusUpdate);
     };
   }, []);
+
+  // History tracking: Browse
+  useEffect(() => {
+    if (!isHistoryEnabled) return;
+    if (activeTab === 'player' && url && !url.startsWith('about:blank') && !url.startsWith('data:')) {
+      const timer = setTimeout(() => {
+        setHistory(prev => {
+          if (prev.length > 0 && prev[0].url === url && prev[0].type === 'browse' && (Date.now() - prev[0].timestamp < 5 * 60 * 1000)) {
+            return prev;
+          }
+          const host = (() => { try { return new URL(url).hostname } catch{ return url } })();
+          const rawTitle = pageTitleRef.current || fetchTitleForUrl(url) || host;
+          const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
+          const newItem: HistoryItem = {
+            id: Date.now().toString(),
+            url,
+            title: cleanTitle,
+            timestamp: Date.now(),
+            domain: host,
+            type: 'browse'
+          };
+          return [newItem, ...prev].slice(0, 1000);
+        });
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [url, activeTab, isHistoryEnabled]);
+
+  // History tracking: Watch
+  useEffect(() => {
+    if (!isHistoryEnabled || activeTab !== 'player') return;
+
+    let totalWatchMs = 0;
+    let lastPlayTime = Date.now();
+    let isCurrentlyPlaying = false;
+    let saveTimer: any;
+
+    let latestTime = 0;
+    let latestDur = 0;
+
+    const recordWatchSegment = () => {
+      const now = Date.now();
+      if (isCurrentlyPlaying) {
+        totalWatchMs += (now - lastPlayTime);
+        lastPlayTime = now;
+      }
+      
+      if (totalWatchMs < 2000) return; // Ignore < 2 seconds of play
+      
+      const timeToSave = totalWatchMs;
+      totalWatchMs = 0; // Immediately clear so subsequent intervals don't double count
+      const currentUrl = url;
+
+      setHistory(prev => {
+        const host = (() => { try { return new URL(currentUrl).hostname } catch{ return currentUrl } })();
+        let newHistory = [...prev];
+        const existingIdx = newHistory.findIndex(h => h.url === currentUrl && h.type === 'watch' && (Date.now() - h.timestamp < 12 * 60 * 60 * 1000));
+        
+        let tags: string[] = [];
+        const plugin = plugins.find(p => currentUrl.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(currentUrl).hostname); } catch { return false; } })());
+        if (plugin?.tags) tags = plugin.tags;
+
+        if (existingIdx >= 0) {
+          const item = { ...newHistory[existingIdx] };
+          item.watchDuration = (item.watchDuration || 0) + timeToSave;
+          item.timestamp = Date.now();
+          if (latestTime > 0) item.currentTime = latestTime;
+          if (latestDur > 0) item.duration = latestDur;
+          if (tags.length > 0) item.tags = tags;
+          newHistory[existingIdx] = item;
+        } else {
+          const rawTitle = pageTitleRef.current || fetchTitleForUrl(currentUrl) || host;
+          const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
+          newHistory.unshift({
+            id: Date.now().toString() + 'w',
+            url: currentUrl,
+            title: cleanTitle,
+            timestamp: Date.now(),
+            domain: host,
+            type: 'watch',
+            watchDuration: timeToSave,
+            currentTime: latestTime > 0 ? latestTime : undefined,
+            duration: latestDur > 0 ? latestDur : undefined,
+            tags
+          });
+        }
+        return newHistory.slice(0, 1000);
+      });
+    };
+
+    const handlePlayState = (e: any) => {
+      if (e.detail && e.detail.isPlaying !== undefined) {
+        const now = Date.now();
+        setIsFocusedMode(e.detail.isPlaying); // Update global UI focus context
+        if (e.detail.currentTime !== undefined) latestTime = e.detail.currentTime;
+        if (e.detail.duration !== undefined) latestDur = e.detail.duration;
+
+        if (e.detail.isPlaying && !isCurrentlyPlaying) {
+          isCurrentlyPlaying = true;
+          lastPlayTime = now;
+        } else if (!e.detail.isPlaying && isCurrentlyPlaying) {
+           isCurrentlyPlaying = false;
+           recordWatchSegment();
+        }
+      }
+    };
+
+    window.addEventListener('player-play-state', handlePlayState);
+    saveTimer = setInterval(() => {
+       if (isCurrentlyPlaying) {
+           recordWatchSegment();
+       }
+    }, 2000); // Commit to history every 2 seconds of playing
+
+    return () => {
+      window.removeEventListener('player-play-state', handlePlayState);
+      clearInterval(saveTimer);
+      if (isCurrentlyPlaying) {
+         isCurrentlyPlaying = false;
+         recordWatchSegment();
+      }
+    };
+  }, [url, activeTab, isHistoryEnabled, plugins]);
 
   useEffect(() => {
     window.RunPluginFunction = async (pluginId: string, functionName: string, ...args: any[]) => {
@@ -223,6 +374,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         { id: '2', title: 'Hulu', url: 'https://hulu.com' },
       ]);
     }
+
+    const savedHistory = ahk.call('LoadData', 'history.json');
+    if (savedHistory) { try { setHistory(JSON.parse(savedHistory)); } catch (e) { } }
 
     const savedFollowed = ahk.call('LoadData', 'followed.json');
     if (savedFollowed) { try { setFollowedItems(JSON.parse(savedFollowed)); } catch (e) { } }
@@ -334,9 +488,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
-  useEffect(() => { ahk.call('SaveData', 'history.json', JSON.stringify(history)); }, [history]);
-  useEffect(() => { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); }, [discoveryItems]);
-  useEffect(() => { ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); }, [isHistoryEnabled]);
+  
+  useEffect(() => {
+    if (isInitialHistoryMount.current) { isInitialHistoryMount.current = false; return; }
+    ahk.call('SaveData', 'history.json', JSON.stringify(history)); 
+  }, [history]);
+  
+  useEffect(() => {
+    if (isInitialDiscoveryMount.current) { isInitialDiscoveryMount.current = false; return; }
+    ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); 
+  }, [discoveryItems]);
+  
+  useEffect(() => {
+    if (isInitialHistoryEnabledMount.current) { isInitialHistoryEnabledMount.current = false; return; }
+    ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); 
+  }, [isHistoryEnabled]);
   useEffect(() => { ahk.call('SaveData', 'search_engine.txt', defaultSearchEngine); }, [defaultSearchEngine]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
@@ -505,10 +671,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             }, 2000);
           }
 
-          var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs).map(p => ({
+          var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs || p.details?.titleSel).map(p => ({
              baseUrl: p.baseUrl,
              playerSel: p.player?.playerSel || '',
-             checkAuthJs: p.auth?.checkAuthJs || ''
+             checkAuthJs: p.auth?.checkAuthJs || '',
+             titleSel: p.details?.titleSel || ''
            })))};
 
           if (!window._svPlayerStatusPoller) {
@@ -529,6 +696,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
               var authStr = 'unknown';
               var hasPlayer = false;
+              var titleStr = '';
+              try { titleStr = document.title; } catch(e) {}
 
               if (matched) {
                   if (matched.checkAuthJs) {
@@ -537,11 +706,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                   if (matched.playerSel) {
                       try { hasPlayer = !!document.querySelector(matched.playerSel); } catch(e) {}
                   }
+                  if (matched.titleSel) {
+                      try { 
+                           const titleEl = document.querySelector(matched.titleSel);
+                           if (titleEl) titleStr = titleEl.textContent.trim();
+                      } catch(e) {}
+                  }
               }
               
               try {
                 if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects && window.chrome.webview.hostObjects.ahk) {
-                    window.chrome.webview.hostObjects.ahk.ReportPlayerStatus(authStr, hasPlayer);
+                    window.chrome.webview.hostObjects.ahk.ReportPlayerStatus(authStr, hasPlayer, titleStr);
                 }
               } catch(e) {}
             }, 2000);
@@ -850,7 +1025,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
-    networkFilters, setNetworkFilters
+    networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

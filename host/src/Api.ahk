@@ -288,10 +288,10 @@ AHK_ResizeEdge(dir) {
     }
 }
 
-AHK_ReportPlayState(isPlaying) {
+AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0) {
     global MainGui
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") " } })) } catch(e) {}"
+        js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") ", currentTime: " currentTime ", duration: " duration " } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }

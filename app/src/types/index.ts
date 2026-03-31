@@ -53,6 +53,11 @@ export interface HistoryItem {
   title: string;
   timestamp: number;
   domain: string;
+  type?: 'browse' | 'watch';
+  watchDuration?: number;
+  tags?: string[];
+  currentTime?: number;
+  duration?: number;
 }
 
 export interface DiscoveryItem {

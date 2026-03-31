@@ -30,7 +30,7 @@ const MainLayout = () => {
     activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme,
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
-    isQuickOptionsHidden, setIsQuickOptionsHidden
+    isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -166,7 +166,7 @@ const MainLayout = () => {
           <div className="flex-1 ml-6 flex items-center justify-left">
             {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
               <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
-                {(() => {
+                {pageTitle || (() => {
                   try { return new URL(url).hostname; } catch (e) { return url; }
                 })()}
               </div>

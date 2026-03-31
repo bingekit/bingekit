@@ -251,10 +251,13 @@ AHK_PlayerGuiResized(guiObj, minMax, width, height) {
         PlayerWV.wvc.Fill()
     }
 }
-AHK_ReportPlayerStatus(authStatus, hasPlayer) {
+AHK_ReportPlayerStatus(authStatus, hasPlayer, titleStr := "") {
     global MainGui
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") " } })) } catch(e) {}"
+        safeTitle := StrReplace(titleStr, "'", "\'")
+        safeTitle := StrReplace(safeTitle, "`n", "")
+        safeTitle := StrReplace(safeTitle, "`r", "")
+        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") ", title: '" safeTitle "' } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }

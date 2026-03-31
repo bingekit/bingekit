@@ -264,7 +264,7 @@ export const PluginsView = () => {
       {/* Plugin Editor */}
       <div className="flex-1 bg-zinc-950 p-6 overflow-y-auto no-scrollbar relative flex flex-col">
         {editingPlugin ? (
-          <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
+          <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
             <div className="flex items-center justify-between mb-8 sticky top-0 bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
               <div>
                 <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
@@ -1378,7 +1378,7 @@ export const PluginsView = () => {
           isOpen={!!ideModalData}
           onClose={() => setIdeModalData(null)}
           title={ideModalData.title}
-          width="max-w-4xl"
+          width="max-w-6xl"
         >
           <div className="flex flex-col h-[70vh]">
             <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden font-mono text-sm shadow-inner relative">
