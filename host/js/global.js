@@ -90,7 +90,7 @@
         window.updateGlobalPlayState = function() {
             let isPlaying = window._svLastPlaying || window._svPlayingFrames.size > 0;
             window._svIsGloballyPlaying = isPlaying;
-            try { window.chrome.webview.hostObjects.sync.ahk.ReportPlayState(isPlaying); } catch(err){}
+            try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying); } catch(err){}
         };
     }
 })();
