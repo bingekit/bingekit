@@ -12,7 +12,16 @@ EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
     "--no-first-run " .
     "--msWebView2CancelInitialNavigation " .
     "--disable-web-security " .
-    "")
+    "--disable-features=OverscrollHistoryNavigation"
+    "--autoplay-policy=no-user-gesture-required"
+    "--force-dark-mode"
+    "--disable-features=TranslateUI"
+    "--kiosk"
+    "--disable-notifications"
+    "--deny-permission-prompts"
+    "--disable-domain-reliability"
+    "--disable-sync"
+)
 
 if (A_IsCompiled) {
     WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
@@ -52,6 +61,12 @@ MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
 
 ; Initialize WebViewToo
 WV := MainGui.Control.wv
+WV.Settings.IsSwipeNavigationEnabled := 0
+WV.Settings.IsZoomControlEnabled := 0
+WV.Settings.IsPinchZoomEnabled := 0
+WV.Settings.IsBuiltInErrorPageEnabled := 0
+WV.Settings.IsGeneralAutofillEnabled := 0
+;WV.CoreWebView2.Settings.IsSwipeNavigationEnabled := 0
 
 ;MainGui.Control.CreateCoreWebView2ControllerOptions()
 
@@ -357,6 +372,7 @@ AHK_UpdateURL(url) {
     }
 }
 
+
 AHK_UpdatePlayerRect(x, y, w, h, visible) {
     DoUpdateRect() {
         global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
@@ -377,6 +393,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                 PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
                 PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
 
+                PlayerWV.Settings.IsGeneralAutofillEnabled := 0
+                PlayerWV.Settings.IsSwipeNavigationEnabled := 0
                 PlayerWV.AddHostObjectToScript("ahk", {
                     UpdateURL: AHK_UpdateURL,
                     GetUserscriptPayload: AHK_GetUserscriptPayload,
@@ -454,7 +472,7 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
 
         wrapperJs := "window.addEventListener('DOMContentLoaded', function() {`n"
         wrapperJs .= "    console.log('[SmartFetch Debug] DOMContentLoaded triggered. Waiting 1000ms for idle...');`n"
-        wrapperJs .= "    setTimeout(function() {`n"
+        wrapperJs .= "    requestIdleCallback(()=>setTimeout(function() {`n"
         wrapperJs .= "        console.log('[SmartFetch Debug] Executing your actionJs...');`n"
         wrapperJs .= "        try {`n"
         wrapperJs .= "            var result = (function() { " actionJs "`n })();`n"
@@ -477,12 +495,12 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         wrapperJs .= "            console.error('[SmartFetch Debug] Exception execution crashed:', e);`n"
         wrapperJs .= "            window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(e.message||e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
         wrapperJs .= "        }`n"
-        wrapperJs .= "    }, 1000);`n"
+        wrapperJs .= "    }, 1500));`n"
         wrapperJs .= "});`n"
 
         hiddenWV.AddScriptToExecuteOnDocumentCreatedAsync(wrapperJs)
 
-        local NavigationCompletedHandler := (sender, args) => (!args.IsSuccess ? (MainGui.Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -10)) : "")
+        local NavigationCompletedHandler := (sender, args) => (!args.IsSuccess ? (MainGui.Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -500)) : "")
         hiddenWV.wv.add_NavigationCompleted(NavigationCompletedHandler)
 
         hiddenWV.Navigate(url)
@@ -695,7 +713,7 @@ CheckSplashTimeout() {
         ExitApp()
     }
 }
-SetTimer(CheckSplashTimeout, -165000)
+SetTimer(CheckSplashTimeout, -15000)
 
 ; Load the local React build (or dev server if testing)
 WV.Navigate("http://localhost:3000") ; For development

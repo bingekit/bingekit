@@ -149,6 +149,7 @@ export interface SitePlugin {
   media: {
     seasonSel: string;
     epSel: string;
+    deepJs?: string;
   };
   player: {
     playerSel: string;
@@ -173,7 +174,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   additionalSearches: [],
   enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
-  media: { seasonSel: '', epSel: '' },
+  media: { seasonSel: '', epSel: '', deepJs: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },
   tags: [],
   customFunctions: [],

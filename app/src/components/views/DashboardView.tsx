@@ -25,6 +25,7 @@ export const DashboardView = () => {
   } = useAppContext();
 
   const [activeSearchTags, setActiveSearchTags] = useState<string[]>([]);
+  const [isDeepSearch, setIsDeepSearch] = useState(false);
   const allSearchTags = Array.from(new Set(plugins.filter(p => p.enabled !== false).flatMap(p => {
     const defaultTag = p.tags || [];
     const addlTags = (p.additionalSearches || []).flatMap(s => s.tags || []);
@@ -279,18 +280,108 @@ export const DashboardView = () => {
 
                       if (Array.isArray(fetchResults) && fetchResults.length > 0) {
                         let validCount = 0;
-                        fetchResults.forEach((res: any, i: number) => {
+                        for (let i = 0; i < fetchResults.length; i++) {
+                          const res = fetchResults[i];
                           if (res.title && res.href) {
                             validCount++;
-                            results.push({
-                              id: plugin.id + '_' + Math.random().toString(36).substring(7),
-                              title: res.title,
-                              url: res.href,
-                              pluginName: opName,
-                              type: 'result'
-                            });
+                            const queryClean = multiSearchQuery.trim().toLowerCase();
+                            const titleClean = res.title.trim().toLowerCase();
+                            const isExactMatch = titleClean === queryClean;
+                            let matchedDeep = false;
+                            
+                            if (isDeepSearch && isExactMatch && (plugin.media?.deepJs || plugin.media?.epSel || plugin.media?.seasonSel)) {
+                               console.log(`[Search] Deep Scan exact match found for ${res.title}. Executing target script!`);
+                               
+                               const epSelEscaped = (plugin.media.epSel || '').replace(/'/g, "\\'");
+                               const seasonSelEscaped = (plugin.media.seasonSel || '').replace(/'/g, "\\'");
+                               const customJs = plugin.media.deepJs || '';
+                               
+                               let deepJsQuery = '';
+                               if (customJs) {
+                                 deepJsQuery = `
+                                   return new Promise(async (resolve) => {
+                                     try {
+                                       const res = await (async () => {
+                                         ${customJs}
+                                       })();
+                                       resolve(res);
+                                     } catch (e) {
+                                       resolve([]);
+                                     }
+                                   });
+                                 `;
+                               } else {
+                                 deepJsQuery = `
+                                   function getEps() {
+                                     let items = [];
+                                     let nodes = document.querySelectorAll('${epSelEscaped}');
+                                     if (nodes.length === 0) nodes = document.querySelectorAll('${seasonSelEscaped}');
+                                     
+                                     nodes.forEach(el => {
+                                       let text = el.textContent ? el.textContent.trim() : '';
+                                       if (!text) text = el.getAttribute('title') || el.getAttribute('alt') || 'Episode';
+                                       let href = el.getAttribute('href') || '';
+                                       if (href && !href.startsWith('http')) {
+                                         try { href = new URL(href, '${res.href}').href; } catch(e) {}
+                                       }
+                                       if (href && text) items.push({ title: text, href });
+                                     });
+                                     return items;
+                                   }
+                                   return new Promise((resolve) => {
+                                     if (document.readyState === 'complete') {
+                                        resolve(getEps());
+                                     } else {
+                                        window.addEventListener('load', () => resolve(getEps()));
+                                        setTimeout(() => resolve(getEps()), 3000);
+                                     }
+                                   });
+                                 `;
+                               }
+
+                               try {
+                                  const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                                  if (Array.isArray(deepResults) && deepResults.length > 0) {
+                                    matchedDeep = true;
+                                    results.length = 0; // Clear other concurrent results
+                                    
+                                    results.push({
+                                      id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
+                                      title: res.title,
+                                      url: res.href,
+                                      pluginName: opName,
+                                      type: 'result'
+                                    });
+                                    deepResults.forEach((dep: any) => {
+                                      results.push({
+                                        id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
+                                        title: '↳ ' + dep.title,
+                                        url: dep.href,
+                                        pluginName: opName,
+                                        type: 'result'
+                                      });
+                                    });
+                                    
+                                    setSearchResults(results);
+                                    setIsSearching(false);
+                                    return; // Break out immediately!
+                                  }
+                               } catch (e) {
+                                  console.error('[Search] Deep Search failed', e);
+                               }
+                            }
+                            
+                            if (!matchedDeep) {
+                              results.push({
+                                id: plugin.id + '_' + Math.random().toString(36).substring(7),
+                                title: res.title,
+                                url: res.href,
+                                pluginName: opName,
+                                type: 'result'
+                              });
+                            }
                           }
-                        });
+                        }
                         if (validCount === 0) {
                           console.log(`[Search] ${opName} found 0 valid results.`);
                           results.push({
@@ -357,19 +448,33 @@ export const DashboardView = () => {
             </div>
           )}
 
-          <div className="inline-flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800/50">
-            <button
-              onClick={() => setSearchParamMode('fetch')}
-              className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'fetch' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              Auto Search
-            </button>
-            <button
-              onClick={() => setSearchParamMode('navigate')}
-              className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'navigate' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              Web Navigate
-            </button>
+          <div className="flex items-center justify-center gap-4">
+            <div className="inline-flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800/50">
+              <button
+                onClick={() => setSearchParamMode('fetch')}
+                className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'fetch' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                Auto Search
+              </button>
+              <button
+                onClick={() => setSearchParamMode('navigate')}
+                className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'navigate' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                Web Navigate
+              </button>
+            </div>
+            
+            {searchParamMode === 'fetch' && (
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50">
+                <input 
+                  type="checkbox" 
+                  checked={isDeepSearch} 
+                  onChange={(e) => setIsDeepSearch(e.target.checked)} 
+                  className="rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer" 
+                />
+                Deep Scan Match
+              </label>
+            )}
           </div>
         </div>
       </div>

@@ -216,7 +216,7 @@ export const PluginsView = () => {
               <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
               <SearchConfigEditor
                 config={editingPlugin.search}
-                onChange={(key, val) => updateEditingPlugin('root', 'search', { ...editingPlugin.search, [key]: val })}
+                onChange={(key, val) => updateEditingPlugin('search', key, val)}
                 flows={flows}
                 testSearchQuery={testSearchQuery}
                 setTestSearchQuery={setTestSearchQuery}
@@ -301,9 +301,12 @@ export const PluginsView = () => {
                       <SearchConfigEditor
                         config={searchMethod}
                         onChange={(key, val) => {
-                          const arr = [...editingPlugin.additionalSearches!];
-                          arr[idx] = { ...arr[idx], [key]: val };
-                          updateEditingPlugin('root', 'additionalSearches', arr);
+                          setEditingPlugin((prev: any) => {
+                            if (!prev || !prev.additionalSearches) return prev;
+                            const arr = [...prev.additionalSearches];
+                            arr[idx] = { ...arr[idx], [key]: val };
+                            return { ...prev, additionalSearches: arr };
+                          });
                         }}
                         flows={flows}
                         testSearchQuery={testSearchQuery}
@@ -468,22 +471,35 @@ export const PluginsView = () => {
             {/* Media Parsing */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><ListTree size={16} /> Media Structure</h3>
-              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Season Selector</label>
-                  <input
-                    type="text" value={editingPlugin.media.seasonSel} placeholder=".season-list > li"
-                    onChange={(e) => updateEditingPlugin('media', 'seasonSel', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                  />
+              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5">Season Selector</label>
+                    <input
+                      type="text" value={editingPlugin.media.seasonSel} placeholder=".season-list > li"
+                      onChange={(e) => updateEditingPlugin('media', 'seasonSel', e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5">Episode Selector</label>
+                    <input
+                      type="text" value={editingPlugin.media.epSel} placeholder=".episodes > a"
+                      onChange={(e) => updateEditingPlugin('media', 'epSel', e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Episode Selector</label>
-                  <input
-                    type="text" value={editingPlugin.media.epSel} placeholder=".episodes > a"
-                    onChange={(e) => updateEditingPlugin('media', 'epSel', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                  <label className="block text-xs text-zinc-500 mb-1.5">Deep Scan JS Ripper (Overrides Selectors)</label>
+                  <textarea
+                    value={editingPlugin.media.deepJs || ''}
+                    onChange={(e) => updateEditingPlugin('media', 'deepJs', e.target.value)}
+                    rows={4}
+                    placeholder="function rip() { return [{ title: 'Ep 1', href: 'url' }]; } return rip();"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:border-indigo-500 outline-none font-mono resize-y"
                   />
+                  <p className="text-xs text-zinc-600 mt-1">If provided, this evaluates when a Dashboard Deep Scan precisely matches this show. Must return: <code>{`[{ title, href }]`}</code>.</p>
                 </div>
               </div>
             </div>

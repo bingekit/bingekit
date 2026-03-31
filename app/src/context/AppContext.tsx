@@ -150,8 +150,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeTab === 'player') {
       if (lastSyncUrl.current !== url) {
         lastSyncUrl.current = url;
-        const navUrl = url.startsWith('custom:') ? `about:blank
-        #${encodeURIComponent(url)}` : url;
+        const navUrl = url.startsWith('custom:') ? `about:blank#${encodeURIComponent(url)}` : url;
         ahk.call('UpdatePlayerUrl', navUrl);
       }
     }
@@ -440,15 +439,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateEditingPlugin = (section: keyof SitePlugin | 'root', field: string, value: any) => {
-    if (!editingPlugin) return;
-    if (section === 'root') {
-      setEditingPlugin({ ...editingPlugin, [field]: value });
-    } else {
-      setEditingPlugin({
-        ...editingPlugin,
-        [section]: { ...(editingPlugin[section as keyof SitePlugin] as any), [field]: value }
-      });
-    }
+    setEditingPlugin((prev) => {
+      if (!prev) return prev;
+      if (section === 'root') {
+        return { ...prev, [field]: value };
+      } else {
+        return {
+          ...prev,
+          [section]: { ...(prev[section as keyof SitePlugin] as any), [field]: value }
+        };
+      }
+    });
   };
 
   const fetchTitleForUrl = (targetUrl: string): string => {
