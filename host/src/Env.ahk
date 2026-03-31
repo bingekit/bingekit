@@ -5,7 +5,7 @@ global WebViewSettings := {}
 
 InitEnvironment() {
     global SplashGui, MainGui, WV, WebViewSettings
-    
+
     EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
         "--edge-webview-no-dpi-workaround " .
         "--disable-gpu " .
@@ -19,10 +19,11 @@ InitEnvironment() {
         "--force-dark-mode"
         "--disable-features=TranslateUI"
         "--kiosk"
-        "--disable-notifications"
+        ;"--disable-notifications"
         "--deny-permission-prompts"
         "--disable-domain-reliability"
         "--disable-sync"
+        "--IsSwipeNavigationEnabled=0"
     )
 
     if (A_IsCompiled) {

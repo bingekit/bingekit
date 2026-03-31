@@ -33,6 +33,16 @@ const MainLayout = () => {
     isQuickOptionsHidden, setIsQuickOptionsHidden
   } = useAppContext();
 
+  const [isPlaying, setIsPlaying] = React.useState(false);
+
+  React.useEffect(() => {
+    const handlePlayState = (e: any) => {
+      setIsPlaying(e.detail?.isPlaying);
+    };
+    window.addEventListener('player-play-state', handlePlayState as any);
+    return () => window.removeEventListener('player-play-state', handlePlayState as any);
+  }, []);
+
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>
       <style>{`
@@ -218,12 +228,21 @@ const MainLayout = () => {
 
         {/* Window Controls */}
         <div className="flex items-center no-drag ml-auto">
+            <button title={isPlaying ? "Pause Media" : "Play Media"} onClick={() => ahk.call('ToggleMedia')} className={`p-5 px-5 transition-colors ${isPlaying ? 'text-indigo-500' : 'text-zinc-500'} hover:text-indigo-400 hover:bg-indigo-500/10`}>
+              {isPlaying ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              )}
+            </button>
           {activeTab === 'player' && (
-            <TooltipWrapper text="Toggle URL Bar">
-              <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}>
-                {urlBarMode === 'hidden' ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </TooltipWrapper>
+            <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="p-5 px-5 transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
+            </button>
           )}
           {activeTab === 'player' && (
             <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>

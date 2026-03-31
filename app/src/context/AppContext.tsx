@@ -395,12 +395,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const activeScripts = userscripts.filter(s => s.enabled);
     let payload = '';
 
-    if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
+    if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs) || Object.keys(theme).length > 0) {
       payload = `
         (function() {
           window._svPluginStyles = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss })).filter(p => p.css))};
 
+          function getInjectTarget() {
+            return document.head || document.documentElement || document.body;
+          }
+
           function ensureStyles() {
+            var target = getInjectTarget();
+            if (!target) return;
+            
             var currentUrl = window.location.href;
             var currentHost = window.location.hostname;
             if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
@@ -417,16 +424,31 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                   matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
                 }
                 
-                if (matchP) {
-                  if (p.css && !document.getElementById('sv-plugin-style-' + pHost)) {
+                if (matchP && p.css) {
+                  var styleId = 'sv-plugin-style-' + pHost;
+                  var existingStyle = document.getElementById(styleId);
+                  if (!existingStyle) {
                     var style = document.createElement('style');
-                    style.id = 'sv-plugin-style-' + pHost;
+                    style.id = styleId;
                     style.innerHTML = p.css;
-                    (document.head || document.documentElement).appendChild(style);
+                    target.appendChild(style);
+                  } else if (existingStyle.innerHTML !== p.css) {
+                    existingStyle.innerHTML = p.css;
                   }
                 }
               } catch(e) {}
             });
+
+            var themeVars = \`${Object.entries(theme).filter(([k]) => k !== 'mode').map(([k,v]) => `--theme-${k}: ${v};`).join(' ')}\`;
+            var tStyle = document.getElementById('sv-theme-injection');
+            if (!tStyle) {
+              tStyle = document.createElement('style');
+              tStyle.id = 'sv-theme-injection';
+              target.appendChild(tStyle);
+            }
+            if (tStyle.innerHTML !== \`:root { \${themeVars} }\`) {
+              tStyle.innerHTML = \`:root { \${themeVars} }\`;
+            }
           }
 
           function applyStreamViewPayload() {
@@ -466,14 +488,63 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           window._svApplyPayload = applyStreamViewPayload;
           window._svEnsureStyles = ensureStyles;
 
-          // Apply immediately
-          window._svApplyPayload();
+          // Delay execution until target DOM node is available, preventing bootstrap errors
+          function tryInit() {
+            if (!getInjectTarget()) {
+              setTimeout(tryInit, 50);
+              return;
+            }
+            window._svApplyPayload();
+          }
+          tryInit();
 
           // Continuous style enforcement
           if (!window._svStyleEnforcer) {
             window._svStyleEnforcer = setInterval(() => {
               if (window._svEnsureStyles) window._svEnsureStyles();
-            }, 1000);
+            }, 2000);
+          }
+
+          var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs).map(p => ({
+             baseUrl: p.baseUrl,
+             playerSel: p.player?.playerSel || '',
+             checkAuthJs: p.auth?.checkAuthJs || ''
+           })))};
+
+          if (!window._svPlayerStatusPoller) {
+            window._svPlayerStatusPoller = setInterval(() => {
+              var currentUrl = window.location.href;
+              var currentHost = window.location.hostname;
+              if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+              
+              var matched = playerPlugins.find(p => {
+                  var pHost = '';
+                  try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                  if (pHost.startsWith('custom:')) {
+                    return pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                  } else {
+                    return currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                  }
+              });
+
+              var authStr = 'unknown';
+              var hasPlayer = false;
+
+              if (matched) {
+                  if (matched.checkAuthJs) {
+                      authStr = (function() { try { const res = eval('(function(){' + matched.checkAuthJs + '})()'); return !!res ? 'loggedIn' : 'loggedOut'; } catch(e) { return 'unknown'; } })();
+                  }
+                  if (matched.playerSel) {
+                      try { hasPlayer = !!document.querySelector(matched.playerSel); } catch(e) {}
+                  }
+              }
+              
+              try {
+                if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects && window.chrome.webview.hostObjects.ahk) {
+                    window.chrome.webview.hostObjects.ahk.ReportPlayerStatus(authStr, hasPlayer);
+                }
+              } catch(e) {}
+            }, 2000);
           }
 
           // Apply on AJAX navigations safely if not already hooked
@@ -509,7 +580,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     ahk.call('UpdateUserscriptPayload', payload);
-  }, [userscripts, plugins, url]);
+  }, [userscripts, plugins, url, theme]);
 
   // Save userscripts to disk
   useEffect(() => {

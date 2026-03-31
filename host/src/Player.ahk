@@ -48,7 +48,11 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
     DoUpdateRect() {
         global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
         global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
-        global GlobalScript, AdblockScript
+        global GlobalScript, AdblockScript, IsPiPMode
+
+        if (IsPiPMode ?? false) {
+            return
+        }
 
         w := w - 3
         h := h - 3
@@ -61,6 +65,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
         if (visible) {
             if (!PlayerGui) {
                 PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+                PlayerGui.OnEvent("Size", AHK_PlayerGuiResized)
                 PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
 
                 PlayerWV.Settings.IsGeneralAutofillEnabled := 0
@@ -72,7 +77,14 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     CacheGet: AHK_CacheGet,
                     CacheClear: AHK_CacheClear,
                     AddNetworkFilter: AHK_AddNetworkFilter,
-                    GetSiteBlockers: AHK_GetSiteBlockers
+                    GetSiteBlockers: AHK_GetSiteBlockers,
+                    TogglePiP: AHK_TogglePiP,
+                    ResizePiP: AHK_ResizePiP,
+                    DragMove: AHK_DragMove,
+                    ResizeEdge: AHK_ResizeEdge,
+                    ReportPlayState: AHK_ReportPlayState,
+                    ToggleMedia: AHK_ToggleMedia,
+                    ReportPlayerStatus: AHK_ReportPlayerStatus
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
@@ -143,7 +155,7 @@ AHK_PlayerGoBack(*) {
         try {
             PlayerWV.wv.GoBack()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.history.back()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.history.back()")
         }
     }
 }
@@ -154,7 +166,7 @@ AHK_PlayerGoForward(*) {
         try {
             PlayerWV.wv.GoForward()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.history.forward()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.history.forward()")
         }
     }
 }
@@ -165,7 +177,7 @@ AHK_PlayerReload(*) {
         try {
             PlayerWV.wv.Reload()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.location.reload()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.location.reload()")
         }
     }
 }
@@ -227,5 +239,22 @@ AHK_PlayerResourceRequested(sender, args) {
         } catch {
             ; Fallback if Environment isn't directly exposed
         }
+    }
+}
+
+AHK_PlayerGuiResized(guiObj, minMax, width, height) {
+    global PlayerWV
+    if (minMax = -1)
+        return
+    if (PlayerWV) {
+        PlayerWV.Move(0, 0, width, height)
+        PlayerWV.wvc.Fill()
+    }
+}
+AHK_ReportPlayerStatus(authStatus, hasPlayer) {
+    global MainGui
+    if (MainGui) {
+        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") " } })) } catch(e) {}"
+        MainGui.Control.ExecuteScriptAsync(js)
     }
 }

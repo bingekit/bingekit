@@ -152,6 +152,27 @@ export const SettingsView = () => {
           </div>
         </div>
 
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
+          <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><LayoutGrid size={16} className="text-indigo-400" /> Interface Layout</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-zinc-300">URL Bar Visibility</h4>
+              <p className="text-xs text-zinc-500 mt-1">Choose how the URL bar appears in the player view.</p>
+            </div>
+            <div className="w-48">
+              <CustomSelect
+                value={urlBarMode}
+                onChange={(val) => { if (val) setUrlBarMode(val as any); }}
+                options={[
+                  { value: 'full', label: 'Full Bar' },
+                  { value: 'title', label: 'Title Only' },
+                  { value: 'hidden', label: 'Hidden entirely' }
+                ]}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="sv-panel p-5 rounded-2xl">
           <div className="flex items-center justify-between mb-2">
             <div>
