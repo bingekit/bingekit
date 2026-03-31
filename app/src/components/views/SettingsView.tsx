@@ -21,7 +21,7 @@ export const SettingsView = () => {
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
-    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
+    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled
   } = useAppContext();
@@ -140,12 +140,13 @@ export const SettingsView = () => {
             </div>
             <div className="w-48">
               <CustomSelect
-                value="DuckDuckGo"
-                onChange={() => {}}
+                value={defaultSearchEngine || 'https://duckduckgo.com/?q='}
+                onChange={(val) => { if (val) setDefaultSearchEngine(val); }}
                 options={[
-                  { value: 'DuckDuckGo', label: 'DuckDuckGo' },
-                  { value: 'Google', label: 'Google' },
-                  { value: 'Custom AHK Script', label: 'Custom AHK Script' }
+                  { value: 'https://duckduckgo.com/?q=', label: 'DuckDuckGo' },
+                  { value: 'https://www.google.com/search?q=', label: 'Google' },
+                  { value: 'https://search.brave.com/search?q=', label: 'Brave' },
+                  { value: 'https://www.bing.com/search?q=', label: 'Bing' }
                 ]}
               />
             </div>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { ahk } from '../lib/ahk';
 import {
   BookmarkItem, WatchLaterItem, CredentialItem,
-  FollowedItem, CustomFlow, Userscript, SitePlugin
+  FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
 } from '../types';
 
 interface AppContextType {
@@ -40,6 +40,7 @@ interface AppContextType {
   showCredModal: boolean; setShowCredModal: React.Dispatch<React.SetStateAction<boolean>>;
   searchParamMode: 'fetch' | 'navigate'; setSearchParamMode: React.Dispatch<React.SetStateAction<'fetch' | 'navigate'>>;
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
+  defaultSearchEngine: string; setDefaultSearchEngine: React.Dispatch<React.SetStateAction<string>>;
   playerRef: React.RefObject<HTMLDivElement>;
 
   savePlugin: () => void;
@@ -107,6 +108,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [showCredModal, setShowCredModal] = useState(false);
   const [searchParamMode, setSearchParamMode] = useState<'fetch' | 'navigate'>('fetch');
   const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(true);
+  const [defaultSearchEngine, setDefaultSearchEngine] = useState('https://duckduckgo.com/?q=');
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
   const lastSyncUrl = useRef<string | null>(null);
@@ -283,6 +285,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (e) { }
     }
 
+    const savedSearchEngine = ahk.call('LoadData', 'search_engine.txt');
+    if (savedSearchEngine) { setDefaultSearchEngine(savedSearchEngine); }
+
     setTimeout(() => ahk.call('HideSplash'), 500);
   }, []);
 
@@ -290,6 +295,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => { ahk.call('SaveData', 'history.json', JSON.stringify(history)); }, [history]);
   useEffect(() => { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); }, [discoveryItems]);
   useEffect(() => { ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); }, [isHistoryEnabled]);
+  useEffect(() => { ahk.call('SaveData', 'search_engine.txt', defaultSearchEngine); }, [defaultSearchEngine]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
@@ -373,7 +379,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     let finalUrl = inputUrl;
     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {
-        finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(finalUrl)}`;
+        finalUrl = `${defaultSearchEngine}${encodeURIComponent(finalUrl)}`;
       } else {
         finalUrl = `https://${finalUrl}`;
       }
@@ -431,7 +437,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
         .replace(/\{\{PREV\}\}/g, currentVar)
         .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
-      
+
       Object.entries(customVars).forEach(([key, val]) => {
         res = res.replace(new RegExp(`\\{${key}\\}`, 'g'), val);
       });
@@ -495,9 +501,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const targetUrl = await resolveVars(step.params.url || '');
         const targetPluginId = await resolveVars(step.params.pluginId || '');
         const targetPlugin = plugins.find(p => p.id === targetPluginId);
-        
+
         if (targetPlugin && targetUrl && window.SmartFetch) {
-           const jsQuery = `
+          const jsQuery = `
               const items = Array.from(document.querySelectorAll('${targetPlugin.search.itemSel.replace(/'/g, "\\'") || 'body'}'));
               return items.slice(0, 10).map(item => {
                  let el = item.querySelector('${targetPlugin.search.titleSel.replace(/'/g, "\\'")}');
@@ -507,8 +513,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                  return { title, href };
               });
            `;
-           const res = await window.SmartFetch(targetUrl, jsQuery);
-           if (res) currentVar = res;
+          const res = await window.SmartFetch(targetUrl, jsQuery);
+          if (res) currentVar = res;
         }
       }
     }
@@ -525,7 +531,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

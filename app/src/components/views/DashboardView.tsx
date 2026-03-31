@@ -20,7 +20,7 @@ export const DashboardView = () => {
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
-    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
+    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   } = useAppContext();
 
@@ -66,7 +66,7 @@ export const DashboardView = () => {
 
                   let dest = multiSearchQuery;
                   if (!dest.startsWith('http')) {
-                    dest = dest.includes('.') && !dest.includes(' ') ? `https://${dest}` : `https://duckduckgo.com/?q=${encodeURIComponent(dest)}`;
+                    dest = dest.includes('.') && !dest.includes(' ') ? `https://${dest}` : `${defaultSearchEngine}${encodeURIComponent(dest)}`;
                   }
                   navResults.unshift({
                     id: 'direct-nav',
