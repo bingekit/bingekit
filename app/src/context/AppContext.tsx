@@ -505,6 +505,48 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             }, 2000);
           }
 
+          var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs).map(p => ({
+             baseUrl: p.baseUrl,
+             playerSel: p.player?.playerSel || '',
+             checkAuthJs: p.auth?.checkAuthJs || ''
+           })))};
+
+          if (!window._svPlayerStatusPoller) {
+            window._svPlayerStatusPoller = setInterval(() => {
+              var currentUrl = window.location.href;
+              var currentHost = window.location.hostname;
+              if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+              
+              var matched = playerPlugins.find(p => {
+                  var pHost = '';
+                  try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                  if (pHost.startsWith('custom:')) {
+                    return pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                  } else {
+                    return currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                  }
+              });
+
+              var authStr = 'unknown';
+              var hasPlayer = false;
+
+              if (matched) {
+                  if (matched.checkAuthJs) {
+                      authStr = (function() { try { const res = eval('(function(){' + matched.checkAuthJs + '})()'); return !!res ? 'loggedIn' : 'loggedOut'; } catch(e) { return 'unknown'; } })();
+                  }
+                  if (matched.playerSel) {
+                      try { hasPlayer = !!document.querySelector(matched.playerSel); } catch(e) {}
+                  }
+              }
+              
+              try {
+                if (window.chrome && window.chrome.webview && window.chrome.webview.hostObjects && window.chrome.webview.hostObjects.ahk) {
+                    window.chrome.webview.hostObjects.ahk.ReportPlayerStatus(authStr, hasPlayer);
+                }
+              } catch(e) {}
+            }, 2000);
+          }
+
           // Apply on AJAX navigations safely if not already hooked
           if (!window._svAjaxHooked) {
              window._svAjaxHooked = true;

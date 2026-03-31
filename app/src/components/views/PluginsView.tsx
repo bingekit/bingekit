@@ -482,6 +482,40 @@ export const PluginsView = () => {
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
                       />
                     </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs text-zinc-500">
+                          Check Auth JS (Returns true if logged in)
+                        </label>
+                        <button
+                          onClick={() => {
+                            setIdeTempVal(editingPlugin.auth.checkAuthJs || "");
+                            setIdeModalData({
+                              title: "Check Auth JS",
+                              value: editingPlugin.auth.checkAuthJs || "",
+                              mode: "javascript",
+                              onChange: (val) => updateEditingPlugin("auth", "checkAuthJs", val)
+                            });
+                          }}
+                          className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                        >
+                          <Code size={12} /> IDE Editor
+                        </button>
+                      </div>
+                      <textarea
+                        value={editingPlugin.auth.checkAuthJs || ""}
+                        placeholder="return !!document.querySelector('.user-profile');"
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "checkAuthJs",
+                            e.target.value,
+                          )
+                        }
+                        rows={2}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                      />
+                    </div>
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-xs text-zinc-500 mb-1.5">

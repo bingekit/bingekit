@@ -25,6 +25,10 @@ export const PlayerView = () => {
     discoveryItems, setDiscoveryItems
   } = useAppContext();
 
+  const [authStatus, setAuthStatus] = React.useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
+  const [playerStatus, setPlayerStatus] = React.useState<'notFound' | 'found'>('notFound');
+  const [isFocusedMode, setIsFocusedMode] = React.useState<boolean>(true);
+
   React.useEffect(() => {
     // Discovery Engine Background Task
     const timer = setTimeout(async () => {
@@ -74,6 +78,58 @@ export const PlayerView = () => {
     }, 6000); // Wait 6 seconds for page to be usable
     return () => clearTimeout(timer);
   }, [url, activeTab, plugins]);
+
+  React.useEffect(() => {
+    const handleStatusUpdate = (e: any) => {
+       if (e.detail) {
+           if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
+           if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
+       }
+    };
+    const handlePlayState = (e: any) => {
+       if (e.detail && e.detail.isPlaying !== undefined) {
+           setIsFocusedMode(e.detail.isPlaying);
+       }
+    };
+    window.addEventListener('player-status-update', handleStatusUpdate);
+    window.addEventListener('player-play-state', handlePlayState);
+    return () => {
+       window.removeEventListener('player-status-update', handleStatusUpdate);
+       window.removeEventListener('player-play-state', handlePlayState);
+    };
+  }, []);
+
+  React.useEffect(() => {
+     if (activeTab !== 'player' || playerStatus !== 'found') return;
+     const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+     if (plugin && plugin.player.playerSel) {
+        if (isFocusedMode && plugin.player.focusCss) {
+              const cssStr = plugin.player.focusCss.replace(/\\/g, '\\\\').replace(/`/g, "\\`").replace(/\\$/g, "\\\\$");
+              ahk.call('InjectJS', `
+                 (function() {
+                    const styleId = 'sv-focus-style';
+                    let existingStyle = document.getElementById(styleId);
+                    if (!existingStyle) {
+                      existingStyle = document.createElement('style');
+                      existingStyle.id = styleId;
+                      (document.head || document.documentElement).appendChild(existingStyle);
+                    }
+                    const fullCss = \`${plugin.player.playerSel} { \${cssStr} }\`;
+                    if (existingStyle.innerHTML !== fullCss) {
+                      existingStyle.innerHTML = fullCss;
+                    }
+                 })();
+              `);
+           } else {
+              ahk.call('InjectJS', `
+                 (function() {
+                    let existingStyle = document.getElementById('sv-focus-style');
+                    if (existingStyle) existingStyle.parentNode.removeChild(existingStyle);
+                 })();
+              `);
+           }
+     }
+  }, [isFocusedMode, activeTab, playerStatus, url, plugins]);
 
   return (
     
@@ -172,6 +228,20 @@ export const PlayerView = () => {
                       })()}
                     </div>
                     <div className="flex-1" />
+                    {playerStatus === 'found' && (
+                       <button
+                         title={isFocusedMode ? "Disable Focused Mode" : "Enable Focused Mode"}
+                         onClick={() => setIsFocusedMode(!isFocusedMode)}
+                         className={`text-xs font-medium flex items-center gap-1.5 transition-colors shrink-0 ${isFocusedMode ? 'text-indigo-400' : 'text-zinc-600 hover:text-zinc-400'}`}
+                       >
+                         {isFocusedMode ? <Eye size={14} /> : <EyeOff size={14} />} Focused
+                       </button>
+                    )}
+                    {authStatus !== 'unknown' && (
+                       <div className="flex items-center gap-2 border-l border-zinc-800 pl-4 ml-2">
+                         <span title={authStatus === 'loggedIn' ? 'Logged In' : 'Not Logged In'} className={`w-2 h-2 rounded-full ${authStatus === 'loggedIn' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
+                       </div>
+                    )}
                     <button
                       title="Inject Login Credentials"
                       onClick={() => {

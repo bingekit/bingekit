@@ -83,7 +83,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     DragMove: AHK_DragMove,
                     ResizeEdge: AHK_ResizeEdge,
                     ReportPlayState: AHK_ReportPlayState,
-                    ToggleMedia: AHK_ToggleMedia
+                    ToggleMedia: AHK_ToggleMedia,
+                    ReportPlayerStatus: AHK_ReportPlayerStatus
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
@@ -154,7 +155,7 @@ AHK_PlayerGoBack(*) {
         try {
             PlayerWV.wv.GoBack()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.history.back()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.history.back()")
         }
     }
 }
@@ -165,7 +166,7 @@ AHK_PlayerGoForward(*) {
         try {
             PlayerWV.wv.GoForward()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.history.forward()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.history.forward()")
         }
     }
 }
@@ -176,7 +177,7 @@ AHK_PlayerReload(*) {
         try {
             PlayerWV.wv.Reload()
         } catch {
-            PlayerWV.wv.ExecuteScript("window.location.reload()", 0)
+            PlayerWV.wv.ExecuteScriptAsync("window.location.reload()")
         }
     }
 }
@@ -248,5 +249,12 @@ AHK_PlayerGuiResized(guiObj, minMax, width, height) {
     if (PlayerWV) {
         PlayerWV.Move(0, 0, width, height)
         PlayerWV.wvc.Fill()
+    }
+}
+AHK_ReportPlayerStatus(authStatus, hasPlayer) {
+    global MainGui
+    if (MainGui) {
+        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") " } })) } catch(e) {}"
+        MainGui.Control.ExecuteScriptAsync(js)
     }
 }

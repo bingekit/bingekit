@@ -39,9 +39,9 @@ AHK_ExecuteSearch(query, engine) {
 
 AHK_InjectJS(js) {
     global WV, PlayerWV, PlayerGui
-    WV.ExecuteScript(js, 0)
+    WV.ExecuteScriptAsync(js)
     if (PlayerGui && PlayerWV) {
-        PlayerWV.wv.ExecuteScript(js, 0)
+        PlayerWV.wv.ExecuteScriptAsync(js)
     }
 }
 
@@ -57,7 +57,7 @@ AHK_UpdateUserscriptPayload(js) {
     global UserscriptsScript, PlayerWV, PlayerGui
     UserscriptsScript := js
     if (PlayerGui && PlayerWV) {
-        PlayerWV.wv.ExecuteScript(js, 0)
+        PlayerWV.wv.ExecuteScriptAsync(js)
     }
 }
 
@@ -299,6 +299,6 @@ AHK_ReportPlayState(isPlaying) {
 AHK_ToggleMedia() {
     global PlayerWV
     if (PlayerWV) {
-        PlayerWV.wv.ExecuteScript("window.top.postMessage('sv-toggle-play', '*');", 0)
+        PlayerWV.wv.ExecuteScriptAsync("window.top.postMessage('sv-toggle-play', '*');")
     }
 }

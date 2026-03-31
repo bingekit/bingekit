@@ -121,6 +121,7 @@ export interface SitePlugin extends BaseMetadata {
     usernameValue: string;
     passwordValue: string;
     encryptCreds: boolean;
+    checkAuthJs?: string;
   };
   search: {
     urlFormat: string;
@@ -185,7 +186,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   updateUrl: '',
   icon: '',
   baseUrl: 'https://',
-  auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
+  auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '' },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
   additionalSearches: [],
   networkBlockers: [],
