@@ -41,12 +41,21 @@
         document.querySelectorAll('video').forEach(v => {
             if (v.readyState !== 0 && !v.paused) playing = true;
         });
-        if (window._svLastPlaying !== playing) {
-            window._svLastPlaying = playing;
+        if (playing) {
+            window._svLastPlayingLocal = true;
             if (window.top !== window) {
-                window.top.postMessage({ type: 'sv-play-state', playing }, '*');
+                window.top.postMessage({ type: 'sv-play-state', playing: true }, '*');
             } else {
                 window.updateGlobalPlayState && window.updateGlobalPlayState();
+            }
+        } else {
+            if (window._svLastPlayingLocal) {
+                window._svLastPlayingLocal = false;
+                if (window.top !== window) {
+                    window.top.postMessage({ type: 'sv-play-state', playing: false }, '*');
+                } else {
+                    window.updateGlobalPlayState && window.updateGlobalPlayState();
+                }
             }
         }
     }, 1000);
@@ -65,7 +74,6 @@
                     lastPausedVideo.play();
                     if (window.top === window) { window._svIsGloballyPlaying = true; }
                 } else if (window.top === window && videos.length > 0) {
-                    // Fallback: only try playing the biggest video in the top frame if we never paused anything
                     const largest = videos.sort((a,b) => (b.videoWidth*b.videoHeight) - (a.videoWidth*a.videoHeight))[0];
                     if (largest) largest.play();
                     window._svIsGloballyPlaying = true;
@@ -78,19 +86,33 @@
     });
 
     if (window.top === window) {
-        window._svPlayingFrames = new Set();
+        window._svPlayingTimers = new Map();
         window._svIsGloballyPlaying = false;
+        
+        window.updateGlobalPlayState = function() {
+            const now = Date.now();
+            for (let [win, time] of window._svPlayingTimers.entries()) {
+                if (now - time > 3000) {
+                    window._svPlayingTimers.delete(win);
+                }
+            }
+            let isPlaying = window._svLastPlayingLocal || window._svPlayingTimers.size > 0;
+            if (window._svIsGloballyPlaying !== isPlaying) {
+                window._svIsGloballyPlaying = isPlaying;
+                try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying); } catch(err){}
+            }
+        };
+
         window.addEventListener('message', (e) => {
             if (e.data && e.data.type === 'sv-play-state') {
-                if (e.data.playing) window._svPlayingFrames.add(e.source);
-                else window._svPlayingFrames.delete(e.source);
-                window.updateGlobalPlayState && window.updateGlobalPlayState();
+                if (e.data.playing) window._svPlayingTimers.set(e.source, Date.now());
+                else window._svPlayingTimers.delete(e.source);
+                window.updateGlobalPlayState();
             }
         });
-        window.updateGlobalPlayState = function() {
-            let isPlaying = window._svLastPlaying || window._svPlayingFrames.size > 0;
-            window._svIsGloballyPlaying = isPlaying;
-            try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying); } catch(err){}
-        };
+        
+        setInterval(() => {
+            window.updateGlobalPlayState();
+        }, 1500);
     }
 })();

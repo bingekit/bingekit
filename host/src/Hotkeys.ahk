@@ -35,7 +35,22 @@ F11::
             . "const t = vs.length > 0 ? vs[0] : null; "
             . "if(t && typeof t.requestFullscreen === 'function') { t.requestFullscreen().catch(() => document.documentElement.requestFullscreen()); } "
             . "else { document.documentElement.requestFullscreen(); } } })();"
-        
+
+        try {
+            PlayerWV.wv.ExecuteScriptAsync(js)
+        } catch {
+            ; Failed to execute script
+        }
+    }
+}
+Escape::
+{
+    global PlayerWV
+    if (IsSet(PlayerWV) && PlayerWV != "") {
+        js := "(function() { "
+            . "if(document.fullscreenElement) { document.exitFullscreen(); } "
+            . "})();"
+
         try {
             PlayerWV.wv.ExecuteScriptAsync(js)
         } catch {
