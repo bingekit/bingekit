@@ -107,6 +107,24 @@ AHK_TogglePiP() {
                 (function() {
                     console.log("loading pip js");
                     if (document.getElementById('sv-pip-container')) return;
+                    
+                    function findLargestPlayingVideo() {
+                        const videos = Array.from(document.querySelectorAll('video'))
+                            .filter(video => video.readyState != 0)
+                            .filter(video => video.disablePictureInPicture == false)
+                            .sort((v1, v2) => {
+                                const v1Rect = v1.getClientRects()[0] || {width: 0, height: 0};
+                                const v2Rect = v2.getClientRects()[0] || {width: 0, height: 0};
+                                return (v2Rect.width * v2Rect.height) - (v1Rect.width * v1Rect.height);
+                            });
+                        return videos.length > 0 ? videos[0] : (document.querySelector('video') || document.querySelector('iframe[allowfullscreen]'));
+                    }
+                
+                    let style = document.createElement('style');
+                    style.id = 'sv-pip-style';
+                    style.textContent = "iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }";
+                    document.body.append(style);
+                
                     const container = document.createElement('div');
                     container.id = 'sv-pip-container';
                     container.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999999;pointer-events:none;display:flex;align-items:center;justify-content:center;transition:background 0.2s ease;';
@@ -125,22 +143,16 @@ AHK_TogglePiP() {
                     
                     let isPlaying = true;
                     playBtn.addEventListener('click', () => {
-                        const video = document.querySelector('video');
-                        if(video) {
-                            if(video.paused) { video.play(); isPlaying = true; playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>'; }
-                            else { video.pause(); isPlaying = false; playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>'; }
-                        }
+                        window.postMessage('sv-toggle-play', '*');
                     });
                 
                     container.addEventListener('mouseenter', () => {
                         container.style.background = 'rgba(0,0,0,0.3)';
                         playBtn.style.opacity = '1';
                         playBtn.style.transform = 'scale(1)';
-                        const video = document.querySelector('video');
-                        if(video) {
-                            if(video.paused) { isPlaying = false; playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>'; }
-                            else { isPlaying = true; playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>'; }
-                        }
+                        isPlaying = window._svIsGloballyPlaying !== undefined ? window._svIsGloballyPlaying : true;
+                        if(!isPlaying) playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>';
+                        else playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>';
                     });
                     container.addEventListener('mouseleave', () => {
                         container.style.background = 'transparent';
@@ -186,7 +198,7 @@ AHK_TogglePiP() {
                     
                     let lastVideoSrc = '';
                     setInterval(() => {
-                        const video = document.querySelector('video');
+                        const video = findLargestPlayingVideo();
                         if(video) {
                             if (video.videoWidth > 0 && video.videoHeight > 0 && video.src !== lastVideoSrc) {
                                 lastVideoSrc = video.src;
@@ -196,8 +208,9 @@ AHK_TogglePiP() {
                             }
                 
                             if(container.style.background !== 'transparent') {
-                                if(video.paused !== !isPlaying) {
-                                    isPlaying = !video.paused;
+                                let globPlaying = window._svIsGloballyPlaying !== undefined ? window._svIsGloballyPlaying : !video.paused;
+                                if(globPlaying !== isPlaying) {
+                                    isPlaying = globPlaying;
                                     if(isPlaying) playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>';
                                     else playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>';
                                 }
@@ -223,7 +236,7 @@ AHK_TogglePiP() {
         if (PlayerGui) {
             PlayerGui.Opt("-AlwaysOnTop -Resize -Caption")
             try {
-                PlayerWV.wv.ExecuteScriptAsync("var pip = document.getElementById('sv-pip-container'); if (pip) pip.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
+                PlayerWV.wv.ExecuteScriptAsync("var pip = document.getElementById('sv-pip-container'); if (pip) pip.remove(); var st = document.getElementById('sv-pip-style'); if (st) st.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
             }
             catch {
                 MsgBox("Error removing PiP")
@@ -269,8 +282,23 @@ AHK_ResizeEdge(dir) {
     global PlayerGui, IsPiPMode
     if (PlayerGui && IsPiPMode) {
         DllCall("ReleaseCapture")
-        hit := dir="n" ? 12 : dir="s" ? 15 : dir="e" ? 11 : dir="w" ? 10 : dir="ne" ? 14 : dir="nw" ? 13 : dir="se" ? 17 : dir="sw" ? 16 : 0
+        hit := dir = "n" ? 12 : dir = "s" ? 15 : dir = "e" ? 11 : dir = "w" ? 10 : dir = "ne" ? 14 : dir = "nw" ? 13 : dir = "se" ? 17 : dir = "sw" ? 16 : 0
         if (hit)
             PostMessage(0xA1, hit, 0, , "ahk_id " PlayerGui.Hwnd)
+    }
+}
+
+AHK_ReportPlayState(isPlaying) {
+    global MainGui
+    if (MainGui) {
+        js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") " } })) } catch(e) {}"
+        MainGui.Control.ExecuteScriptAsync(js)
+    }
+}
+
+AHK_ToggleMedia() {
+    global PlayerWV
+    if (PlayerWV) {
+        PlayerWV.wv.ExecuteScript("window.top.postMessage('sv-toggle-play', '*');", 0)
     }
 }

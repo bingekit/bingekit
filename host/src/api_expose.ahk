@@ -50,4 +50,5 @@ WV.AddHostObjectToScript("ahk", {
     ResizePiP: AHK_ResizePiP,
     DragMove: AHK_DragMove,
     ResizeEdge: AHK_ResizeEdge,
+    ToggleMedia: AHK_ToggleMedia,
 })

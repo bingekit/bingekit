@@ -82,6 +82,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     ResizePiP: AHK_ResizePiP,
                     DragMove: AHK_DragMove,
                     ResizeEdge: AHK_ResizeEdge,
+                    ReportPlayState: AHK_ReportPlayState,
+                    ToggleMedia: AHK_ToggleMedia
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
