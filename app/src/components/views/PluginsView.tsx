@@ -138,6 +138,15 @@ export const PluginsView = () => {
     "general" | "auth" | "search" | "media" | "functions" | "metadata"
   >("general");
 
+  const [ideModalData, setIdeModalData] = React.useState<{
+    title: string;
+    value: string;
+    mode: "javascript" | "css";
+    onChange: (val: string) => void;
+  } | null>(null);
+
+  const [ideTempVal, setIdeTempVal] = React.useState("");
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Plugins List */}
@@ -386,9 +395,25 @@ export const PluginsView = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">
-                      Custom CSS
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs text-zinc-500">
+                        Custom CSS
+                      </label>
+                      <button
+                        onClick={() => {
+                          setIdeTempVal(editingPlugin.customCss || "");
+                          setIdeModalData({
+                            title: "Custom CSS",
+                            value: editingPlugin.customCss || "",
+                            mode: "css",
+                            onChange: (val) => updateEditingPlugin("root", "customCss", val)
+                          });
+                        }}
+                        className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                      >
+                        <Code size={12} /> IDE Editor
+                      </button>
+                    </div>
                     <textarea
                       value={editingPlugin.customCss || ""}
                       onChange={(e) =>
@@ -400,9 +425,25 @@ export const PluginsView = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">
-                      Custom JS (Runs on load)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs text-zinc-500">
+                        Custom JS (Runs on load)
+                      </label>
+                      <button
+                        onClick={() => {
+                          setIdeTempVal(editingPlugin.customJs || "");
+                          setIdeModalData({
+                            title: "Custom JS",
+                            value: editingPlugin.customJs || "",
+                            mode: "javascript",
+                            onChange: (val) => updateEditingPlugin("root", "customJs", val)
+                          });
+                        }}
+                        className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                      >
+                        <Code size={12} /> IDE Editor
+                      </button>
+                    </div>
                     <textarea
                       value={editingPlugin.customJs || ""}
                       onChange={(e) =>
@@ -1015,9 +1056,25 @@ export const PluginsView = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">
-                          Deep Scan JS Ripper (Overrides Selectors)
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs text-zinc-500">
+                            Deep Scan JS Ripper (Overrides Selectors)
+                          </label>
+                          <button
+                            onClick={() => {
+                              setIdeTempVal(editingPlugin.media.deepJs || "");
+                              setIdeModalData({
+                                title: "Deep Scan JS Ripper",
+                                value: editingPlugin.media.deepJs || "",
+                                mode: "javascript",
+                                onChange: (val) => updateEditingPlugin("media", "deepJs", val)
+                              });
+                            }}
+                            className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                          >
+                            <Code size={12} /> IDE Editor
+                          </button>
+                        </div>
                         <textarea
                           value={editingPlugin.media.deepJs || ""}
                           onChange={(e) =>
@@ -1069,11 +1126,27 @@ export const PluginsView = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-zinc-500 mb-1.5">
-                          Custom Focus CSS (Injected on load)
-                        </label>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-xs text-zinc-500">
+                            Custom Focus CSS (Injected on load)
+                          </label>
+                          <button
+                            onClick={() => {
+                              setIdeTempVal(editingPlugin.player.focusCss || "");
+                              setIdeModalData({
+                                title: "Custom Focus CSS",
+                                value: editingPlugin.player.focusCss || "",
+                                mode: "css",
+                                onChange: (val) => updateEditingPlugin("player", "focusCss", val)
+                              });
+                            }}
+                            className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                          >
+                            <Code size={12} /> IDE Editor
+                          </button>
+                        </div>
                         <textarea
-                          value={editingPlugin.player.focusCss}
+                          value={editingPlugin.player.focusCss || ""}
                           onChange={(e) =>
                             updateEditingPlugin(
                               "player",
@@ -1188,14 +1261,37 @@ export const PluginsView = () => {
                               </button>
                             </div>
                             <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">
-                                JavaScript Code
-                              </label>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <label className="block text-xs text-zinc-500">
+                                  JavaScript Code
+                                </label>
+                                <button
+                                  onClick={() => {
+                                    setIdeTempVal(func.code || "");
+                                    setIdeModalData({
+                                      title: `Function: ${func.name}`,
+                                      value: func.code || "",
+                                      mode: "javascript",
+                                      onChange: (val) => {
+                                        const newFuncs = [...editingPlugin.customFunctions!];
+                                        newFuncs[idx].code = val;
+                                        setEditingPlugin({
+                                          ...editingPlugin,
+                                          customFunctions: newFuncs,
+                                        });
+                                      }
+                                    });
+                                  }}
+                                  className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                                >
+                                  <Code size={12} /> IDE Editor
+                                </button>
+                              </div>
                               <textarea
                                 value={func.code}
                                 onChange={(e) => {
                                   const newFuncs = [
-                                    ...editingPlugin.customFunctions,
+                                    ...editingPlugin.customFunctions!,
                                   ];
                                   newFuncs[idx].code = e.target.value;
                                   setEditingPlugin({
@@ -1241,6 +1337,55 @@ export const PluginsView = () => {
           </div>
         )}
       </div>
+
+          {/* IDE Modal */}
+          {ideModalData && (
+            <Modal
+              isOpen={!!ideModalData}
+              onClose={() => setIdeModalData(null)}
+              title={ideModalData.title}
+              width="max-w-4xl"
+            >
+              <div className="flex flex-col h-[70vh]">
+                <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden font-mono text-sm shadow-inner relative">
+                  <div className="absolute top-2 right-4 z-10 text-[10px] text-zinc-500 font-bold uppercase tracking-wider bg-zinc-900/80 px-2 py-1 rounded">
+                    {ideModalData.mode}
+                  </div>
+                  <Editor
+                    value={ideTempVal}
+                    onValueChange={(code) => setIdeTempVal(code)}
+                    highlight={(code) => Prism.highlight(
+                      code,
+                      Prism.languages[ideModalData.mode] || Prism.languages.javascript,
+                      ideModalData.mode
+                    )}
+                    padding={20}
+                    className="w-full h-full text-zinc-300 text-[14px] leading-relaxed relative z-0"
+                    textareaClassName="focus:outline-none"
+                    style={{ minHeight: '100%', fontFamily: '"Fira Code", "JetBrains Mono", monospace' }}
+                  />
+                </div>
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => setIdeModalData(null)}
+                    className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      ideModalData.onChange(ideTempVal);
+                      setIdeModalData(null);
+                    }}
+                    className="px-6 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-500/20"
+                  >
+                    Save Code
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
     </div>
   );
 };
