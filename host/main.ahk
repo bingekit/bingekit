@@ -123,18 +123,20 @@ WinSetTransparent(0, MainGui.Hwnd)
 #Up::
 {
     global MainGui, PlayerGui, PlayerWV
-    activeWindow := WinGetID("A")
-    if (IsSet(PlayerGui) && (activeWindow == PlayerGui.Hwnd || activeWindow == MainGui.Hwnd)) {
-        WinMaximize("ahk_id " MainGui.Hwnd)
-    }
+    WinMaximize("ahk_id " MainGui.Hwnd)
+    ;activeWindow := WinGetID("A")
+    ;if (IsSet(PlayerGui) && (activeWindow == PlayerGui.Hwnd || activeWindow == MainGui.Hwnd)) {
+    ;    WinMaximize("ahk_id " MainGui.Hwnd)
+    ;}
 }
 #Down::
 {
     global MainGui, PlayerGui, PlayerWV
-    activeWindow := WinGetID("A")
-    if (IsSet(PlayerGui) && (activeWindow == PlayerGui.Hwnd || activeWindow == MainGui.Hwnd)) {
-        WinMinimize("ahk_id " MainGui.Hwnd)
-    }
+    WinMinimize("ahk_id " MainGui.Hwnd)
+    ;activeWindow := WinGetID("A")
+    ;if (IsSet(PlayerGui) && (activeWindow == PlayerGui.Hwnd || activeWindow == MainGui.Hwnd)) {
+    ;    WinMinimize("ahk_id " MainGui.Hwnd)
+    ;}
 }
 ; #Down::
 ; {

@@ -10,6 +10,8 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
+import { MetadataEditor } from './MetadataEditor';
+
 export const UserscriptsView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -23,6 +25,8 @@ export const UserscriptsView = () => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   } = useAppContext();
+
+  const [activeSubTab, setActiveSubTab] = React.useState<'code'|'metadata'>('code');
 
   return (
 
@@ -40,6 +44,9 @@ export const UserscriptsView = () => {
               const newScript: Userscript = {
                 id: Date.now().toString(),
                 name: 'New Script',
+                description: '',
+                author: '',
+                version: '1.0.0',
                 domains: ['*'],
                 code: '// ==UserScript==\n// @match *\n// ==/UserScript==\n\nconsole.log("Hello from userscript");',
                 enabled: true
@@ -60,12 +67,29 @@ export const UserscriptsView = () => {
               onClick={() => setEditingUserscriptId(s.id)}
             >
               <div className="flex justify-between items-center">
-                <div className="font-medium text-sm text-zinc-200">{s.name}</div>
+                <div className="flex items-center gap-2">
+                   {s.icon ? (
+                     <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                        {s.icon.includes('<svg') || s.icon.includes('http') ? (
+                           <div className="w-3 h-3" dangerouslySetInnerHTML={{__html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />`}} />
+                        ) : (
+                           <span className="text-[10px]">{s.icon}</span>
+                        )}
+                     </div>
+                   ) : (
+                     <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                        <Code size={12} />
+                     </div>
+                   )}
+                   <div className="font-medium text-sm text-zinc-200 truncate">{s.name}</div>
+                </div>
                 <div className="flex gap-2 items-center">
                   <CustomCheckbox
                     checked={s.enabled}
                     onChange={(enabled) => {
-                      setUserscripts(userscripts.map(u => u.id === s.id ? { ...u, enabled } : u));
+                      const updated = { ...s, enabled };
+                      setUserscripts(userscripts.map(u => u.id === s.id ? updated : u));
+                      ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(updated, null, 2));
                     }}
                   />
                   <button
@@ -81,7 +105,7 @@ export const UserscriptsView = () => {
                   </button>
                 </div>
               </div>
-              <div className="text-xs text-zinc-500 mt-1 truncate">Domains: {s.domains.join(', ')}</div>
+              <div className="text-xs text-zinc-500 mt-1 truncate ml-8">Domains: {s.domains.join(', ')}</div>
             </div>
           ))}
         </div>
@@ -89,40 +113,84 @@ export const UserscriptsView = () => {
       <div className="flex-1 flex flex-col bg-zinc-950 overflow-hidden">
         {editingUserscriptId && userscripts.find(u => u.id === editingUserscriptId) ? (
           <div className="flex-1 flex flex-col h-full overflow-hidden">
-            <div className="h-14 border-b border-zinc-900 flex items-center px-4 gap-4 flex-shrink-0">
+            <div className="h-14 border-b border-zinc-900 flex items-center px-4 gap-4 flex-shrink-0 bg-zinc-950">
               <input
                 type="text"
                 value={userscripts.find(u => u.id === editingUserscriptId)?.name}
-                onChange={(e) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, name: e.target.value } : u))}
+                onChange={(e) => {
+                  const s = userscripts.find(u => u.id === editingUserscriptId)!;
+                  const updated = { ...s, name: e.target.value };
+                  setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
+                  ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                }}
                 className="bg-transparent border-none text-sm font-medium text-zinc-200 outline-none min-w-[150px]"
               />
               <div className="w-px h-4 bg-zinc-800" />
-              <div className="flex items-center gap-2 text-xs text-zinc-400 shrink-0">
-                Domains:
-              </div>
-              <div className="flex-1 max-w-sm">
-                <TagsInput
-                  tags={userscripts.find(u => u.id === editingUserscriptId)?.domains || []}
-                  onChange={(domains) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, domains } : u))}
-                />
+              <div className="flex gap-1 shrink-0 bg-zinc-900/50 p-1 rounded-lg">
+                <button
+                  onClick={() => setActiveSubTab('code')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${activeSubTab === 'code' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  Code
+                </button>
+                <button
+                  onClick={() => setActiveSubTab('metadata')}
+                  className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${activeSubTab === 'metadata' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                >
+                  Metadata
+                </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto w-full relative group">
-              <div className="absolute inset-0 pl-12 font-mono text-sm leading-relaxed overflow-hidden">
-                <Editor
-                  value={userscripts.find(u => u.id === editingUserscriptId)?.code || ''}
-                  onValueChange={(code) => setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? { ...u, code } : u))}
-                  highlight={code => Prism.highlight(code, Prism.languages.javascript, 'javascript')}
-                  padding={24}
-                  style={{
-                    fontFamily: '"Fira Code", "JetBrains Mono", Consolas, monospace',
-                    fontSize: 14,
-                    minHeight: '100%',
-                  }}
-                  className="bg-transparent text-zinc-300 transition-colors focus-within:bg-zinc-900/30"
-                  textareaClassName="focus:outline-none"
-                />
-              </div>
+            
+            <div className="flex-1 overflow-y-auto w-full relative group flex flex-col">
+              {activeSubTab === 'metadata' ? (
+                <div className="p-8 max-w-3xl space-y-8 h-full">
+                  <div className="space-y-2">
+                    <label className="block text-xs text-zinc-500">Target Domains</label>
+                    <TagsInput
+                      tags={userscripts.find(u => u.id === editingUserscriptId)?.domains || []}
+                      onChange={(domains) => {
+                         const s = userscripts.find(u => u.id === editingUserscriptId)!;
+                         const updated = { ...s, domains };
+                         setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
+                         ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                      }}
+                    />
+                    <p className="text-xs text-zinc-600 mt-1">Use <code>*</code> for all domains or exact hostnames like <code>example.com</code></p>
+                  </div>
+                  
+                  <MetadataEditor
+                    metadata={userscripts.find(u => u.id === editingUserscriptId)!}
+                    onChange={(key, val) => {
+                      const s = userscripts.find(u => u.id === editingUserscriptId)!;
+                      const updated = { ...s, [key]: val };
+                      setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
+                      ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="absolute inset-0 pl-12 pt-2 font-mono text-sm leading-relaxed overflow-hidden">
+                  <Editor
+                    value={userscripts.find(u => u.id === editingUserscriptId)?.code || ''}
+                    onValueChange={(code) => {
+                      const s = userscripts.find(u => u.id === editingUserscriptId)!;
+                      const updated = { ...s, code };
+                      setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
+                      ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                    }}
+                    highlight={code => Prism.highlight(code, Prism.languages.javascript, 'javascript')}
+                    padding={24}
+                    style={{
+                      fontFamily: '"Fira Code", "JetBrains Mono", Consolas, monospace',
+                      fontSize: 14,
+                      minHeight: '100%',
+                    }}
+                    className="bg-transparent text-zinc-300 transition-colors focus-within:bg-zinc-900/30 w-full h-full"
+                    textareaClassName="focus:outline-none"
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : (

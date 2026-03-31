@@ -50,7 +50,13 @@ export const DashboardView = () => {
             placeholder="Search across all plugins or enter URL..."
             className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-lg text-zinc-200 focus:border-indigo-500 focus:bg-zinc-900 outline-none transition-all shadow-xl"
             onKeyDown={async (e) => {
-              if (e.key === 'Enter' && multiSearchQuery) {
+              if (e.key === 'Enter') {
+                if (!multiSearchQuery.trim()) {
+                  setSearchResults([]);
+                  setIsSearching(false);
+                  return;
+                }
+                
                 setIsSearching(true);
                 setSearchResults([]);
 
@@ -414,8 +420,20 @@ export const DashboardView = () => {
               }
             }}
           />
+          {multiSearchQuery && !isSearching && (
+            <button
+              onClick={() => {
+                setMultiSearchQuery('');
+                setSearchResults([]);
+                setIsSearching(false);
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 bg-zinc-900/80 p-1 rounded-full"
+            >
+              <X size={18} />
+            </button>
+          )}
           {isSearching && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-zinc-900/80 p-1">
               <RefreshCw size={18} className="text-indigo-500 animate-spin" />
             </div>
           )}
@@ -504,7 +522,15 @@ export const DashboardView = () => {
                         className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
                       >
                         <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
-                          <Globe size={18} />
+                          {p.icon ? (
+                            p.icon.includes('<svg') || p.icon.includes('http') ? (
+                              <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                            ) : (
+                              <span className="text-lg">{p.icon}</span>
+                            )
+                          ) : (
+                            <Globe size={18} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">{p.name}</h4>
@@ -533,7 +559,15 @@ export const DashboardView = () => {
                       className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
                     >
                       <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
-                        <Globe size={18} />
+                        {p.icon ? (
+                          p.icon.includes('<svg') || p.icon.includes('http') ? (
+                            <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                          ) : (
+                            <span className="text-lg">{p.icon}</span>
+                          )
+                        ) : (
+                          <Globe size={18} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-zinc-300 truncate">{p.name}</h4>
