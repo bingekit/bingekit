@@ -386,8 +386,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
-    let finalUrl = inputUrl;
-    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+    let finalUrl = inputUrl.trim();
+    if (finalUrl.startsWith('about:') || finalUrl.startsWith('custom:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
+      // Leave as is
+    } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {
         finalUrl = `${defaultSearchEngine}${encodeURIComponent(finalUrl)}`;
       } else {
