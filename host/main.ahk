@@ -36,7 +36,16 @@ Try {
     WinSetRegion("0-0 w400 h200 r16-16", "ahk_id " SplashGui.Hwnd)
 }
 
-MainGui := WebViewGui("+Resize -Caption", "StreamView", , WebViewSettings)
+try {
+    MainGui := WebViewGui("+Resize -Caption", "StreamView", , WebViewSettings)
+} catch as err {
+    if (SplashGui) {
+        SplashGui.Destroy()
+        SplashGui := ""
+    }
+    MsgBox("Critical Error: Failed to initialize WebView2 component.`n`nError details:`n" err.Message "`n`nPlease ensure Microsoft Edge WebView2 Runtime is installed.", "StreamView Initialization Error", 16)
+    ExitApp()
+}
 
 MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
 
@@ -353,6 +362,11 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
         global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
         global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
 
+        w := w - 3
+        h := h - 3
+        ;x := x + 8
+        ;y := y + 8
+
         PlayerRectX := x
         PlayerRectY := y
         PlayerRectW := w
@@ -555,6 +569,7 @@ AHK_HideSplash(*) {
         SplashGui.Destroy()
         SplashGui := ""
         MainGui.Show("w1280 h800 center")
+        MainGui.Opt("+MinSize900x800")
         WinSetTransparent(255, MainGui.Hwnd)
     }
 }
@@ -656,6 +671,31 @@ try {
     ;    WV.CoreWebView2.AddScriptToExecuteOnDocumentCreated(AdblockScript, 0)
     ;}
 }
+
+MainNavigationCompletedHandler(sender, args) {
+    global SplashGui
+    if (!args.IsSuccess && SplashGui) {
+        errStatus := "Unknown Error: " args.WebErrorStatus
+        if (args.WebErrorStatus != 9) {
+            SplashGui.Destroy()
+            SplashGui := ""
+            MsgBox("Critical Error: StreamView UI failed to load the interface.`n`nError Code: " errStatus "`n`nTroubleshooting:`n- If running from source, ensure the React dev server (http://localhost:3000) is active.`n- If compiled, check local bundle integrity.", "StreamView Navigation Error", 16)
+            ExitApp()
+        }
+    }
+}
+WV.add_NavigationCompleted(MainNavigationCompletedHandler)
+
+CheckSplashTimeout() {
+    global SplashGui
+    if (SplashGui) {
+        SplashGui.Destroy()
+        SplashGui := ""
+        MsgBox("Critical Error: StreamView UI did not respond within 15 seconds.`n`nThis usually indicates the frontend React development server is not running or has crashed. Please start it using 'npm run dev'.", "StreamView Timeout", 16)
+        ExitApp()
+    }
+}
+SetTimer(CheckSplashTimeout, -165000)
 
 ; Load the local React build (or dev server if testing)
 WV.Navigate("http://localhost:3000") ; For development
