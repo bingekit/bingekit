@@ -337,6 +337,14 @@ AHK_InjectJS(js) {
     }
 }
 
+AHK_EvalPlayerJS(js) {
+    global PlayerWV, PlayerGui
+    if (PlayerGui && PlayerWV) {
+        return PlayerWV.ExecuteScript(js)
+    }
+    return ""
+}
+
 global PlayerGui := ""
 global PlayerWV := ""
 global PlayerCurrentUrl := ""
@@ -405,6 +413,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
+                PlayerWV.wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
                 ;PlayerWV.SourceChanged(xWebView2.Handler(AHK_PlayerUrlChanged))
                 if (PendingPlayerUrl != "") {
                     PlayerCurrentUrl := PendingPlayerUrl
@@ -430,6 +439,33 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
         }
     }
     SetTimer(DoUpdateRect, -1)
+}
+
+AHK_PlayerFullscreenChanged(ICoreWebView2, *) {
+    global PlayerGui, PlayerWV, MainGui
+    global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+    try {
+        if (ICoreWebView2.ContainsFullScreenElement) {
+            mon := DllCall("MonitorFromWindow", "Ptr", PlayerGui.Hwnd, "UInt", 2, "Ptr")
+            NumPut("UInt", 40, mInfo := Buffer(40))
+            DllCall("GetMonitorInfo", "Ptr", mon, "Ptr", mInfo)
+            mX := NumGet(mInfo, 4, "Int")
+            mY := NumGet(mInfo, 8, "Int")
+            mW := NumGet(mInfo, 12, "Int") - mX
+            mH := NumGet(mInfo, 16, "Int") - mY
+            PlayerGui.Opt("+AlwaysOnTop")
+            PlayerGui.Move(mX, mY, mW, mH)
+            PlayerWV.Move(0, 0, mW, mH)
+            PlayerWV.wvc.Fill()
+        } else {
+            PlayerGui.Opt("-AlwaysOnTop")
+            WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+            PlayerGui.Move(CX + PlayerRectX, CY + PlayerRectY, PlayerRectW, PlayerRectH)
+            PlayerWV.Move(0, 0, PlayerRectW, PlayerRectH)
+            PlayerWV.wvc.Fill()
+        }
+    } catch {
+    }
 }
 
 global FetchTasks := Map()
@@ -658,6 +694,7 @@ WV.AddHostObjectToScript("ahk", {
     RawFetchHTML: AHK_RawFetchHTML,
     ExecuteSearch: AHK_ExecuteSearch,
     InjectJS: AHK_InjectJS,
+    EvalPlayerJS: AHK_EvalPlayerJS,
     UpdatePlayerRect: AHK_UpdatePlayerRect,
     UpdatePlayerUrl: AHK_UpdatePlayerUrl,
     UpdateURL: AHK_UpdateURL,

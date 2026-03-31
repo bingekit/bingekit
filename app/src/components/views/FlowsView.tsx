@@ -182,22 +182,23 @@ export const FlowsView = () => {
                           {idx + 1}
                         </div>
                         <div className="w-[200px]">
-                          <CustomSelect
-                            options={[
-                              { value: 'RawFetchHTML', label: 'Fetch HTML' },
-                              { value: 'parseHtml', label: 'Parse HTML' },
-                              { value: 'pluginAction', label: 'Run Plugin Action' },
-                              { value: 'navigate', label: 'Navigate Browser' },
-                              { value: 'extract', label: 'Extract Data' },
-                              { value: 'inject', label: 'Inject JS/CSS' },
-                              { value: 'smartFetch', label: 'Smart Fetch (Site)' },
-                              { value: 'smartSearch', label: 'Smart Search (Aggregated)' },
-                              { value: 'wait', label: 'Wait (Delay)' },
-                              { value: 'waitForElement', label: 'Wait for Element' },
-                              { value: 'interact', label: 'Interact (Click/Type)' },
-                              { value: 'customSmartFetch', label: 'Custom SmartFetch' }
-                            ]}
-                            value={step.type}
+                            <CustomSelect
+                              options={[
+                                { value: 'RawFetchHTML', label: '[App] Fetch Raw HTML (Background)' },
+                                { value: 'parseHtml', label: '[App] Parse HTML Context' },
+                                { value: 'pluginAction', label: '[App] Run Plugin Action' },
+                                { value: 'smartSearch', label: '[App] Search (Aggregated)' },
+                                { value: 'callFlow', label: '[App] Call Flow' },
+                                { value: 'callPlugin', label: '[App] Call Search Plugin' },
+                                { value: 'navigate', label: '[Player] Navigate URL' },
+                                { value: 'inject', label: '[Player] Inject JS/CSS' },
+                                { value: 'smartFetch', label: '[Hidden] SmartFetch (Plugin Rules)' },
+                                { value: 'customSmartFetch', label: '[Hidden] Custom SmartFetch (JS Script)' },
+                                { value: 'wait', label: '[Flow] Wait (Delay)' },
+                                { value: 'waitForElement', label: '[Player] Wait for Element' },
+                                { value: 'interact', label: '[Player] Interact (Click/Type)' }
+                              ]}
+                              value={step.type}
                             onChange={(val) => {
                               const newSteps = [...editingFlow.steps];
                               newSteps[idx].type = val as any;

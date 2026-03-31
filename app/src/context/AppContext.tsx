@@ -326,43 +326,69 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
       payload = `
-        var currentUrl = "${url}";
-        var currentHost = window.location.hostname;
-        if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
-        
-        var scripts = ${JSON.stringify(activeScripts)};
-        scripts.forEach(s => {
-          var matches = s.domains.includes('*') || s.domains.some(d => {
-            if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
-            return currentHost.includes(d) || currentUrl.includes(d);
-          });
-          if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
-        });
-        var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
-        sitePlugins.forEach(p => {
-          try {
-            var pHost = '';
-            try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+        (function() {
+          function applyStreamViewPayload() {
+            var currentUrl = window.location.href;
+            var currentHost = window.location.hostname;
+            if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
             
-            var matchP = false;
-            if (pHost.startsWith('custom:')) {
-              matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
-            } else {
-              matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
-            }
-            
-            if (matchP) {
-              if (p.css) {
-                var style = document.createElement('style');
-                style.innerHTML = p.css;
-                document.head.appendChild(style);
-              }
-              if (p.js) {
-                try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
-              }
-            }
-          } catch(e) {}
-        });
+            var scripts = ${JSON.stringify(activeScripts)};
+            scripts.forEach(s => {
+              var matches = s.domains.includes('*') || s.domains.some(d => {
+                if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
+                return currentHost.includes(d) || currentUrl.includes(d);
+              });
+              if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
+            });
+            var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
+            sitePlugins.forEach(p => {
+              try {
+                var pHost = '';
+                try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                
+                var matchP = false;
+                if (pHost.startsWith('custom:')) {
+                  matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                } else {
+                  matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                }
+                
+                if (matchP) {
+                  if (p.css && !document.getElementById('sv-plugin-style-' + pHost)) {
+                    var style = document.createElement('style');
+                    style.id = 'sv-plugin-style-' + pHost;
+                    style.innerHTML = p.css;
+                    (document.head || document.documentElement).appendChild(style);
+                  }
+                  if (p.js) {
+                    try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
+                  }
+                }
+              } catch(e) {}
+            });
+          }
+
+          // Apply immediately
+          applyStreamViewPayload();
+
+          // Apply on AJAX navigations safely if not already hooked
+          if (!window._svAjaxHooked) {
+             window._svAjaxHooked = true;
+             const origPush = window.history.pushState;
+             window.history.pushState = function() {
+                var res = origPush.apply(this, arguments);
+                setTimeout(applyStreamViewPayload, 50);
+                return res;
+             };
+             const origReplace = window.history.replaceState;
+             window.history.replaceState = function() {
+                var res = origReplace.apply(this, arguments);
+                setTimeout(applyStreamViewPayload, 50);
+                return res;
+             };
+             window.addEventListener('popstate', () => setTimeout(applyStreamViewPayload, 50));
+          }
+        })();
       `;
     }
 
@@ -499,6 +525,48 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (step.type === 'inject') {
         const code = await resolveVars(step.params.code || '');
         ahk.call('InjectJS', code);
+      } else if (step.type === 'waitForElement') {
+        const selector = await resolveVars(step.params.selector || '');
+        console.log('[Flow] Waiting for element:', selector);
+        let found = false;
+        let attempts = 0;
+        while (!found && attempts < 100) {
+            const js = `!!document.querySelector('${selector.replace(/'/g, "\\'")}')`;
+            try {
+                const res = await ahk.call('EvalPlayerJS', js);
+                if (res === 'true') {
+                    found = true;
+                    console.log('[Flow] Element found!');
+                    break;
+                }
+            } catch(e) {}
+            await new Promise(r => setTimeout(r, 100));
+            attempts++;
+        }
+        if (!found) console.warn('[Flow] Timed out waiting for element:', selector);
+      } else if (step.type === 'interact') {
+        const selector = await resolveVars(step.params.selector || '');
+        const actionType = step.params.actionType || 'click';
+        const value = await resolveVars(step.params.value || '');
+        console.log('[Flow] Interacting with:', selector, actionType);
+        
+        const jsCode = `
+          (function() {
+            var el = document.querySelector('${selector.replace(/'/g, "\\'")}');
+            if (el) {
+              ${actionType === 'setValue' ? `
+                 el.value = '${value.replace(/'/g, "\\'")}';
+                 el.dispatchEvent(new Event('input', {bubbles: true}));
+                 el.dispatchEvent(new Event('change', {bubbles: true}));
+                 if (el.tagName === 'FORM') el.submit();
+              ` : `el.click();`}
+              return true;
+            }
+            return false;
+          })();
+        `;
+        ahk.call('InjectJS', jsCode);
+        await new Promise(r => setTimeout(r, 200));
       } else if (step.type === 'RawFetchHTML') {
         const fetchUrl = await resolveVars(step.params.url || '');
         const html = ahk.call('RawFetchHTML', fetchUrl);
@@ -552,6 +620,33 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           const res = await window.SmartFetch(targetUrl, jsQuery);
           if (res) currentVar = res;
         }
+      } else if (step.type === 'customSmartFetch') {
+        const targetUrl = await resolveVars(step.params.url || '');
+        const jsCode = await resolveVars(step.params.code || 'return [];');
+        
+        if (targetUrl && window.SmartFetch) {
+           const jsQuery = `
+             return new Promise(async (resolve) => {
+               try {
+                 const res = await (async () => {
+                   ${jsCode}
+                 })();
+                 resolve(res);
+               } catch(e) {
+                 resolve({ error: e.message || String(e) });
+               }
+             });
+           `;
+           console.log('[Flow] Executing Custom SmartFetch on:', targetUrl);
+           const res = await window.SmartFetch(targetUrl, jsQuery);
+           currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
+           console.log('[Flow] Custom SmartFetch Result:', currentVar);
+        }
+      } else if (step.type === 'wait') {
+        const msStr = await resolveVars(step.params.ms || '1000');
+        const ms = parseInt(msStr) || 1000;
+        console.log(`[Flow] Waiting for ${ms}ms...`);
+        await new Promise(r => setTimeout(r, ms));
       }
     }
     return currentVar;
