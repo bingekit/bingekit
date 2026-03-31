@@ -7,7 +7,7 @@ export const DiscoveryView = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const activeItems = discoveryItems.filter(i => !i.dismissed && (
-    i.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     i.url.toLowerCase().includes(searchQuery.toLowerCase())
   ));
 
@@ -28,7 +28,7 @@ export const DiscoveryView = () => {
   };
 
   return (
-    <div className="p-8 max-w-5xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
+    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
@@ -37,7 +37,7 @@ export const DiscoveryView = () => {
           </h2>
           <p className="text-sm text-zinc-500 mt-2">Personalized recommendations extracted natively as you browse.</p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
@@ -49,7 +49,7 @@ export const DiscoveryView = () => {
               className="bg-zinc-900 border border-zinc-800 rounded-full py-2 pl-9 pr-4 text-sm text-zinc-200 outline-none focus:border-indigo-500 transition-colors w-64"
             />
           </div>
-          
+
           <button
             onClick={() => {
               if (confirm('Clear all dismissed items?')) {

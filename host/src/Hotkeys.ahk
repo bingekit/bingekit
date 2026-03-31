@@ -23,3 +23,39 @@ F5::
 Escape:: AHK_TogglePiP()
 !F4:: AHK_TogglePiP()
 #HotIf
+
+#HotIf (IsSet(MainGui) && MainGui != "" && WinActive("ahk_id " MainGui.Hwnd)) || (IsSet(PlayerGui) && PlayerGui != "" && WinActive("ahk_id " PlayerGui.Hwnd))
+F11::
+{
+    global PlayerWV
+    if (IsSet(PlayerWV) && PlayerWV != "") {
+        js := "(function() { "
+            . "if(document.fullscreenElement) { document.exitFullscreen(); } else { "
+            . "const vs = Array.from(document.querySelectorAll('video, iframe[allowfullscreen]')); "
+            . "const t = vs.length > 0 ? vs[0] : null; "
+            . "if(t && typeof t.requestFullscreen === 'function') { t.requestFullscreen().catch(() => document.documentElement.requestFullscreen()); } "
+            . "else { document.documentElement.requestFullscreen(); } } })();"
+
+        try {
+            PlayerWV.wv.ExecuteScriptAsync(js)
+        } catch {
+            ; Failed to execute script
+        }
+    }
+}
+Escape::
+{
+    global PlayerWV
+    if (IsSet(PlayerWV) && PlayerWV != "") {
+        js := "(function() { "
+            . "if(document.fullscreenElement) { document.exitFullscreen(); } "
+            . "})();"
+
+        try {
+            PlayerWV.wv.ExecuteScriptAsync(js)
+        } catch {
+            ; Failed to execute script
+        }
+    }
+}
+#HotIf

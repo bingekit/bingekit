@@ -22,12 +22,9 @@ export const PlayerView = () => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
-    discoveryItems, setDiscoveryItems
+    discoveryItems, setDiscoveryItems,
+    isFocusedMode, setIsFocusedMode, authStatus, playerStatus
   } = useAppContext();
-
-  const [authStatus, setAuthStatus] = React.useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
-  const [playerStatus, setPlayerStatus] = React.useState<'notFound' | 'found'>('notFound');
-  const [isFocusedMode, setIsFocusedMode] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     // Discovery Engine Background Task
@@ -46,7 +43,12 @@ export const PlayerView = () => {
            if (href && !href.startsWith('http')) {
              try { href = new URL(href, '${plugin.baseUrl}').href; } catch {}
            }
-           return { title, href };
+           let imgEl = ${plugin.details.similarImageSel ? `item.querySelector('${plugin.details.similarImageSel.replace(/'/g, "\\\\'")}')` : 'item.querySelector("img")'};
+           let img = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+           if (img && !img.startsWith('http') && !img.startsWith('data:')) {
+             try { img = new URL(img, '${plugin.baseUrl}').href; } catch {}
+           }
+           return { title, href, img };
         }).filter(i => i.title && i.href);
       `;
       try {
@@ -63,7 +65,8 @@ export const PlayerView = () => {
                   url: item.href,
                   siteId: plugin.id,
                   addedAt: Date.now(),
-                  dismissed: false
+                  dismissed: false,
+                  imgUrl: item.img
                 });
                 changed = true;
               }
@@ -79,25 +82,6 @@ export const PlayerView = () => {
     return () => clearTimeout(timer);
   }, [url, activeTab, plugins]);
 
-  React.useEffect(() => {
-    const handleStatusUpdate = (e: any) => {
-      if (e.detail) {
-        if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
-        if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
-      }
-    };
-    const handlePlayState = (e: any) => {
-      if (e.detail && e.detail.isPlaying !== undefined) {
-        setIsFocusedMode(e.detail.isPlaying);
-      }
-    };
-    window.addEventListener('player-status-update', handleStatusUpdate);
-    window.addEventListener('player-play-state', handlePlayState);
-    return () => {
-      window.removeEventListener('player-status-update', handleStatusUpdate);
-      window.removeEventListener('player-play-state', handlePlayState);
-    };
-  }, []);
 
   React.useEffect(() => {
     if (activeTab !== 'player' || playerStatus !== 'found') return;
