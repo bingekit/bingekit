@@ -140,7 +140,7 @@ export const FlowsView = () => {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Flows List */}
-      <div className="w-1/3 min-w-[300px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar">
+      <div className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
@@ -185,7 +185,7 @@ export const FlowsView = () => {
                   {flow.icon ? (
                     <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {flow.icon.includes("<svg") ||
-                      flow.icon.includes("http") ? (
+                        flow.icon.includes("http") ? (
                         <div
                           className="w-3 h-3"
                           dangerouslySetInnerHTML={{

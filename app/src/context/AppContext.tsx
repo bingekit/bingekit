@@ -400,7 +400,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         (function() {
           window._svPluginStyles = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss })).filter(p => p.css))};
 
+          function getInjectTarget() {
+            return document.head || document.documentElement || document.body;
+          }
+
           function ensureStyles() {
+            var target = getInjectTarget();
+            if (!target) return;
+            
             var currentUrl = window.location.href;
             var currentHost = window.location.hostname;
             if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
@@ -417,12 +424,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                   matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
                 }
                 
-                if (matchP) {
-                  if (p.css && !document.getElementById('sv-plugin-style-' + pHost)) {
+                if (matchP && p.css) {
+                  var styleId = 'sv-plugin-style-' + pHost;
+                  var existingStyle = document.getElementById(styleId);
+                  if (!existingStyle) {
                     var style = document.createElement('style');
-                    style.id = 'sv-plugin-style-' + pHost;
+                    style.id = styleId;
                     style.innerHTML = p.css;
-                    (document.head || document.documentElement).appendChild(style);
+                    target.appendChild(style);
+                  } else if (existingStyle.innerHTML !== p.css) {
+                    existingStyle.innerHTML = p.css;
                   }
                 }
               } catch(e) {}
@@ -433,7 +444,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             if (!tStyle) {
               tStyle = document.createElement('style');
               tStyle.id = 'sv-theme-injection';
-              (document.head || document.documentElement).appendChild(tStyle);
+              target.appendChild(tStyle);
             }
             if (tStyle.innerHTML !== \`:root { \${themeVars} }\`) {
               tStyle.innerHTML = \`:root { \${themeVars} }\`;
@@ -477,14 +488,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           window._svApplyPayload = applyStreamViewPayload;
           window._svEnsureStyles = ensureStyles;
 
-          // Apply immediately
-          window._svApplyPayload();
+          // Delay execution until target DOM node is available, preventing bootstrap errors
+          function tryInit() {
+            if (!getInjectTarget()) {
+              setTimeout(tryInit, 50);
+              return;
+            }
+            window._svApplyPayload();
+          }
+          tryInit();
 
           // Continuous style enforcement
           if (!window._svStyleEnforcer) {
             window._svStyleEnforcer = setInterval(() => {
               if (window._svEnsureStyles) window._svEnsureStyles();
-            }, 1000);
+            }, 2000);
           }
 
           // Apply on AJAX navigations safely if not already hooked

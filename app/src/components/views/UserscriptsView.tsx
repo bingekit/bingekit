@@ -26,12 +26,12 @@ export const UserscriptsView = () => {
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   } = useAppContext();
 
-  const [activeSubTab, setActiveSubTab] = React.useState<'code'|'metadata'>('code');
+  const [activeSubTab, setActiveSubTab] = React.useState<'code' | 'metadata'>('code');
 
   return (
 
     <div className="flex w-full h-full bg-zinc-950 overflow-hidden">
-      <div className="w-1/3 min-w-[300px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar">
+      <div className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
@@ -68,20 +68,20 @@ export const UserscriptsView = () => {
             >
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
-                   {s.icon ? (
-                     <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
-                        {s.icon.includes('<svg') || s.icon.includes('http') ? (
-                           <div className="w-3 h-3" dangerouslySetInnerHTML={{__html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />`}} />
-                        ) : (
-                           <span className="text-[10px]">{s.icon}</span>
-                        )}
-                     </div>
-                   ) : (
-                     <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
-                        <Code size={12} />
-                     </div>
-                   )}
-                   <div className="font-medium text-sm text-zinc-200 truncate">{s.name}</div>
+                  {s.icon ? (
+                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                      {s.icon.includes('<svg') || s.icon.includes('http') ? (
+                        <div className="w-3 h-3" dangerouslySetInnerHTML={{ __html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />` }} />
+                      ) : (
+                        <span className="text-[10px]">{s.icon}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                      <Code size={12} />
+                    </div>
+                  )}
+                  <div className="font-medium text-sm text-zinc-200 truncate">{s.name}</div>
                 </div>
                 <div className="flex gap-2 items-center">
                   <CustomCheckbox
@@ -141,7 +141,7 @@ export const UserscriptsView = () => {
                 </button>
               </div>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto w-full relative group flex flex-col">
               {activeSubTab === 'metadata' ? (
                 <div className="p-8 max-w-3xl space-y-8 h-full">
@@ -150,15 +150,15 @@ export const UserscriptsView = () => {
                     <TagsInput
                       tags={userscripts.find(u => u.id === editingUserscriptId)?.domains || []}
                       onChange={(domains) => {
-                         const s = userscripts.find(u => u.id === editingUserscriptId)!;
-                         const updated = { ...s, domains };
-                         setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
-                         ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                        const s = userscripts.find(u => u.id === editingUserscriptId)!;
+                        const updated = { ...s, domains };
+                        setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
+                        ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
                       }}
                     />
                     <p className="text-xs text-zinc-600 mt-1">Use <code>*</code> for all domains or exact hostnames like <code>example.com</code></p>
                   </div>
-                  
+
                   <MetadataEditor
                     metadata={userscripts.find(u => u.id === editingUserscriptId)!}
                     onChange={(key, val) => {
