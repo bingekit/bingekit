@@ -12,19 +12,22 @@ interface AppContextType {
   urlBarMode: 'full' | 'title' | 'hidden'; setUrlBarMode: React.Dispatch<React.SetStateAction<'full' | 'title' | 'hidden'>>;
   theme: any; setTheme: React.Dispatch<React.SetStateAction<any>>;
   bookmarks: BookmarkItem[]; setBookmarks: React.Dispatch<React.SetStateAction<BookmarkItem[]>>;
+  history: HistoryItem[]; setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
+  isHistoryEnabled: boolean; setIsHistoryEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  discoveryItems: DiscoveryItem[]; setDiscoveryItems: React.Dispatch<React.SetStateAction<DiscoveryItem[]>>;
   selectedBookmarks: string[]; setSelectedBookmarks: React.Dispatch<React.SetStateAction<string[]>>;
   followedItems: FollowedItem[]; setFollowedItems: React.Dispatch<React.SetStateAction<FollowedItem[]>>;
   isCheckingUpdates: boolean; setIsCheckingUpdates: React.Dispatch<React.SetStateAction<boolean>>;
   plugins: SitePlugin[]; setPlugins: React.Dispatch<React.SetStateAction<SitePlugin[]>>;
   editingPlugin: SitePlugin | null; setEditingPlugin: React.Dispatch<React.SetStateAction<SitePlugin | null>>;
-  testSearchUrl: string; setTestSearchUrl: React.Dispatch<React.SetStateAction<string>>;
+  testSearchQuery: string; setTestSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   testSearchResults: any; setTestSearchResults: React.Dispatch<React.SetStateAction<any>>;
   isTestingSearch: boolean; setIsTestingSearch: React.Dispatch<React.SetStateAction<boolean>>;
   flows: CustomFlow[]; setFlows: React.Dispatch<React.SetStateAction<CustomFlow[]>>;
   editingFlow: CustomFlow | null; setEditingFlow: React.Dispatch<React.SetStateAction<CustomFlow | null>>;
   userscripts: Userscript[]; setUserscripts: React.Dispatch<React.SetStateAction<Userscript[]>>;
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts';
+  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
@@ -74,12 +77,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     textSec: '#a1a1aa'
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
+  const [discoveryItems, setDiscoveryItems] = useState<DiscoveryItem[]>([]);
+  const isHistoryEnabledRef = useRef(true);
+  useEffect(() => { isHistoryEnabledRef.current = isHistoryEnabled; }, [isHistoryEnabled]);
+
   const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
   const [followedItems, setFollowedItems] = useState<FollowedItem[]>([]);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
-  const [testSearchUrl, setTestSearchUrl] = useState('');
+  const [testSearchQuery, setTestSearchQuery] = useState('matrix');
   const [testSearchResults, setTestSearchResults] = useState<{ status: string, nodesCount: number, results: any[] }>({ status: 'idle', nodesCount: 0, results: [] });
   const [isTestingSearch, setIsTestingSearch] = useState(false);
   const [flows, setFlows] = useState<CustomFlow[]>([]);
@@ -278,6 +287,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
+  useEffect(() => { ahk.call('SaveData', 'history.json', JSON.stringify(history)); }, [history]);
+  useEffect(() => { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); }, [discoveryItems]);
+  useEffect(() => { ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); }, [isHistoryEnabled]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
@@ -410,8 +422,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch { return targetUrl; }
   };
 
-  const runFlow = async (flow: CustomFlow, initialUrl: string = url) => {
-    console.log('Running flow:', flow.name, 'on url:', initialUrl);
+  const runFlow = async (flow: CustomFlow, initialUrl: string = url, customVars: Record<string, string> = {}) => {
+    console.log('Running flow:', flow.name, 'with inputs:', customVars);
     let currentVar = initialUrl;
 
     const resolveVars = async (str: string) => {
@@ -419,12 +431,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
         .replace(/\{\{PREV\}\}/g, currentVar)
         .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
+      
+      Object.entries(customVars).forEach(([key, val]) => {
+        res = res.replace(new RegExp(`\\{${key}\\}`, 'g'), val);
+      });
 
       const promptRegex = /\{\{prompt:([^}]+)\}\}/g;
       let match;
       while ((match = promptRegex.exec(res)) !== null) {
         const promptTitle = match[1];
-        const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
+        const userInput = window.prompt(`Flow Input Required:\n${promptTitle}`, "");
         res = res.replace(match[0], userInput || "");
       }
       return res;
@@ -475,15 +491,35 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             if (input) input.focus();
           }, 100);
         }
+      } else if (step.type === 'smartFetch') {
+        const targetUrl = await resolveVars(step.params.url || '');
+        const targetPluginId = await resolveVars(step.params.pluginId || '');
+        const targetPlugin = plugins.find(p => p.id === targetPluginId);
+        
+        if (targetPlugin && targetUrl && window.SmartFetch) {
+           const jsQuery = `
+              const items = Array.from(document.querySelectorAll('${targetPlugin.search.itemSel.replace(/'/g, "\\'") || 'body'}'));
+              return items.slice(0, 10).map(item => {
+                 let el = item.querySelector('${targetPlugin.search.titleSel.replace(/'/g, "\\'")}');
+                 const title = el ? el.textContent.trim() : '';
+                 el = item.querySelector('${targetPlugin.search.linkSel.replace(/'/g, "\\'")}');
+                 const href = el ? el.getAttribute('href') : '';
+                 return { title, href };
+              });
+           `;
+           const res = await window.SmartFetch(targetUrl, jsQuery);
+           if (res) currentVar = res;
+        }
       }
     }
+    return currentVar;
   };
 
   const value = {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, history, setHistory, isHistoryEnabled, setIsHistoryEnabled, discoveryItems, setDiscoveryItems,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
-    editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
+    editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,

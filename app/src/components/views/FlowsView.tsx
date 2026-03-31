@@ -5,6 +5,7 @@ import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
 import { TagsInput } from '../ui/TagsInput';
+import { CustomSelect } from '../ui/CustomSelect';
 import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
@@ -38,7 +39,7 @@ export const FlowsView = () => {
           </div>
           <button
             onClick={() => {
-              const newFlow = { id: Date.now().toString(), name: 'New Flow', description: '', steps: [] };
+              const newFlow = { id: Date.now().toString(), name: 'New Flow', description: '', steps: [], enabled: true };
               const newFlows = [...flows, newFlow];
               setFlows(newFlows);
               ahk.call('SaveFlow', `flow_${newFlow.id}.json`, JSON.stringify(newFlow, null, 2));
@@ -58,18 +59,28 @@ export const FlowsView = () => {
             >
               <div className="flex items-center justify-between mb-1">
                 <h3 className={`font-medium ${editingFlow?.id === flow.id ? 'text-indigo-400' : 'text-zinc-200'}`}>{flow.name}</h3>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const newFlows = flows.filter(f => f.id !== flow.id);
-                    setFlows(newFlows);
-                    ahk.call('DeleteFlow', `flow_${flow.id}.json`);
-                    if (editingFlow?.id === flow.id) setEditingFlow(null);
-                  }}
-                  className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <CustomCheckbox
+                    checked={flow.enabled !== false}
+                    onChange={(val) => {
+                      const updated = { ...flow, enabled: val };
+                      setFlows(flows.map(f => f.id === flow.id ? updated : f));
+                      ahk.call('SaveFlow', `flow_${flow.id}.json`, JSON.stringify(updated, null, 2));
+                    }}
+                  />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const newFlows = flows.filter(f => f.id !== flow.id);
+                      setFlows(newFlows);
+                      ahk.call('DeleteFlow', `flow_${flow.id}.json`);
+                      if (editingFlow?.id === flow.id) setEditingFlow(null);
+                    }}
+                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-zinc-500 truncate">{flow.description || 'No description'}</p>
               <div className="mt-3 flex items-center gap-2">
@@ -134,6 +145,14 @@ export const FlowsView = () => {
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Flow Variables / Inputs (Press Enter to add)</label>
+                  <TagsInput
+                    tags={editingFlow.variables || []}
+                    onChange={(newTags) => setEditingFlow({ ...editingFlow, variables: newTags })}
+                  />
+                  <p className="text-[10px] text-zinc-600 mt-1">These variables will be injected when called by Plugins or other Flows (e.g. {'{query}'} or {'{url}'}).</p>
+                </div>
               </div>
             </div>
 
@@ -162,23 +181,31 @@ export const FlowsView = () => {
                         <div className="w-6 h-6 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-mono text-zinc-400">
                           {idx + 1}
                         </div>
-                        <select
-                          value={step.type}
-                          onChange={(e) => {
-                            const newSteps = [...editingFlow.steps];
-                            newSteps[idx].type = e.target.value as any;
-                            newSteps[idx].params = {}; // Reset params on type change
-                            setEditingFlow({ ...editingFlow, steps: newSteps });
-                          }}
-                          className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-1.5 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                        >
-                          <option value="RawFetchHTML">Fetch HTML</option>
-                          <option value="parseHtml">Parse HTML</option>
-                          <option value="pluginAction">Run Plugin Action</option>
-                          <option value="navigate">Navigate Browser</option>
-                          <option value="extract">Extract Data</option>
-                          <option value="inject">Inject JS/CSS</option>
-                        </select>
+                        <div className="w-[200px]">
+                          <CustomSelect
+                            options={[
+                              { value: 'RawFetchHTML', label: 'Fetch HTML' },
+                              { value: 'parseHtml', label: 'Parse HTML' },
+                              { value: 'pluginAction', label: 'Run Plugin Action' },
+                              { value: 'navigate', label: 'Navigate Browser' },
+                              { value: 'extract', label: 'Extract Data' },
+                              { value: 'inject', label: 'Inject JS/CSS' },
+                              { value: 'smartFetch', label: 'Smart Fetch (Site)' },
+                              { value: 'smartSearch', label: 'Smart Search (Aggregated)' },
+                              { value: 'wait', label: 'Wait (Delay)' },
+                              { value: 'waitForElement', label: 'Wait for Element' },
+                              { value: 'interact', label: 'Interact (Click/Type)' },
+                              { value: 'customSmartFetch', label: 'Custom SmartFetch' }
+                            ]}
+                            value={step.type}
+                            onChange={(val) => {
+                              const newSteps = [...editingFlow.steps];
+                              newSteps[idx].type = val as any;
+                              newSteps[idx].params = {}; // Reset params on type change
+                              setEditingFlow({ ...editingFlow, steps: newSteps });
+                            }}
+                          />
+                        </div>
                       </div>
                       <button
                         onClick={() => {
@@ -225,18 +252,16 @@ export const FlowsView = () => {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs text-zinc-500 mb-1.5">Plugin ID</label>
-                            <select
+                            <CustomSelect
+                              options={plugins.map(p => ({ label: p.name, value: p.id }))}
                               value={step.params.pluginId || ''}
-                              onChange={(e) => {
+                              onChange={(val) => {
                                 const newSteps = [...editingFlow.steps];
-                                newSteps[idx].params.pluginId = e.target.value;
+                                newSteps[idx].params.pluginId = val;
                                 setEditingFlow({ ...editingFlow, steps: newSteps });
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
-                            >
-                              <option value="">Select Plugin...</option>
-                              {plugins.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
+                              placeholder="Select Plugin..."
+                            />
                           </div>
                           <div>
                             <label className="block text-xs text-zinc-500 mb-1.5">Action Name</label>
@@ -296,6 +321,157 @@ export const FlowsView = () => {
                           />
                         </div>
                       )}
+                      
+                      {/* Smart Steps */}
+                      {step.type === 'smartFetch' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Target Plugin / Configuration</label>
+                            <CustomSelect
+                              options={plugins.map(p => ({ label: p.name, value: p.id }))}
+                              value={step.params.pluginId || ''}
+                              onChange={(val) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.pluginId = val;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              placeholder="Which site rules to apply..."
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">URL Target (Can use variables)</label>
+                            <input
+                              type="text" value={step.params.url || ''} placeholder="https://..."
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.url = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {step.type === 'smartSearch' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Multi-Search Engine Query (e.g. {'{query}'})</label>
+                            <input
+                              type="text" value={step.params.query || ''} placeholder="{query}"
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.query = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {step.type === 'wait' && (
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Wait Time (ms)</label>
+                          <input
+                            type="text" value={step.params.ms || ''} placeholder="1500"
+                            onChange={(e) => {
+                              const newSteps = [...editingFlow.steps];
+                              newSteps[idx].params.ms = e.target.value;
+                              setEditingFlow({ ...editingFlow, steps: newSteps });
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                          />
+                        </div>
+                      )}
+                      
+                      {step.type === 'waitForElement' && (
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">CSS Selector to Wait For</label>
+                          <input
+                            type="text" value={step.params.selector || ''} placeholder=".movie-player"
+                            onChange={(e) => {
+                              const newSteps = [...editingFlow.steps];
+                              newSteps[idx].params.selector = e.target.value;
+                              setEditingFlow({ ...editingFlow, steps: newSteps });
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                          />
+                        </div>
+                      )}
+
+                      {step.type === 'interact' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">CSS Selector</label>
+                            <input
+                              type="text" value={step.params.selector || ''} placeholder=".play-btn"
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.selector = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Action</label>
+                            <CustomSelect
+                              options={[{ value: 'click', label: 'Click' }, { value: 'setValue', label: 'Set Text/Value' }]}
+                              value={step.params.actionType || 'click'}
+                              onChange={(val) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.actionType = val;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                            />
+                          </div>
+                          {step.params.actionType === 'setValue' && (
+                            <div className="col-span-2">
+                              <label className="block text-xs text-zinc-500 mb-1.5">Value</label>
+                              <input
+                                type="text" value={step.params.value || ''} placeholder="Text to type..."
+                                onChange={(e) => {
+                                  const newSteps = [...editingFlow.steps];
+                                  newSteps[idx].params.value = e.target.value;
+                                  setEditingFlow({ ...editingFlow, steps: newSteps });
+                                }}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {step.type === 'customSmartFetch' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Target URL (Can use variables)</label>
+                            <input
+                              type="text" value={step.params.url || ''} placeholder="https://..."
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.url = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Evaluation Script (Returns Data)</label>
+                            <textarea
+                              value={step.params.code || ''} placeholder="return Array.from(document.querySelectorAll('a')).map(a => a.href);"
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.code = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              rows={5}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:border-indigo-500 outline-none font-mono resize-y"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 ))}

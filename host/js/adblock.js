@@ -43,6 +43,7 @@
             .video-ads,
             .pop-under,
             #popad,
+            body~*,
             .overlay-ad {
                 display: none!important;
                 width: 0!important;

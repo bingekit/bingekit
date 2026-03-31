@@ -21,8 +21,59 @@ export const PlayerView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    discoveryItems, setDiscoveryItems
   } = useAppContext();
+
+  React.useEffect(() => {
+    // Discovery Engine Background Task
+    const timer = setTimeout(async () => {
+      if (activeTab !== 'player') return;
+      const plugin = plugins.find(p => url.includes(p.baseUrl));
+      if (!plugin || !plugin.details?.similarSel || !window.SmartFetch) return;
+      
+      const jsQuery = `
+        const items = Array.from(document.querySelectorAll('${plugin.details.similarSel.replace(/'/g, "\\\\'")}'));
+        return items.slice(0, 5).map(item => {
+           let titleEl = item.querySelector('${(plugin.details.similarTitleSel || 'a').replace(/'/g, "\\\\'")}') || item;
+           const title = titleEl ? (titleEl.getAttribute('title') || titleEl.textContent || '').trim() : '';
+           let linkEl = item.querySelector('${(plugin.details.similarLinkSel || 'a').replace(/'/g, "\\\\'")}') || (item.tagName === 'A' ? item : item.querySelector('a'));
+           let href = linkEl ? linkEl.getAttribute('href') : '';
+           if (href && !href.startsWith('http')) {
+             try { href = new URL(href, '${plugin.baseUrl}').href; } catch {}
+           }
+           return { title, href };
+        }).filter(i => i.title && i.href);
+      `;
+      try {
+        const res = await window.SmartFetch(url, jsQuery);
+        if (Array.isArray(res) && res.length > 0) {
+           setDiscoveryItems((prev: any) => {
+             const newItems = [...prev];
+             let changed = false;
+             for (const item of res) {
+                if (!newItems.some(i => i.url === item.href)) {
+                   newItems.unshift({
+                      id: Date.now().toString() + Math.random().toString(),
+                      title: item.title,
+                      url: item.href,
+                      siteId: plugin.id,
+                      addedAt: Date.now(),
+                      dismissed: false
+                   });
+                   changed = true;
+                }
+             }
+             if (changed) return newItems.slice(0, 500);
+             return prev;
+           });
+        }
+      } catch (e) {
+         console.error('Discovery Engine failed', e);
+      }
+    }, 6000); // Wait 6 seconds for page to be usable
+    return () => clearTimeout(timer);
+  }, [url, activeTab, plugins]);
 
   return (
     
@@ -42,21 +93,83 @@ export const PlayerView = () => {
                     <div className="w-px h-4 bg-zinc-800" />
                     <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                       <span className="text-xs text-zinc-600 font-medium whitespace-nowrap">Run Flow:</span>
-                      {flows.map(flow => (
-                        <button
-                          key={flow.id}
-                          onClick={async () => {
-                            await runFlow(flow);
-                            setActiveTab('player');
-                          }}
-                          className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 py-1 rounded whitespace-nowrap"
-                        >
-                          <Zap size={12} /> {flow.name}
-                        </button>
-                      ))}
-                      {flows.length === 0 && (
-                        <span className="text-xs text-zinc-600 italic whitespace-nowrap">No flows</span>
-                      )}
+                      {(() => {
+                        const currentPlugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+                        const detailsFlowId = currentPlugin?.details?.delegateFlowId;
+                        const dFlow = flows.find(f => f.id === detailsFlowId);
+                        
+                        return (
+                          <>
+                            {dFlow && (
+                              <button
+                                onClick={async () => {
+                                  if (!currentPlugin || !dFlow) return;
+                                  const inputs = currentPlugin.details.delegateFlowInputs || {};
+                                  const resolvedVars: Record<string, string> = { url };
+                                  
+                                  const selectorsToFetch = [];
+                                  for (const [key, val] of Object.entries(inputs)) {
+                                    if (typeof val === 'string' && val.startsWith('js:')) {
+                                      selectorsToFetch.push({ key, type: 'eval', script: val.substring(3) }); 
+                                    } else if (typeof val === 'string' && val.startsWith('selector:')) {
+                                      const sel = val.substring(9);
+                                      const isAttr = sel.includes('@');
+                                      selectorsToFetch.push({
+                                         key: key as string,
+                                         selector: (isAttr ? sel.split('@')[0] : sel) as string,
+                                         type: (isAttr ? 'attr' : 'text') as string,
+                                         attr: (isAttr ? sel.split('@')[1] : null) as string | null
+                                      });
+                                    } else {
+                                      resolvedVars[key] = val as string;
+                                    }
+                                  }
+                                  
+                                  if (selectorsToFetch.length > 0) {
+                                      // Run SmartFetch to evaluate selectors & js against the player's URL
+                                      // Note: Currently SmartFetch natively supports 'text' and 'attr', but we can inject eval scripts into the payload config
+                                      const payload = selectorsToFetch.map(item => {
+                                         if (item.type === 'eval') {
+                                             // Workaround to execute arbitrary JS in the SmartFetch `extractTitle`/extract... bindings 
+                                             // by passing an arrow function string since SmartFetch string-evals functions in its crawler!
+                                             return { key: item.key, selector: `()=>${item.script}`, type: 'text' };
+                                         }
+                                         return item;
+                                      });
+                                      
+                                      const scraped = await window.SmartFetch(url, JSON.stringify(payload));
+                                      if (scraped && scraped.items && scraped.items.length > 0) {
+                                          Object.assign(resolvedVars, scraped.items[0]);
+                                      }
+                                  }
+                                  
+                                  await runFlow(dFlow, url, resolvedVars);
+                                  setActiveTab('player');
+                                }}
+                                className="text-xs font-medium text-indigo-400 hover:bg-indigo-500/10 border border-indigo-500/20 flex items-center gap-1 transition-colors bg-zinc-900 px-2 flex-shrink-0 py-1 rounded whitespace-nowrap"
+                              >
+                                <ListTree size={12} /> Fetch Details
+                              </button>
+                            )}
+                            
+                            {flows.filter(f => f.id !== detailsFlowId).map(flow => (
+                              <button
+                                key={flow.id}
+                                onClick={async () => {
+                                  await runFlow(flow);
+                                  setActiveTab('player');
+                                }}
+                                className="text-xs font-medium text-zinc-400 hover:text-emerald-400 flex items-center gap-1 transition-colors bg-zinc-900 px-2 flex-shrink-0 py-1 rounded whitespace-nowrap"
+                              >
+                                <Zap size={12} /> {flow.name}
+                              </button>
+                            ))}
+                            {flows.length === 0 && !dFlow && (
+                              <span className="text-xs text-zinc-600 italic whitespace-nowrap">No flows</span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div className="flex-1" />
                     <button

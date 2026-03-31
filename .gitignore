@@ -16,3 +16,6 @@ extract.js
 fix_*.js
 *.tsbuildinfo
 error*
+*.py
+*tmp*
+*- Copy*

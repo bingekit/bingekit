@@ -1,9 +1,11 @@
 import React from 'react';
-import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
+import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe, Copy } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
+import { CustomSelect } from '../ui/CustomSelect';
+import { SearchConfigEditor } from './SearchConfigEditor';
 import { TagsInput } from '../ui/TagsInput';
 import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
@@ -15,7 +17,7 @@ export const PluginsView = () => {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
-    editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
+    editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
@@ -48,17 +50,37 @@ export const PluginsView = () => {
           {plugins.map(plugin => (
             <div
               key={plugin.id}
-              onClick={() => setEditingPlugin(plugin)}
+              onClick={() => {
+                const safePlugin = {
+                  ...DEFAULT_PLUGIN,
+                  ...plugin,
+                  search: { ...DEFAULT_PLUGIN.search, ...(plugin.search || {}) },
+                  additionalSearches: plugin.additionalSearches || [],
+                  enabled: plugin.enabled !== false
+                };
+                setEditingPlugin(safePlugin);
+              }}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${editingPlugin?.id === plugin.id ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700'}`}
             >
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-zinc-200">{plugin.name}</h3>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deletePlugin(plugin); }}
-                  className="text-zinc-600 hover:text-red-400 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <CustomCheckbox
+                    checked={plugin.enabled !== false}
+                    onChange={(val) => {
+                      const updated = { ...plugin, enabled: val };
+                      setPlugins(plugins.map(p => p.id === plugin.id ? updated : p));
+                      const filename = `${updated.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${updated.id}.json`;
+                      ahk.call('SaveSite', filename, JSON.stringify(updated, null, 2));
+                    }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); deletePlugin(plugin); }}
+                    className="text-zinc-600 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-zinc-500 mt-1 truncate">{plugin.baseUrl}</p>
             </div>
@@ -191,160 +213,213 @@ export const PluginsView = () => {
 
             {/* Search Parsing */}
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
-              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
-                  <input
-                    type="text" value={editingPlugin.search.urlFormat} placeholder="https://site.com/search?q={query}"
-                    onChange={(e) => updateEditingPlugin('search', 'urlFormat', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">List Item Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.itemSel} placeholder=".result-item"
-                      onChange={(e) => updateEditingPlugin('search', 'itemSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.titleSel} placeholder=".title > a"
-                      onChange={(e) => updateEditingPlugin('search', 'titleSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Link Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.linkSel} placeholder="a.play-btn"
-                      onChange={(e) => updateEditingPlugin('search', 'linkSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Thumbnail Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.imgSel} placeholder="img.poster"
-                      onChange={(e) => updateEditingPlugin('search', 'imgSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Year Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.yearSel} placeholder=".year"
-                      onChange={(e) => updateEditingPlugin('search', 'yearSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1.5">Type Selector</label>
-                    <input
-                      type="text" value={editingPlugin.search.typeSel} placeholder=".type"
-                      onChange={(e) => updateEditingPlugin('search', 'typeSel', e.target.value)}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
-                    />
-                  </div>
-                </div>
-                <div className="mt-6 pt-6 border-t border-zinc-800/50">
-                  <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center justify-between">
-                    SmartFetch Selector Tester
-                    {isTestingSearch && <RefreshCw size={14} className="text-indigo-400 animate-spin" />}
-                  </h4>
-                  <div className="flex gap-2 mb-3">
-                    <input
-                      type="text"
-                      value={testSearchUrl}
-                      onChange={(e) => setTestSearchUrl(e.target.value)}
-                      placeholder="Paste a full search URL to test (e.g. https://imdb.com/find?q=matrix)"
-                      className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none focus:border-indigo-500"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!testSearchUrl) return;
-                        setIsTestingSearch(true);
-                        try {
-                          const jsQuery = `
-                                      function extractValue(el, selector, defaultAttr) {
-                                        if (!el) return '';
-                                        if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
-                                        if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
-                                        if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
-                                        let targetSel = selector;
-                                        let attr = defaultAttr;
-                                        if (selector.includes('@')) {
-                                          const parts = selector.split('@');
-                                          targetSel = parts[0];
-                                          attr = parts[1];
-                                        }
-                                        const targetEl = targetSel ? (el.querySelector(targetSel) || el) : el;
-                                        if (attr) { return targetEl.getAttribute(attr) || ''; }
-                                        let text = targetEl.textContent ? targetEl.textContent.trim() : '';
-                                        if (!text && targetEl.hasAttribute('alt')) text = targetEl.getAttribute('alt') || '';
-                                        if (!text && targetEl.hasAttribute('title')) text = targetEl.getAttribute('title') || '';
-                                        return text;
-                                      }
-                                      const itemSelector = '${editingPlugin.search.itemSel ? editingPlugin.search.itemSel.replace(/'/g, "\\'") : 'body'}';
-                                      const items = Array.from(document.querySelectorAll(itemSelector));
-                                      const results = items.slice(0, 5).map(item => ({
-                                        title: extractValue(item, '${editingPlugin.search.titleSel ? editingPlugin.search.titleSel.replace(/'/g, "\\'") : ''}', null),
-                                        href: extractValue(item, '${editingPlugin.search.linkSel ? editingPlugin.search.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
-                                        htmlPreview: item.outerHTML.substring(0, 150) + '...'
-                                      }));
-                                      return { count: items.length, items: results };
-                                    `;
-                          const fetchResults: any = await window.SmartFetch(testSearchUrl, jsQuery);
-                          if (fetchResults) {
-                            setTestSearchResults({
-                              status: 'success',
-                              nodesCount: fetchResults.count,
-                              results: fetchResults.items
-                            });
-                          } else {
-                            setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Fetch returned null/empty' }] });
-                          }
-                        } catch (e: any) {
-                          setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: e.message || 'Unknown error' }] });
-                        }
-                        setIsTestingSearch(false);
-                      }}
-                      className="px-4 py-2 bg-indigo-500/20 text-indigo-400 font-medium text-sm rounded-lg hover:bg-indigo-500/30 transition-colors whitespace-nowrap"
-                    >
-                      Test Fetch
-                    </button>
-                  </div>
+              <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Search Parsing</h3>
+              <SearchConfigEditor
+                config={editingPlugin.search}
+                onChange={(key, val) => updateEditingPlugin('root', 'search', { ...editingPlugin.search, [key]: val })}
+                flows={flows}
+                testSearchQuery={testSearchQuery}
+                setTestSearchQuery={setTestSearchQuery}
+              />
+            </div>
 
-                  {testSearchResults.status !== 'idle' && (
-                    <div className="bg-zinc-950 rounded-lg border border-zinc-800/80 p-3 overflow-y-auto max-h-64 no-scrollbar">
-                      <div className="text-xs font-mono text-zinc-400 mb-2 border-b border-zinc-800/50 pb-2 flex justify-between">
-                        <span>Nodes Scraped By itemSel (<span className="text-white">{editingPlugin.search.itemSel || 'body'}</span>): <span className={testSearchResults.nodesCount > 0 ? "text-emerald-400" : "text-amber-400"}>{testSearchResults.nodesCount}</span></span>
+            {/* Additional Searches */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-emerald-400 flex items-center gap-2 uppercase tracking-wider"><Search size={16} /> Additional Search Methods</h3>
+                <button
+                  onClick={() => {
+                    const newId = Date.now().toString();
+                    const newSearch = { 
+                      id: newId, name: 'New Search', tags: [], urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '' 
+                    };
+                    updateEditingPlugin('root', 'additionalSearches', [...(editingPlugin.additionalSearches || []), newSearch]);
+                  }}
+                  className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded hover:bg-emerald-500/30 flex items-center gap-1"
+                >
+                  <Plus size={14} /> Add Search Method
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                {(editingPlugin.additionalSearches || []).map((searchMethod, idx) => (
+                  <div key={searchMethod.id} className="p-5 bg-zinc-900/30 border border-zinc-800/50 hover:border-theme-accent/30 transition-colors rounded-xl space-y-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1 grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Method Name / Label</label>
+                          <input
+                            type="text" value={searchMethod.name} placeholder="e.g. Movies Search"
+                            onChange={(e) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].name = e.target.value;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-theme-accent outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Tags (Dashboard Filter)</label>
+                          <TagsInput
+                            tags={searchMethod.tags || []}
+                            onChange={(newTags) => {
+                              const arr = [...editingPlugin.additionalSearches!];
+                              arr[idx].tags = newTags;
+                              updateEditingPlugin('root', 'additionalSearches', arr);
+                            }}
+                          />
+                        </div>
                       </div>
-                      <pre className="text-[10px] text-zinc-300 font-mono whitespace-pre-wrap break-all">
-                        {JSON.stringify(testSearchResults.results, null, 2)}
-                      </pre>
+                      <div className="flex flex-col ml-4 gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            const newId = Date.now().toString();
+                            const arr = [...editingPlugin.additionalSearches!];
+                            const cloned = JSON.parse(JSON.stringify(searchMethod));
+                            cloned.id = newId;
+                            cloned.name = `${cloned.name} (Copy)`;
+                            arr.splice(idx + 1, 0, cloned);
+                            updateEditingPlugin('root', 'additionalSearches', arr);
+                          }}
+                          className="p-2 text-zinc-500 hover:text-theme-accent hover:bg-theme-accent/10 rounded-lg transition-colors"
+                        >
+                          <Copy size={16} />
+                        </button>
+                        <button
+                          onClick={() => {
+                            const arr = editingPlugin.additionalSearches!.filter((_, i) => i !== idx);
+                            updateEditingPlugin('root', 'additionalSearches', arr);
+                          }}
+                          className="p-2 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
+                    
+                    <div className="pt-4 border-t border-zinc-800/50">
+                      <SearchConfigEditor
+                        config={searchMethod}
+                        onChange={(key, val) => {
+                          const arr = [...editingPlugin.additionalSearches!];
+                          arr[idx] = { ...arr[idx], [key]: val };
+                          updateEditingPlugin('root', 'additionalSearches', arr);
+                        }}
+                        flows={flows}
+                        testSearchQuery={testSearchQuery}
+                        setTestSearchQuery={setTestSearchQuery}
+                      />
+                    </div>
+                  </div>
+                ))}
+                
+                {(!editingPlugin.additionalSearches || editingPlugin.additionalSearches.length === 0) && (
+                  <div className="text-center p-8 border border-dashed border-zinc-800 rounded-xl text-zinc-500 text-sm">
+                    No additional search methods defined.
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Details Parsing */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-indigo-400 flex items-center gap-2 uppercase tracking-wider"><ListTree size={16} /> Details Parsing</h3>
-              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
-                  <input
-                    type="text" value={editingPlugin.details.titleSel} placeholder="h1.title"
-                    onChange={(e) => updateEditingPlugin('details', 'titleSel', e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+              <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4">
+                
+                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-zinc-800/50">
+                  <CustomCheckbox
+                    checked={!!editingPlugin.details.delegateFlowId}
+                    onChange={(val) => {
+                      if (val) {
+                        updateEditingPlugin('root', 'details', {
+                          ...editingPlugin.details,
+                          delegateFlowId: flows[0]?.id || '',
+                          delegateFlowInputs: {}
+                        });
+                      } else {
+                        const { delegateFlowId, delegateFlowInputs, ...rest } = editingPlugin.details;
+                        updateEditingPlugin('root', 'details', rest);
+                      }
+                    }}
                   />
+                  <span className="text-sm font-medium text-indigo-400">Delegate fetching explicit details to a Custom Flow</span>
                 </div>
+
+                {editingPlugin.details.delegateFlowId ? (
+                  <div className="space-y-4 p-4 bg-indigo-500/5 border border-indigo-500/20 rounded-lg">
+                    <div>
+                      <label className="block text-xs text-indigo-300 mb-1.5">Target Flow</label>
+                      <CustomSelect
+                        searchable
+                        options={flows.map(f => ({ label: f.name, value: f.id }))}
+                        value={editingPlugin.details.delegateFlowId}
+                        onChange={(val) => updateEditingPlugin('details', 'delegateFlowId', val)}
+                      />
+                    </div>
+                    {(() => {
+                      const selectedFlow = flows.find(f => f.id === editingPlugin.details.delegateFlowId);
+                      if (!selectedFlow || !selectedFlow.variables || selectedFlow.variables.length === 0) {
+                        return <div className="text-xs text-zinc-500 pt-2">This flow does not accept any variables.</div>;
+                      }
+                      return (
+                        <div className="pt-2 border-t border-indigo-500/20 space-y-3">
+                          <label className="block text-xs text-indigo-300 mb-1.5">Map Context Variables</label>
+                          {selectedFlow.variables.map(v => {
+                            const valStr = editingPlugin.details.delegateFlowInputs?.[v] || '';
+                            const isSel = valStr.startsWith('selector:');
+                            const isJs = valStr.startsWith('js:');
+                            const type = isSel ? 'selector' : isJs ? 'js' : 'string';
+                            const cleanVal = isSel ? valStr.substring(9) : isJs ? valStr.substring(3) : valStr;
+
+                            return (
+                              <div key={v} className="flex gap-2 items-start">
+                                <span className="text-xs text-zinc-400 w-1/4 truncate font-mono mt-2">{v}</span>
+                                <div className="flex-1 flex flex-col gap-2">
+                                  <select 
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 outline-none hover:border-zinc-700 transition-colors"
+                                    value={type}
+                                    onChange={(e) => {
+                                      const newType = e.target.value;
+                                      const prefix = newType === 'selector' ? 'selector:' : newType === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + cleanVal;
+                                      updateEditingPlugin('root', 'details', { ...editingPlugin.details, delegateFlowInputs: inputs });
+                                    }}
+                                  >
+                                    <option value="string">String / Native (e.g. {'{url}'})</option>
+                                    <option value="selector">CSS Selector (on current page)</option>
+                                    <option value="js">JavaScript (evaluated on page)</option>
+                                  </select>
+                                  <input
+                                    type="text"
+                                    placeholder={type === 'selector' ? 'img.poster@src' : type === 'js' ? 'return document.title;' : '{url}'}
+                                    value={cleanVal}
+                                    onChange={(e) => {
+                                      const prefix = type === 'selector' ? 'selector:' : type === 'js' ? 'js:' : '';
+                                      const inputs = { ...(editingPlugin.details.delegateFlowInputs || {}) };
+                                      inputs[v] = prefix + e.target.value;
+                                      updateEditingPlugin('root', 'details', { ...editingPlugin.details, delegateFlowInputs: inputs });
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5">Title Selector</label>
+                      <input
+                        type="text" value={editingPlugin.details.titleSel} placeholder="h1.title"
+                        onChange={(e) => updateEditingPlugin('details', 'titleSel', e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                      />
+                    </div>
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1.5">Description Selector</label>
                   <input
@@ -385,6 +460,8 @@ export const PluginsView = () => {
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
                   />
                 </div>
+              </div>
+                )}
               </div>
             </div>
 

@@ -3,6 +3,13 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ahk } from './lib/ahk';
 import './lib/bridge';
 
+import Prism from 'prismjs';
+if (typeof window !== 'undefined') {
+  (window as any).Prism = Prism;
+}
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-javascript';
+
 import {
   Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap
 } from 'lucide-react';
@@ -20,6 +27,8 @@ import { ActivityView } from './components/views/ActivityView';
 import { SettingsView } from './components/views/SettingsView';
 import { FlowsView } from './components/views/FlowsView';
 import { UserscriptsView } from './components/views/UserscriptsView';
+import { HistoryView } from './components/views/HistoryView';
+import { DiscoveryView } from './components/views/DiscoveryView';
 
 const MainLayout = () => {
   const {
@@ -41,6 +50,7 @@ const MainLayout = () => {
           --theme-text-main: ${theme.textMain};
           --theme-text-sec: ${theme.textSec};
         }
+
 
         /* Essential Layout Backgrounds mapped to IDs */
         #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: var(--theme-border) !important; }
@@ -69,15 +79,17 @@ const MainLayout = () => {
         .hover\\:bg-zinc-900\\/50:hover { background-color: color-mix(in srgb, var(--theme-text-main) 4%, transparent) !important; }
 
         /* Generic Accent Colors */
-        .text-indigo-500, .text-indigo-400 { color: var(--theme-accent) !important; }
-        .bg-indigo-500, .bg-indigo-600 { background-color: var(--theme-accent) !important; border-color: var(--theme-accent) !important; }
-        .bg-indigo-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
-        .bg-indigo-500\\/20 { background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important; }
-        .bg-indigo-500\\/30 { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
-        .border-indigo-500, .border-indigo-500\\/30, .border-indigo-500\\/40, .border-indigo-500\\/50 { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
-        .fill-indigo-400 { fill: var(--theme-accent) !important; }
-        .hover\\:text-indigo-400:hover { color: var(--theme-accent) !important; filter: drop-shadow(0 0 4px var(--theme-accent)); }
-        .hover\\:bg-indigo-500\\/10:hover { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .text-indigo-500, .text-indigo-400, .text-indigo-300, .text-emerald-500, .text-emerald-400, .text-emerald-300 { color: var(--theme-accent) !important; }
+        .bg-indigo-500, .bg-indigo-600, .bg-emerald-500, .bg-emerald-600 { background-color: var(--theme-accent) !important; border-color: var(--theme-accent) !important; }
+        .bg-indigo-500\\/10, .bg-emerald-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .bg-indigo-500\\/20, .bg-emerald-500\\/20 { background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important; }
+        .bg-indigo-500\\/30, .bg-emerald-500\\/30 { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
+        .border-indigo-500, .border-indigo-500\\/30, .border-indigo-500\\/40, .border-indigo-500\\/50, .border-emerald-500, .border-emerald-500\\/30 { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
+        .fill-indigo-400, .fill-emerald-400 { fill: var(--theme-accent) !important; }
+        .hover\\:text-indigo-400:hover, .hover\\:text-emerald-400:hover, .hover\\:text-emerald-300:hover { color: var(--theme-accent) !important; filter: drop-shadow(0 0 4px var(--theme-accent)); }
+        .hover\\:bg-indigo-500\\/10:hover, .hover\\:bg-emerald-500\\/10:hover { background-color: color-mix(in srgb, var(--theme-accent) 10%, transparent) !important; }
+        .hover\\:bg-emerald-500\\/30:hover { background-color: color-mix(in srgb, var(--theme-accent) 30%, transparent) !important; }
+        .hover\\:border-emerald-500\\/30:hover { border-color: color-mix(in srgb, var(--theme-accent) 50%, transparent) !important; }
 
         /* Text Colors */
         .text-white, .text-zinc-50, .text-zinc-100, .text-zinc-200, .text-zinc-300 { color: var(--theme-text-main) !important; }
@@ -91,6 +103,13 @@ const MainLayout = () => {
 
         /* Hard Toolbar Fix */
         form#toolbar-form { display: flex !important; }
+
+        /* Global Selection */
+        
+        ::selection {
+          background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;
+          color: var(--theme-accent) !important;
+        }
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
@@ -252,6 +271,23 @@ const MainLayout = () => {
             </button>
           </TooltipWrapper>
 
+          <TooltipWrapper text="Discovery">
+            <button
+              onClick={() => setActiveTab('discovery')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'discovery' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Compass size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="History">
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'history' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Clock size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+
           <div className="flex-1" />
 
           <TooltipWrapper text="Sites">
@@ -300,6 +336,8 @@ const MainLayout = () => {
             {activeTab === 'settings' && <SettingsView />}
             {activeTab === 'flows' && <FlowsView />}
             {activeTab === 'userscripts' && <UserscriptsView />}
+            {activeTab === 'history' && <HistoryView />}
+            {activeTab === 'discovery' && <DiscoveryView />}
           </div>
         </div>
       </div>

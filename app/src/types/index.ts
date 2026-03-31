@@ -1,3 +1,10 @@
+export interface FormExtraAction {
+  id: string;
+  selector: string;
+  action: 'setValue' | 'check' | 'uncheck' | 'click' | 'setAttribute' | 'removeAttribute';
+  value: string;
+}
+
 export interface BookmarkItem {
   id: string;
   title: string;
@@ -32,9 +39,27 @@ export interface FollowedItem {
   imgUrl?: string;
 }
 
+export interface HistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  timestamp: number;
+  domain: string;
+}
+
+export interface DiscoveryItem {
+  id: string;
+  url: string;
+  title: string;
+  siteId: string;
+  addedAt: number;
+  tags?: string[];
+  dismissed?: boolean;
+}
+
 export interface FlowStep {
   id: string;
-  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin';
+  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin' | 'smartFetch' | 'smartSearch' | 'jsExtract' | 'customSmartFetch' | 'aggregateSmartSearch' | 'wait' | 'waitForElement' | 'interact' | 'waitForNavigate';
   params: Record<string, any>;
 }
 
@@ -44,6 +69,7 @@ export interface CustomFlow {
   description: string;
   variables?: string[];
   steps: FlowStep[];
+  enabled?: boolean;
 }
 
 export interface Userscript {
@@ -52,6 +78,27 @@ export interface Userscript {
   domains: string[];
   code: string;
   enabled: boolean;
+}
+
+export interface SearchConfig {
+  id: string;
+  name: string;
+  tags?: string[];
+  urlFormat: string;
+  itemSel: string;
+  titleSel: string;
+  linkSel: string;
+  imgSel: string;
+  yearSel: string;
+  typeSel: string;
+  isFormSearch?: boolean;
+  formInputSel?: string;
+  formSubmitSel?: string;
+  searchWaitMode?: 'ajax' | 'navigation';
+  formSubmitDelay?: number;
+  formExtraActions?: FormExtraAction[];
+  delegateFlowId?: string;
+  delegateFlowInputs?: Record<string, string>;
 }
 
 export interface SitePlugin {
@@ -75,7 +122,17 @@ export interface SitePlugin {
     imgSel: string;
     yearSel: string;
     typeSel: string;
+    isFormSearch?: boolean;
+    formInputSel?: string;
+    formSubmitSel?: string;
+    searchWaitMode?: 'ajax' | 'navigation';
+    formSubmitDelay?: number;
+    formExtraActions?: FormExtraAction[];
+    delegateFlowId?: string;
+    delegateFlowInputs?: Record<string, string>;
   };
+  additionalSearches?: SearchConfig[];
+  enabled?: boolean;
   details: {
     titleSel: string;
     descSel: string;
@@ -83,6 +140,11 @@ export interface SitePlugin {
     ratingSel: string;
     posterSel: string;
     similarSel: string;
+    similarTitleSel?: string;
+    similarLinkSel?: string;
+    similarImageSel?: string;
+    delegateFlowId?: string;
+    delegateFlowInputs?: Record<string, string>;
   };
   media: {
     seasonSel: string;
@@ -107,7 +169,9 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   name: 'New Site Plugin',
   baseUrl: 'https://',
   auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
-  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '' },
+  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
+  additionalSearches: [],
+  enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },
