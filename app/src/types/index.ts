@@ -40,11 +40,18 @@ export interface FollowedItem {
   id: string;
   title: string;
   url: string;
-  siteId: string;
+  siteId: string; // Primary site ID
   type: 'tv' | 'film';
-  knownCount: number;
+  knownCount: number; // For legacy or simple tracking
   hasUpdate: boolean;
   imgUrl?: string;
+  watchedEpisodes?: string[]; // List of IDs e.g., 's01e01' or 'e1'
+  latestAvailable?: string; // latest known episode ID or empty if film
+  releaseStatus?: 'unreleased' | 'released' | 'ongoing' | 'ended';
+  aliases?: string[]; // For cross-site matching
+  crossSiteData?: Record<string, string>; // siteId -> matched url on that site
+  trackingFlowId?: string; // Uses a specific tracking config flow ID on the plugin
+  label?: string; // Shared tracking group ID to sync stats across different sites!
 }
 
 export interface HistoryItem {
@@ -68,6 +75,7 @@ export interface DiscoveryItem {
   addedAt: number;
   tags?: string[];
   dismissed?: boolean;
+  imgUrl?: string;
 }
 
 export interface FlowStep {
@@ -112,6 +120,18 @@ export interface SearchConfig {
   formExtraActions?: FormExtraAction[];
   delegateFlowId?: string;
   delegateFlowInputs?: Record<string, string>;
+}
+
+export interface TrackingConfig {
+  id?: string;
+  name?: string;
+  urlRegex?: string;
+  listSel?: string; // List of episodes container
+  itemSel?: string; // Individual episode item
+  idExtractJs?: string; // JS to return standard ID (e.g. 's01e01')
+  titleExtractJs?: string; // JS to return episode title
+  urlExtractJs?: string; // JS to return episode URL
+  statusExtractJs?: string; // JS to return release status
 }
 
 export interface SitePlugin extends BaseMetadata {
@@ -180,6 +200,8 @@ export interface SitePlugin extends BaseMetadata {
   }[];
   customCss?: string;
   customJs?: string;
+  tracking?: TrackingConfig; // Legacy fallback single tracking object
+  trackingFlows?: TrackingConfig[]; // Multiple tracking flows for specific URLs
 }
 
 export const DEFAULT_PLUGIN: SitePlugin = {
@@ -204,5 +226,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   tags: [],
   customFunctions: [],
   customCss: '',
-  customJs: ''
+  customJs: '',
+  tracking: { listSel: '', itemSel: '', idExtractJs: '', titleExtractJs: '', urlExtractJs: '', statusExtractJs: '' },
+  trackingFlows: []
 };

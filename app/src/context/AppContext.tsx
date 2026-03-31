@@ -774,18 +774,56 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const plugin = plugins.find(p => p.id === item.siteId);
       if (!plugin) continue;
 
-      const html = ahk.call('RawFetchHTML', item.url);
-      if (!html) continue;
+      let trackingConf = item.trackingFlowId && plugin.trackingFlows ? plugin.trackingFlows.find(t => t.id === item.trackingFlowId) : null;
+      if (!trackingConf && plugin.trackingFlows && plugin.trackingFlows.length > 0) {
+        // Find best match by URL regex if any
+        trackingConf = plugin.trackingFlows.find(t => t.urlRegex && new RegExp(t.urlRegex).test(item.url)) || plugin.trackingFlows[0];
+      }
+      if (!trackingConf) trackingConf = plugin.tracking; // Fallback
 
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
+      if (trackingConf && trackingConf.listSel && trackingConf.itemSel && window.SmartFetch) {
+        try {
+          const js = `
+            const items = Array.from(document.querySelectorAll('${trackingConf.itemSel.replace(/'/g, "\\\\'")}'));
+            return items.map(el => {
+               try {
+                 return {
+                   id: (function(){ ${trackingConf.idExtractJs || "return '';"} })(),
+                   title: (function(){ ${trackingConf.titleExtractJs || "return '';"} })(),
+                   url: (function(){ ${trackingConf.urlExtractJs || "return '';"} })(),
+                   status: (function(){ ${trackingConf.statusExtractJs || "return 'released';"} })()
+                 };
+               } catch(e) { return null; }
+            }).filter(i => i && i.id);
+          `;
+          const results = await window.SmartFetch(item.url, js);
+          if (Array.isArray(results) && results.length > 0) {
+            const newLatest = results[0]?.id || ''; // assuming chronologically sorted list
+            if (item.latestAvailable !== newLatest) {
+               item.hasUpdate = true;
+               item.latestAvailable = newLatest;
+            }
+            if (!item.watchedEpisodes) item.watchedEpisodes = [];
+            const unwatched = results.filter(r => !item.watchedEpisodes?.includes(r.id));
+            if (unwatched.length > 0) item.hasUpdate = true;
+            item.knownCount = results.length;
+          }
+        } catch(e) {
+          console.error("Tracking update failed for", item.title, e);
+        }
+      } else {
+        const html = ahk.call('RawFetchHTML', item.url);
+        if (!html) continue;
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
 
-      if (item.type === 'tv' && plugin.media.epSel) {
-        const eps = doc.querySelectorAll(plugin.media.epSel);
-        if (eps.length > item.knownCount) { item.knownCount = eps.length; item.hasUpdate = true; }
-      } else if (item.type === 'film' && plugin.player.playerSel) {
-        const player = doc.querySelector(plugin.player.playerSel);
-        if (player && item.knownCount === 0) { item.knownCount = 1; item.hasUpdate = true; }
+        if (item.type === 'tv' && plugin.media.epSel) {
+          const eps = doc.querySelectorAll(plugin.media.epSel);
+          if (eps.length > item.knownCount) { item.knownCount = eps.length; item.hasUpdate = true; }
+        } else if (item.type === 'film' && plugin.player.playerSel) {
+          const player = doc.querySelector(plugin.player.playerSel);
+          if (player && item.knownCount === 0) { item.knownCount = 1; item.hasUpdate = true; }
+        }
       }
     }
 

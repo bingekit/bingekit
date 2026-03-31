@@ -43,7 +43,12 @@ export const PlayerView = () => {
            if (href && !href.startsWith('http')) {
              try { href = new URL(href, '${plugin.baseUrl}').href; } catch {}
            }
-           return { title, href };
+           let imgEl = ${plugin.details.similarImageSel ? `item.querySelector('${plugin.details.similarImageSel.replace(/'/g, "\\\\'")}')` : 'item.querySelector("img")'};
+           let img = imgEl ? (imgEl.getAttribute('src') || imgEl.getAttribute('data-src') || '') : '';
+           if (img && !img.startsWith('http') && !img.startsWith('data:')) {
+             try { img = new URL(img, '${plugin.baseUrl}').href; } catch {}
+           }
+           return { title, href, img };
         }).filter(i => i.title && i.href);
       `;
       try {
@@ -60,7 +65,8 @@ export const PlayerView = () => {
                   url: item.href,
                   siteId: plugin.id,
                   addedAt: Date.now(),
-                  dismissed: false
+                  dismissed: false,
+                  imgUrl: item.img
                 });
                 changed = true;
               }
