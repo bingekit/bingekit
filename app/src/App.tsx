@@ -3,6 +3,10 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { ahk } from './lib/ahk';
 import './lib/bridge';
 
+import Prism from 'prismjs';
+if (typeof window !== 'undefined') {
+  (window as any).Prism = Prism;
+}
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-javascript';
 
@@ -23,6 +27,8 @@ import { ActivityView } from './components/views/ActivityView';
 import { SettingsView } from './components/views/SettingsView';
 import { FlowsView } from './components/views/FlowsView';
 import { UserscriptsView } from './components/views/UserscriptsView';
+import { HistoryView } from './components/views/HistoryView';
+import { DiscoveryView } from './components/views/DiscoveryView';
 
 const MainLayout = () => {
   const {
@@ -265,6 +271,23 @@ const MainLayout = () => {
             </button>
           </TooltipWrapper>
 
+          <TooltipWrapper text="Discovery">
+            <button
+              onClick={() => setActiveTab('discovery')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'discovery' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Compass size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+          <TooltipWrapper text="History">
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'history' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Clock size={20} strokeWidth={1.5} />
+            </button>
+          </TooltipWrapper>
+
           <div className="flex-1" />
 
           <TooltipWrapper text="Sites">
@@ -313,6 +336,8 @@ const MainLayout = () => {
             {activeTab === 'settings' && <SettingsView />}
             {activeTab === 'flows' && <FlowsView />}
             {activeTab === 'userscripts' && <UserscriptsView />}
+            {activeTab === 'history' && <HistoryView />}
+            {activeTab === 'discovery' && <DiscoveryView />}
           </div>
         </div>
       </div>

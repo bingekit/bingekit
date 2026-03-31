@@ -12,6 +12,9 @@ interface AppContextType {
   urlBarMode: 'full' | 'title' | 'hidden'; setUrlBarMode: React.Dispatch<React.SetStateAction<'full' | 'title' | 'hidden'>>;
   theme: any; setTheme: React.Dispatch<React.SetStateAction<any>>;
   bookmarks: BookmarkItem[]; setBookmarks: React.Dispatch<React.SetStateAction<BookmarkItem[]>>;
+  history: HistoryItem[]; setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
+  isHistoryEnabled: boolean; setIsHistoryEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  discoveryItems: DiscoveryItem[]; setDiscoveryItems: React.Dispatch<React.SetStateAction<DiscoveryItem[]>>;
   selectedBookmarks: string[]; setSelectedBookmarks: React.Dispatch<React.SetStateAction<string[]>>;
   followedItems: FollowedItem[]; setFollowedItems: React.Dispatch<React.SetStateAction<FollowedItem[]>>;
   isCheckingUpdates: boolean; setIsCheckingUpdates: React.Dispatch<React.SetStateAction<boolean>>;
@@ -24,7 +27,7 @@ interface AppContextType {
   editingFlow: CustomFlow | null; setEditingFlow: React.Dispatch<React.SetStateAction<CustomFlow | null>>;
   userscripts: Userscript[]; setUserscripts: React.Dispatch<React.SetStateAction<Userscript[]>>;
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts';
+  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
@@ -74,6 +77,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     textSec: '#a1a1aa'
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
+  const [discoveryItems, setDiscoveryItems] = useState<DiscoveryItem[]>([]);
+  const isHistoryEnabledRef = useRef(true);
+  useEffect(() => { isHistoryEnabledRef.current = isHistoryEnabled; }, [isHistoryEnabled]);
+
   const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
   const [followedItems, setFollowedItems] = useState<FollowedItem[]>([]);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
@@ -278,6 +287,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
+  useEffect(() => { ahk.call('SaveData', 'history.json', JSON.stringify(history)); }, [history]);
+  useEffect(() => { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); }, [discoveryItems]);
+  useEffect(() => { ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); }, [isHistoryEnabled]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
@@ -505,7 +517,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const value = {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, history, setHistory, isHistoryEnabled, setIsHistoryEnabled, discoveryItems, setDiscoveryItems,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,

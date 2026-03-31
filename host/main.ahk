@@ -57,22 +57,95 @@ AHK_Close(*) {
     ExitApp()
 }
 
+global CurrentWorkspace := "default"
+Loop A_Args.Length {
+    if (A_Args[A_Index] = "--workspace" && A_Index < A_Args.Length) {
+        CurrentWorkspace := A_Args[A_Index + 1]
+    }
+}
+global WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
+global WorkspaceDir := WorkspaceBaseDir "\" CurrentWorkspace
+
+if (!DirExist(WorkspaceBaseDir))
+    DirCreate(WorkspaceBaseDir)
+
+if (CurrentWorkspace = "default" && !DirExist(WorkspaceDir)) {
+    DirCreate(WorkspaceDir)
+    if (FileExist(A_ScriptDir "\settings\theme.json")) {
+        try {
+            Loop Files, A_ScriptDir "\settings\*.json", "F"
+                FileMove(A_LoopFileFullPath, WorkspaceDir "\" A_LoopFileName)
+            if DirExist(A_ScriptDir "\settings\cache")
+                DirMove(A_ScriptDir "\settings\cache", WorkspaceDir "\cache")
+            if DirExist(A_ScriptDir "\settings\sites")
+                DirMove(A_ScriptDir "\settings\sites", WorkspaceDir "\sites")
+            if DirExist(A_ScriptDir "\settings\scripts")
+                DirMove(A_ScriptDir "\settings\scripts", WorkspaceDir "\scripts")
+            if DirExist(A_ScriptDir "\settings\flows")
+                DirMove(A_ScriptDir "\settings\flows", WorkspaceDir "\flows")
+        }
+    }
+}
+if (!DirExist(WorkspaceDir))
+    DirCreate(WorkspaceDir)
+
+AHK_ListWorkspaces(*) {
+    global WorkspaceBaseDir
+    fileList := ""
+    Loop Files, WorkspaceBaseDir "\*", "D"
+        fileList .= A_LoopFileName "|"
+    return RTrim(fileList, "|")
+}
+
+AHK_CreateWorkspace(name) {
+    global WorkspaceBaseDir
+    if (!DirExist(WorkspaceBaseDir "\" name))
+        DirCreate(WorkspaceBaseDir "\" name)
+    return true
+}
+
+AHK_CloneWorkspace(src, dest) {
+    global WorkspaceBaseDir
+    if (DirExist(WorkspaceBaseDir "\" src) && !DirExist(WorkspaceBaseDir "\" dest)) {
+        DirCopy(WorkspaceBaseDir "\" src, WorkspaceBaseDir "\" dest)
+        return true
+    }
+    return false
+}
+
+AHK_DeleteWorkspace(name) {
+    global WorkspaceBaseDir
+    if (name != "default" && DirExist(WorkspaceBaseDir "\" name)) {
+        try DirDelete(WorkspaceBaseDir "\" name, 1)
+        return true
+    }
+    return false
+}
+
+AHK_RestartWorkspace(name) {
+    Run(A_ScriptFullPath " --workspace " name)
+    ExitApp()
+}
+
 AHK_SaveData(filename, data) {
-    filepath := A_ScriptDir "\settings\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
 }
 
 AHK_LoadData(filename) {
-    filepath := A_ScriptDir "\settings\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\" filename
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
 AHK_CacheSet(key, data) {
-    if !DirExist(A_ScriptDir "\settings\cache")
-        DirCreate(A_ScriptDir "\settings\cache")
-    filepath := A_ScriptDir "\settings\cache\" key ".txt"
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\cache")
+        DirCreate(WorkspaceDir "\cache")
+    filepath := WorkspaceDir "\cache\" key ".txt"
     if FileExist(filepath)
         FileDelete(filepath)
     try FileAppend(data, filepath, "UTF-8")
@@ -80,30 +153,34 @@ AHK_CacheSet(key, data) {
 }
 
 AHK_CacheGet(key) {
-    filepath := A_ScriptDir "\settings\cache\" key ".txt"
+    global WorkspaceDir
+    filepath := WorkspaceDir "\cache\" key ".txt"
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
 AHK_CacheClear(*) {
-    if !DirExist(A_ScriptDir "\settings\cache")
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\cache")
         return true
-    try DirDelete(A_ScriptDir "\settings\cache", true)
+    try DirDelete(WorkspaceDir "\cache", true)
     return true
 }
 
 AHK_ListSites(*) {
-    if !DirExist(A_ScriptDir "\settings\sites")
-        DirCreate(A_ScriptDir "\settings\sites")
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\sites")
+        DirCreate(WorkspaceDir "\sites")
     fileList := ""
-    Loop Files, A_ScriptDir "\settings\sites\*.json"
+    Loop Files, WorkspaceDir "\sites\*.json"
         fileList .= A_LoopFileName "|"
     return RTrim(fileList, "|")
 }
 
 AHK_SaveSite(filename, data) {
-    if !DirExist(A_ScriptDir "\settings\sites")
-        DirCreate(A_ScriptDir "\settings\sites")
-    filepath := A_ScriptDir "\settings\sites\" filename
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\sites")
+        DirCreate(WorkspaceDir "\sites")
+    filepath := WorkspaceDir "\sites\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
@@ -111,30 +188,34 @@ AHK_SaveSite(filename, data) {
 }
 
 AHK_LoadSite(filename) {
-    filepath := A_ScriptDir "\settings\sites\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\sites\" filename
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
 AHK_DeleteSite(filename) {
-    filepath := A_ScriptDir "\settings\sites\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\sites\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     return true
 }
 
 AHK_ListScripts(*) {
-    if !DirExist(A_ScriptDir "\settings\scripts")
-        DirCreate(A_ScriptDir "\settings\scripts")
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\scripts")
+        DirCreate(WorkspaceDir "\scripts")
     fileList := ""
-    Loop Files, A_ScriptDir "\settings\scripts\*.json"
+    Loop Files, WorkspaceDir "\scripts\*.json"
         fileList .= A_LoopFileName "|"
     return RTrim(fileList, "|")
 }
 
 AHK_SaveScript(filename, data) {
-    if !DirExist(A_ScriptDir "\settings\scripts")
-        DirCreate(A_ScriptDir "\settings\scripts")
-    filepath := A_ScriptDir "\settings\scripts\" filename
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\scripts")
+        DirCreate(WorkspaceDir "\scripts")
+    filepath := WorkspaceDir "\scripts\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
@@ -142,30 +223,34 @@ AHK_SaveScript(filename, data) {
 }
 
 AHK_LoadScript(filename) {
-    filepath := A_ScriptDir "\settings\scripts\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\scripts\" filename
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
 AHK_DeleteScript(filename) {
-    filepath := A_ScriptDir "\settings\scripts\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\scripts\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     return true
 }
 
 AHK_ListFlows(*) {
-    if !DirExist(A_ScriptDir "\settings\flows")
-        DirCreate(A_ScriptDir "\settings\flows")
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\flows")
+        DirCreate(WorkspaceDir "\flows")
     fileList := ""
-    Loop Files, A_ScriptDir "\settings\flows\*.json"
+    Loop Files, WorkspaceDir "\flows\*.json"
         fileList .= A_LoopFileName "|"
     return RTrim(fileList, "|")
 }
 
 AHK_SaveFlow(filename, data) {
-    if !DirExist(A_ScriptDir "\settings\flows")
-        DirCreate(A_ScriptDir "\settings\flows")
-    filepath := A_ScriptDir "\settings\flows\" filename
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\flows")
+        DirCreate(WorkspaceDir "\flows")
+    filepath := WorkspaceDir "\flows\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
@@ -173,12 +258,14 @@ AHK_SaveFlow(filename, data) {
 }
 
 AHK_LoadFlow(filename) {
-    filepath := A_ScriptDir "\settings\flows\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\flows\" filename
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
 AHK_DeleteFlow(filename) {
-    filepath := A_ScriptDir "\settings\flows\" filename
+    global WorkspaceDir
+    filepath := WorkspaceDir "\flows\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     return true
@@ -539,7 +626,12 @@ WV.AddHostObjectToScript("ahk", {
     LoadFlow: AHK_LoadFlow,
     DeleteFlow: AHK_DeleteFlow,
     StartSmartFetch: AHK_StartSmartFetch,
-    StartRawFetchParse: AHK_StartRawFetchParse
+    StartRawFetchParse: AHK_StartRawFetchParse,
+    ListWorkspaces: AHK_ListWorkspaces,
+    CreateWorkspace: AHK_CreateWorkspace,
+    CloneWorkspace: AHK_CloneWorkspace,
+    DeleteWorkspace: AHK_DeleteWorkspace,
+    RestartWorkspace: AHK_RestartWorkspace
 })
 ;WV.AddHostObjectToScript("UpdateURL", AHK_UpdateURL)
 
@@ -579,4 +671,24 @@ AHK_OnMove(wParam, lParam, msg, hwnd) {
 OnMessage(0x0084, WM_NCHITTEST)
 WM_NCHITTEST(wParam, lParam, msg, hwnd) {
     ; Basic drag implementation if needed
+}
+
+#Down::
+{
+    global MainGui, PlayerGui, PlayerWV
+    activeWindow := WinGetID("A")
+    if (IsSet(MainGui) && activeWindow == MainGui.Hwnd) {
+        WinMinimize("ahk_id " MainGui.Hwnd)
+    } else if (IsSet(PlayerGui) && activeWindow == PlayerGui.Hwnd) {
+        ; PiP mode
+        WinSetAlwaysOnTop(1, "ahk_id " PlayerGui.Hwnd)
+        w := 400
+        h := 225
+        x := A_ScreenWidth - w - 20
+        y := A_ScreenHeight - h - 60
+        PlayerGui.Move(x, y, w, h)
+        if (PlayerWV.wvc.IsVisible) {
+            PlayerWV.Move(0, 0, w, h)
+        }
+    }
 }

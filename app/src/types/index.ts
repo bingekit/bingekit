@@ -39,9 +39,27 @@ export interface FollowedItem {
   imgUrl?: string;
 }
 
+export interface HistoryItem {
+  id: string;
+  url: string;
+  title: string;
+  timestamp: number;
+  domain: string;
+}
+
+export interface DiscoveryItem {
+  id: string;
+  url: string;
+  title: string;
+  siteId: string;
+  addedAt: number;
+  tags?: string[];
+  dismissed?: boolean;
+}
+
 export interface FlowStep {
   id: string;
-  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin' | 'smartFetch' | 'smartSearch';
+  type: 'RawFetchHTML' | 'parseHtml' | 'pluginAction' | 'navigate' | 'extract' | 'inject' | 'callFlow' | 'callPlugin' | 'smartFetch' | 'smartSearch' | 'jsExtract' | 'customSmartFetch' | 'aggregateSmartSearch' | 'wait' | 'waitForElement' | 'interact' | 'waitForNavigate';
   params: Record<string, any>;
 }
 
@@ -122,6 +140,9 @@ export interface SitePlugin {
     ratingSel: string;
     posterSel: string;
     similarSel: string;
+    similarTitleSel?: string;
+    similarLinkSel?: string;
+    similarImageSel?: string;
     delegateFlowId?: string;
     delegateFlowInputs?: Record<string, string>;
   };

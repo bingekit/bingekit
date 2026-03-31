@@ -191,7 +191,11 @@ export const FlowsView = () => {
                               { value: 'extract', label: 'Extract Data' },
                               { value: 'inject', label: 'Inject JS/CSS' },
                               { value: 'smartFetch', label: 'Smart Fetch (Site)' },
-                              { value: 'smartSearch', label: 'Smart Search (Aggregated)' }
+                              { value: 'smartSearch', label: 'Smart Search (Aggregated)' },
+                              { value: 'wait', label: 'Wait (Delay)' },
+                              { value: 'waitForElement', label: 'Wait for Element' },
+                              { value: 'interact', label: 'Interact (Click/Type)' },
+                              { value: 'customSmartFetch', label: 'Custom SmartFetch' }
                             ]}
                             value={step.type}
                             onChange={(val) => {
@@ -360,6 +364,109 @@ export const FlowsView = () => {
                                 setEditingFlow({ ...editingFlow, steps: newSteps });
                               }}
                               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {step.type === 'wait' && (
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">Wait Time (ms)</label>
+                          <input
+                            type="text" value={step.params.ms || ''} placeholder="1500"
+                            onChange={(e) => {
+                              const newSteps = [...editingFlow.steps];
+                              newSteps[idx].params.ms = e.target.value;
+                              setEditingFlow({ ...editingFlow, steps: newSteps });
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                          />
+                        </div>
+                      )}
+                      
+                      {step.type === 'waitForElement' && (
+                        <div>
+                          <label className="block text-xs text-zinc-500 mb-1.5">CSS Selector to Wait For</label>
+                          <input
+                            type="text" value={step.params.selector || ''} placeholder=".movie-player"
+                            onChange={(e) => {
+                              const newSteps = [...editingFlow.steps];
+                              newSteps[idx].params.selector = e.target.value;
+                              setEditingFlow({ ...editingFlow, steps: newSteps });
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                          />
+                        </div>
+                      )}
+
+                      {step.type === 'interact' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">CSS Selector</label>
+                            <input
+                              type="text" value={step.params.selector || ''} placeholder=".play-btn"
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.selector = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Action</label>
+                            <CustomSelect
+                              options={[{ value: 'click', label: 'Click' }, { value: 'setValue', label: 'Set Text/Value' }]}
+                              value={step.params.actionType || 'click'}
+                              onChange={(val) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.actionType = val;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                            />
+                          </div>
+                          {step.params.actionType === 'setValue' && (
+                            <div className="col-span-2">
+                              <label className="block text-xs text-zinc-500 mb-1.5">Value</label>
+                              <input
+                                type="text" value={step.params.value || ''} placeholder="Text to type..."
+                                onChange={(e) => {
+                                  const newSteps = [...editingFlow.steps];
+                                  newSteps[idx].params.value = e.target.value;
+                                  setEditingFlow({ ...editingFlow, steps: newSteps });
+                                }}
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {step.type === 'customSmartFetch' && (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Target URL (Can use variables)</label>
+                            <input
+                              type="text" value={step.params.url || ''} placeholder="https://..."
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.url = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Evaluation Script (Returns Data)</label>
+                            <textarea
+                              value={step.params.code || ''} placeholder="return Array.from(document.querySelectorAll('a')).map(a => a.href);"
+                              onChange={(e) => {
+                                const newSteps = [...editingFlow.steps];
+                                newSteps[idx].params.code = e.target.value;
+                                setEditingFlow({ ...editingFlow, steps: newSteps });
+                              }}
+                              rows={5}
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:border-indigo-500 outline-none font-mono resize-y"
                             />
                           </div>
                         </div>

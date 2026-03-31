@@ -15,6 +15,7 @@ export const SettingsView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
+    isHistoryEnabled, setIsHistoryEnabled, setHistory,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
@@ -261,8 +262,49 @@ export const SettingsView = () => {
       </div>
 
       {/* System Cache Map */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Save size={16} /> System Cache</h3>
+      <div className="space-y-4 pt-4">
+        <h3 className="text-sm font-medium text-theme-accent flex items-center gap-2 uppercase tracking-wider"><Save size={16} /> System Cache & History</h3>
+        
+        <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">History Tracking</h3>
+              <p className="text-xs text-zinc-500 mt-1">Record sites visited and your activity locally.</p>
+            </div>
+            <button
+              onClick={() => setIsHistoryEnabled(!isHistoryEnabled)}
+              className={`w-12 h-6 rounded-full transition-colors relative ${isHistoryEnabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isHistoryEnabled ? 'left-7' : 'left-1'}`} />
+            </button>
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t border-zinc-800/50 mt-4">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Clear History</h3>
+              <p className="text-xs text-zinc-500 mt-1">Deletes all recorded URLs.</p>
+            </div>
+            <button onClick={() => { if(confirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs transition-colors border border-red-500/20">Clear History</button>
+          </div>
+        </div>
+
+        <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200">Active Workspace</h3>
+              <p className="text-xs text-zinc-500 mt-1">You are currently using an isolated workspace save folder.</p>
+            </div>
+            <button onClick={() => {
+              const ws = prompt('Enter a new workspace name to create or switch to:');
+              if (ws) {
+                 ahk.call('CreateWorkspace', ws);
+                 ahk.call('RestartWorkspace', ws);
+              }
+            }} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded hover:bg-indigo-500/30 text-xs transition-colors">
+               Switch / Create
+            </button>
+          </div>
+        </div>
+
         <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
           <div className="flex items-center justify-between">
             <div>

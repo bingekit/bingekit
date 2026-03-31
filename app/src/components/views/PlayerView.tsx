@@ -21,8 +21,59 @@ export const PlayerView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    discoveryItems, setDiscoveryItems
   } = useAppContext();
+
+  React.useEffect(() => {
+    // Discovery Engine Background Task
+    const timer = setTimeout(async () => {
+      if (activeTab !== 'player') return;
+      const plugin = plugins.find(p => url.includes(p.baseUrl));
+      if (!plugin || !plugin.details?.similarSel || !window.SmartFetch) return;
+      
+      const jsQuery = `
+        const items = Array.from(document.querySelectorAll('${plugin.details.similarSel.replace(/'/g, "\\\\'")}'));
+        return items.slice(0, 5).map(item => {
+           let titleEl = item.querySelector('${(plugin.details.similarTitleSel || 'a').replace(/'/g, "\\\\'")}') || item;
+           const title = titleEl ? (titleEl.getAttribute('title') || titleEl.textContent || '').trim() : '';
+           let linkEl = item.querySelector('${(plugin.details.similarLinkSel || 'a').replace(/'/g, "\\\\'")}') || (item.tagName === 'A' ? item : item.querySelector('a'));
+           let href = linkEl ? linkEl.getAttribute('href') : '';
+           if (href && !href.startsWith('http')) {
+             try { href = new URL(href, '${plugin.baseUrl}').href; } catch {}
+           }
+           return { title, href };
+        }).filter(i => i.title && i.href);
+      `;
+      try {
+        const res = await window.SmartFetch(url, jsQuery);
+        if (Array.isArray(res) && res.length > 0) {
+           setDiscoveryItems((prev: any) => {
+             const newItems = [...prev];
+             let changed = false;
+             for (const item of res) {
+                if (!newItems.some(i => i.url === item.href)) {
+                   newItems.unshift({
+                      id: Date.now().toString() + Math.random().toString(),
+                      title: item.title,
+                      url: item.href,
+                      siteId: plugin.id,
+                      addedAt: Date.now(),
+                      dismissed: false
+                   });
+                   changed = true;
+                }
+             }
+             if (changed) return newItems.slice(0, 500);
+             return prev;
+           });
+        }
+      } catch (e) {
+         console.error('Discovery Engine failed', e);
+      }
+    }, 6000); // Wait 6 seconds for page to be usable
+    return () => clearTimeout(timer);
+  }, [url, activeTab, plugins]);
 
   return (
     
