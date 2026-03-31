@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
@@ -14,8 +14,7 @@ import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, Bookm
 export const SettingsView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
-    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
-    isHistoryEnabled, setIsHistoryEnabled, setHistory,
+    theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, 
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
     editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
@@ -23,9 +22,31 @@ export const SettingsView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    history, setHistory, isHistoryEnabled, setIsHistoryEnabled
   } = useAppContext();
 
+  const [workspaces, setWorkspaces] = useState<string[]>([]);
+  const [currentWs, setCurrentWs] = useState<string>('default');
+  const [showWsModal, setShowWsModal] = useState(false);
+  const [newWsName, setNewWsName] = useState('');
+
+  useEffect(() => {
+    try {
+      const wsStr = ahk.call('ListWorkspaces');
+      if (wsStr) {
+        setWorkspaces(wsStr.split('|').filter(Boolean));
+      } else {
+        setWorkspaces(['default']);
+      }
+      const activeWs = ahk.call('GetCurrentWorkspace');
+      if (activeWs) {
+         setCurrentWs(activeWs);
+      }
+    } catch {
+      setWorkspaces(['default']);
+    }
+  }, []);
   return (
 
     <div className="p-8 max-w-2xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
@@ -293,16 +314,55 @@ export const SettingsView = () => {
               <h3 className="text-sm font-medium text-zinc-200">Active Workspace</h3>
               <p className="text-xs text-zinc-500 mt-1">You are currently using an isolated workspace save folder.</p>
             </div>
-            <button onClick={() => {
-              const ws = prompt('Enter a new workspace name to create or switch to:');
-              if (ws) {
-                 ahk.call('CreateWorkspace', ws);
-                 ahk.call('RestartWorkspace', ws);
-              }
-            }} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded hover:bg-indigo-500/30 text-xs transition-colors">
-               Switch / Create
-            </button>
+            <div className="flex gap-2 items-center">
+              <div className="w-[180px]">
+                <CustomSelect
+                  options={workspaces.map(w => ({value: w, label: w}))}
+                  value={currentWs}
+                  onChange={(val) => {
+                     if (val) ahk.call('RestartWorkspace', val);
+                  }}
+                  searchable
+                />
+              </div>
+              <button onClick={() => setShowWsModal(true)} className="px-3 py-1.5 bg-indigo-500/20 text-indigo-400 rounded hover:bg-indigo-500/30 text-xs transition-colors flex items-center gap-1">
+                 <Plus size={14} /> New
+              </button>
+            </div>
           </div>
+          
+          <Modal
+            isOpen={showWsModal}
+            onClose={() => { setShowWsModal(false); setNewWsName(''); }}
+            title="Create New Workspace"
+          >
+            <div className="space-y-4">
+               <p className="text-xs text-zinc-400">A workspace perfectly isolates all your plugins, flows, bookmarks, and settings locally into a new directory.</p>
+               <div>
+                 <label className="block text-xs text-zinc-500 mb-1.5">Workspace Name</label>
+                 <input
+                   type="text" value={newWsName} onChange={e => setNewWsName(e.target.value)}
+                   placeholder="e.g. testing-env, dev, clean-slate" autoFocus
+                   className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                   onKeyDown={e => {
+                     if (e.key === 'Enter' && newWsName.trim()) {
+                        ahk.call('CreateWorkspace', newWsName.trim());
+                        ahk.call('RestartWorkspace', newWsName.trim());
+                     }
+                   }}
+                 />
+               </div>
+               <div className="flex gap-3 justify-end pt-4 border-t border-zinc-800/50 mt-4">
+                  <button onClick={() => { setShowWsModal(false); setNewWsName(''); }} className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors">Cancel</button>
+                  <button onClick={() => {
+                     if (newWsName.trim()) {
+                        ahk.call('CreateWorkspace', newWsName.trim());
+                        ahk.call('RestartWorkspace', newWsName.trim());
+                     }
+                  }} className="px-4 py-2 text-sm font-medium bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 shadow-[0_0_15px_rgba(99,102,241,0.2)] transition-colors">Create & Switch</button>
+               </div>
+            </div>
+          </Modal>
         </div>
 
         <div className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl">
