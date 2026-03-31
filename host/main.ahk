@@ -554,7 +554,7 @@ AHK_UpdatePlayerUrl(url) {
         global PlayerWV, PlayerCurrentUrl, PendingPlayerUrl
         if (!PlayerWV) {
             PendingPlayerUrl := url
-        } else if (url != "" && PlayerCurrentUrl != url) {
+        } else if (url != "") {
             PlayerCurrentUrl := url
             PlayerWV.Navigate(url)
         }

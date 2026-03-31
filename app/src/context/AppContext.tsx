@@ -150,7 +150,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeTab === 'player') {
       if (lastSyncUrl.current !== url) {
         lastSyncUrl.current = url;
-        ahk.call('UpdatePlayerUrl', url);
+        const navUrl = url.startsWith('custom:') ? `about:blank
+        #${encodeURIComponent(url)}` : url;
+        ahk.call('UpdatePlayerUrl', navUrl);
       }
     }
   }, [activeTab, url]);
@@ -158,6 +160,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleEvent = (e: any) => {
       if (e.detail && e.detail.url) {
+        if ((e.detail.url === 'about:blank' || e.detail.url.startsWith('data:text/html')) && lastSyncUrl.current?.startsWith('custom:')) {
+          return;
+        }
         lastSyncUrl.current = e.detail.url;
         setUrl(e.detail.url);
         setInputUrl(e.detail.url);
@@ -315,17 +320,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     ahk.call('SaveData', 'theme.json', JSON.stringify(theme));
   }, [theme]);
 
-  // Save userscripts and sync payload to AHK
+  // Sync payload to AHK (Runs on script/plugin changes or URL changes)
   useEffect(() => {
     const activeScripts = userscripts.filter(s => s.enabled);
     let payload = '';
 
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
       payload = `
+        var currentUrl = "${url}";
         var currentHost = window.location.hostname;
+        if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+        
         var scripts = ${JSON.stringify(activeScripts)};
         scripts.forEach(s => {
-          var matches = s.domains.includes('*') || s.domains.some(d => currentHost.includes(d));
+          var matches = s.domains.includes('*') || s.domains.some(d => {
+            if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
+            return currentHost.includes(d) || currentUrl.includes(d);
+          });
           if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
         });
         var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
@@ -333,7 +344,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           try {
             var pHost = '';
             try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
-            if (currentHost.includes(pHost) || pHost.includes(currentHost)) {
+            
+            var matchP = false;
+            if (pHost.startsWith('custom:')) {
+              matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+            } else {
+              matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+            }
+            
+            if (matchP) {
               if (p.css) {
                 var style = document.createElement('style');
                 style.innerHTML = p.css;
@@ -349,12 +368,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     ahk.call('UpdateUserscriptPayload', payload);
+  }, [userscripts, plugins, url]);
 
+  // Save userscripts to disk
+  useEffect(() => {
     const saveTimer = setTimeout(() => {
       userscripts.forEach(s => ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(s, null, 2)));
     }, 500);
     return () => clearTimeout(saveTimer);
-  }, [userscripts, plugins]);
+  }, [userscripts]);
 
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
@@ -469,7 +491,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (step.type === 'navigate') {
         const dest = await resolveVars(step.params.url || '');
-        ahk.call('UpdatePlayerUrl', dest);
+        const navUrl = dest.startsWith('custom:') ? `data:text/html,<html><body></body></html>#${encodeURIComponent(dest)}` : dest;
+        ahk.call('UpdatePlayerUrl', navUrl);
         currentVar = dest;
         await new Promise(r => setTimeout(r, 1500));
       } else if (step.type === 'inject') {

@@ -120,10 +120,10 @@ const MainLayout = () => {
         #titlebar-region input.text-xs { color: var(--theme-titlebar-text-hover) !important; }
         #titlebar-region input::placeholder { color: color-mix(in srgb, var(--theme-titlebar-text) 50%, transparent) !important; }
         
-        #titlebar-region .text-indigo-400, #titlebar-region .text-indigo-500 { color: var(--theme-titlebar-accent) !important; filter: drop-shadow(0 0 4px var(--theme-titlebar-accent)); }
+        #titlebar-region .text-indigo-400, #titlebar-region .text-indigo-500 { color: var(--theme-titlebar-accent) !important; }
         #titlebar-region .fill-indigo-400 { fill: var(--theme-titlebar-accent) !important; }
         #titlebar-region .border-indigo-500\\/50 { border-color: var(--theme-titlebar-accent) !important; }
-        #titlebar-region .hover\\:text-indigo-400:hover { color: var(--theme-titlebar-accent) !important; filter: drop-shadow(0 0 4px var(--theme-titlebar-accent)); }
+        #titlebar-region .hover\\:text-indigo-400:hover { color: var(--theme-titlebar-accent) !important; }
         
         #titlebar-region .bg-zinc-800, #titlebar-region .bg-zinc-900, #titlebar-region form { background-color: var(--theme-titlebar-alt) !important; }
         #titlebar-region .border-zinc-800, #titlebar-region .border-zinc-800\\/80 { border-color: var(--theme-titlebar-alt2) !important; }
