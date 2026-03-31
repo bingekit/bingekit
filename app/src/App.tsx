@@ -20,15 +20,10 @@ import { TooltipWrapper } from './components/ui/TooltipWrapper';
 // Views
 import { DashboardView } from './components/views/DashboardView';
 import { PlayerView } from './components/views/PlayerView';
-import { BookmarksView } from './components/views/BookmarksView';
-import { WatchlaterView } from './components/views/WatchlaterView';
-import { PluginsView } from './components/views/PluginsView';
-import { ActivityView } from './components/views/ActivityView';
 import { SettingsView } from './components/views/SettingsView';
-import { FlowsView } from './components/views/FlowsView';
-import { UserscriptsView } from './components/views/UserscriptsView';
-import { HistoryView } from './components/views/HistoryView';
-import { DiscoveryView } from './components/views/DiscoveryView';
+import { LibraryView } from './components/views/LibraryView';
+import { ExploreView } from './components/views/ExploreView';
+import { ExtensionsView } from './components/views/ExtensionsView';
 
 const MainLayout = () => {
   const {
@@ -113,17 +108,20 @@ const MainLayout = () => {
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
-      <div id="titlebar-region" className="h-10 flex items-center justify-between drag-region select-none pl-5 border-b">
-        <div className="flex items-center gap-3 no-drag">
-          <div className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors cursor-pointer" onClick={() => setActiveTab('dashboard')} title="Dashboard">
+      <div id="titlebar-region" className="h-10 flex items-center drag-region select-none pl-5 border-b">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-zinc-400 transition-colors">
             <Film size={16} className="text-indigo-500" />
-            {/* <span className="text-xs font-medium tracking-wider uppercase">StreamView</span> */}
+
+            {activeTab !== 'player' && (
+              <span className="text-xs  ml-6 font-medium tracking-wider uppercase">StreamView</span>
+            )}
           </div>
         </div>
 
         {/* URL Bar */}
         {activeTab === 'player' && (
-          <div className="flex-1 max-w-xl mx-4 no-drag flex items-center justify-center">
+          <div className="flex-1 ml-6 flex items-center justify-left">
             {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
               <div className="flex items-center justify-center text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
                 {(() => {
@@ -131,7 +129,7 @@ const MainLayout = () => {
                 })()}
               </div>
             ) : (
-              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
+              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
                 <div className="flex items-center px-2 gap-1 text-zinc-500">
                   <TooltipWrapper text="Go Back">
                     <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
@@ -187,7 +185,7 @@ const MainLayout = () => {
         )}
 
         {/* Window Controls */}
-        <div className="flex items-center no-drag">
+        <div className="flex items-center no-drag ml-auto">
           {activeTab === 'player' && (
             <TooltipWrapper text="Toggle URL Bar">
               <button onClick={() => setUrlBarMode(m => m === 'full' ? 'title' : m === 'title' ? 'hidden' : 'full')} className={`p-5 px-5 transition-colors ${urlBarMode !== 'hidden' ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800'}`}>
@@ -232,7 +230,7 @@ const MainLayout = () => {
               onClick={() => setActiveTab('dashboard')}
               className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'dashboard' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
             >
-              <Compass size={20} strokeWidth={1.5} />
+              <Film size={20} strokeWidth={1.5} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Player">
@@ -243,75 +241,34 @@ const MainLayout = () => {
               <MonitorPlay size={20} strokeWidth={1.5} />
             </button>
           </TooltipWrapper>
-          <TooltipWrapper text="Bookmarks">
+          <TooltipWrapper text="Explore">
             <button
-              onClick={() => setActiveTab('bookmarks')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'bookmarks' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+              onClick={() => setActiveTab('explore')}
+              className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'explore' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
             >
-              <Bookmark size={20} strokeWidth={1.5} />
-            </button>
-          </TooltipWrapper>
-          <TooltipWrapper text="Watch Later">
-            <button
-              onClick={() => setActiveTab('watchlater')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'watchlater' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-            >
-              <Clock size={20} strokeWidth={1.5} />
-            </button>
-          </TooltipWrapper>
-          <TooltipWrapper text="Activity">
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'activity' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-            >
-              <Activity size={20} strokeWidth={1.5} />
+              <Compass size={20} strokeWidth={1.5} />
               {followedItems.some(i => i.hasUpdate) && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
               )}
             </button>
           </TooltipWrapper>
-
-          <TooltipWrapper text="Discovery">
+          <TooltipWrapper text="Library">
             <button
-              onClick={() => setActiveTab('discovery')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'discovery' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+              onClick={() => setActiveTab('library')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'library' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
             >
-              <Compass size={20} strokeWidth={1.5} />
-            </button>
-          </TooltipWrapper>
-          <TooltipWrapper text="History">
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'history' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-            >
-              <Clock size={20} strokeWidth={1.5} />
+              <Bookmark size={20} strokeWidth={1.5} />
             </button>
           </TooltipWrapper>
 
           <div className="flex-1" />
 
-          <TooltipWrapper text="Sites">
+          <TooltipWrapper text="Extensions">
             <button
-              onClick={() => setActiveTab('plugins')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'plugins' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+              onClick={() => setActiveTab('extensions')}
+              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'extensions' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
             >
               <Puzzle size={20} strokeWidth={1.5} />
-            </button>
-          </TooltipWrapper>
-          <TooltipWrapper text="Flows">
-            <button
-              onClick={() => setActiveTab('flows')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'flows' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-            >
-              <ListTree size={20} strokeWidth={1.5} />
-            </button>
-          </TooltipWrapper>
-          <TooltipWrapper text="Userscripts">
-            <button
-              onClick={() => setActiveTab('userscripts')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'userscripts' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
-            >
-              <Code size={20} strokeWidth={1.5} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Settings">
@@ -329,15 +286,10 @@ const MainLayout = () => {
           <div className="flex-1 w-full h-full relative">
             {activeTab === 'dashboard' && <DashboardView />}
             {activeTab === 'player' && <PlayerView />}
-            {activeTab === 'bookmarks' && <BookmarksView />}
-            {activeTab === 'watchlater' && <WatchlaterView />}
-            {activeTab === 'plugins' && <PluginsView />}
-            {activeTab === 'activity' && <ActivityView />}
+            {activeTab === 'explore' && <ExploreView />}
+            {activeTab === 'library' && <LibraryView />}
+            {activeTab === 'extensions' && <ExtensionsView />}
             {activeTab === 'settings' && <SettingsView />}
-            {activeTab === 'flows' && <FlowsView />}
-            {activeTab === 'userscripts' && <UserscriptsView />}
-            {activeTab === 'history' && <HistoryView />}
-            {activeTab === 'discovery' && <DiscoveryView />}
           </div>
         </div>
       </div>

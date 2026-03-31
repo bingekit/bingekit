@@ -569,7 +569,7 @@ AHK_HideSplash(*) {
         SplashGui.Destroy()
         SplashGui := ""
         MainGui.Show("w1280 h800 center")
-        MainGui.Opt("+MinSize900x800")
+        MainGui.Opt("+MinSize850x450")
         WinSetTransparent(255, MainGui.Hwnd)
     }
 }
