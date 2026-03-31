@@ -658,8 +658,10 @@ class WebViewCtrl extends Gui.Custom {
         Path := Parsed.Path, Host := Parsed.host
 
         Target := unset
-        CompiledRoutes := this._CompiledRoutes[Host]
-        RegExMatch(Path, CompiledRoutes.Pattern)
+        if (this._CompiledRoutes.Has(Host)) {
+            CompiledRoutes := this._CompiledRoutes[Host]
+            RegExMatch(Path, CompiledRoutes.Pattern)
+        }
         if (!IsSet(Target)) {
             return
         }

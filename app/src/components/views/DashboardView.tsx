@@ -20,11 +20,12 @@ export const DashboardView = () => {
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
-    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
+    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   } = useAppContext();
 
   const [activeSearchTags, setActiveSearchTags] = useState<string[]>([]);
+  const [isDeepSearch, setIsDeepSearch] = useState(false);
   const allSearchTags = Array.from(new Set(plugins.filter(p => p.enabled !== false).flatMap(p => {
     const defaultTag = p.tags || [];
     const addlTags = (p.additionalSearches || []).flatMap(s => s.tags || []);
@@ -49,7 +50,13 @@ export const DashboardView = () => {
             placeholder="Search across all plugins or enter URL..."
             className="w-full bg-zinc-900/80 border border-zinc-800 rounded-2xl py-4 pl-12 pr-4 text-lg text-zinc-200 focus:border-indigo-500 focus:bg-zinc-900 outline-none transition-all shadow-xl"
             onKeyDown={async (e) => {
-              if (e.key === 'Enter' && multiSearchQuery) {
+              if (e.key === 'Enter') {
+                if (!multiSearchQuery.trim()) {
+                  setSearchResults([]);
+                  setIsSearching(false);
+                  return;
+                }
+                
                 setIsSearching(true);
                 setSearchResults([]);
 
@@ -66,7 +73,7 @@ export const DashboardView = () => {
 
                   let dest = multiSearchQuery;
                   if (!dest.startsWith('http')) {
-                    dest = dest.includes('.') && !dest.includes(' ') ? `https://${dest}` : `https://duckduckgo.com/?q=${encodeURIComponent(dest)}`;
+                    dest = dest.includes('.') && !dest.includes(' ') ? `https://${dest}` : `${defaultSearchEngine}${encodeURIComponent(dest)}`;
                   }
                   navResults.unshift({
                     id: 'direct-nav',
@@ -279,18 +286,108 @@ export const DashboardView = () => {
 
                       if (Array.isArray(fetchResults) && fetchResults.length > 0) {
                         let validCount = 0;
-                        fetchResults.forEach((res: any, i: number) => {
+                        for (let i = 0; i < fetchResults.length; i++) {
+                          const res = fetchResults[i];
                           if (res.title && res.href) {
                             validCount++;
-                            results.push({
-                              id: plugin.id + '_' + Math.random().toString(36).substring(7),
-                              title: res.title,
-                              url: res.href,
-                              pluginName: opName,
-                              type: 'result'
-                            });
+                            const queryClean = multiSearchQuery.trim().toLowerCase();
+                            const titleClean = res.title.trim().toLowerCase();
+                            const isExactMatch = titleClean === queryClean;
+                            let matchedDeep = false;
+                            
+                            if (isDeepSearch && isExactMatch && (plugin.media?.deepJs || plugin.media?.epSel || plugin.media?.seasonSel)) {
+                               console.log(`[Search] Deep Scan exact match found for ${res.title}. Executing target script!`);
+                               
+                               const epSelEscaped = (plugin.media.epSel || '').replace(/'/g, "\\'");
+                               const seasonSelEscaped = (plugin.media.seasonSel || '').replace(/'/g, "\\'");
+                               const customJs = plugin.media.deepJs || '';
+                               
+                               let deepJsQuery = '';
+                               if (customJs) {
+                                 deepJsQuery = `
+                                   return new Promise(async (resolve) => {
+                                     try {
+                                       const res = await (async () => {
+                                         ${customJs}
+                                       })();
+                                       resolve(res);
+                                     } catch (e) {
+                                       resolve([]);
+                                     }
+                                   });
+                                 `;
+                               } else {
+                                 deepJsQuery = `
+                                   function getEps() {
+                                     let items = [];
+                                     let nodes = document.querySelectorAll('${epSelEscaped}');
+                                     if (nodes.length === 0) nodes = document.querySelectorAll('${seasonSelEscaped}');
+                                     
+                                     nodes.forEach(el => {
+                                       let text = el.textContent ? el.textContent.trim() : '';
+                                       if (!text) text = el.getAttribute('title') || el.getAttribute('alt') || 'Episode';
+                                       let href = el.getAttribute('href') || '';
+                                       if (href && !href.startsWith('http')) {
+                                         try { href = new URL(href, '${res.href}').href; } catch(e) {}
+                                       }
+                                       if (href && text) items.push({ title: text, href });
+                                     });
+                                     return items;
+                                   }
+                                   return new Promise((resolve) => {
+                                     if (document.readyState === 'complete') {
+                                        resolve(getEps());
+                                     } else {
+                                        window.addEventListener('load', () => resolve(getEps()));
+                                        setTimeout(() => resolve(getEps()), 3000);
+                                     }
+                                   });
+                                 `;
+                               }
+
+                               try {
+                                  const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                                  if (Array.isArray(deepResults) && deepResults.length > 0) {
+                                    matchedDeep = true;
+                                    results.length = 0; // Clear other concurrent results
+                                    
+                                    results.push({
+                                      id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
+                                      title: res.title,
+                                      url: res.href,
+                                      pluginName: opName,
+                                      type: 'result'
+                                    });
+                                    deepResults.forEach((dep: any) => {
+                                      results.push({
+                                        id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
+                                        title: '↳ ' + dep.title,
+                                        url: dep.href,
+                                        pluginName: opName,
+                                        type: 'result'
+                                      });
+                                    });
+                                    
+                                    setSearchResults(results);
+                                    setIsSearching(false);
+                                    return; // Break out immediately!
+                                  }
+                               } catch (e) {
+                                  console.error('[Search] Deep Search failed', e);
+                               }
+                            }
+                            
+                            if (!matchedDeep) {
+                              results.push({
+                                id: plugin.id + '_' + Math.random().toString(36).substring(7),
+                                title: res.title,
+                                url: res.href,
+                                pluginName: opName,
+                                type: 'result'
+                              });
+                            }
                           }
-                        });
+                        }
                         if (validCount === 0) {
                           console.log(`[Search] ${opName} found 0 valid results.`);
                           results.push({
@@ -323,8 +420,20 @@ export const DashboardView = () => {
               }
             }}
           />
+          {multiSearchQuery && !isSearching && (
+            <button
+              onClick={() => {
+                setMultiSearchQuery('');
+                setSearchResults([]);
+                setIsSearching(false);
+              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 bg-zinc-900/80 p-1 rounded-full"
+            >
+              <X size={18} />
+            </button>
+          )}
           {isSearching && (
-            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-zinc-900/80 p-1">
               <RefreshCw size={18} className="text-indigo-500 animate-spin" />
             </div>
           )}
@@ -357,19 +466,33 @@ export const DashboardView = () => {
             </div>
           )}
 
-          <div className="inline-flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800/50">
-            <button
-              onClick={() => setSearchParamMode('fetch')}
-              className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'fetch' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              Auto Search
-            </button>
-            <button
-              onClick={() => setSearchParamMode('navigate')}
-              className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'navigate' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-            >
-              Web Navigate
-            </button>
+          <div className="flex items-center justify-center gap-4">
+            <div className="inline-flex bg-zinc-900/50 p-1 rounded-xl border border-zinc-800/50">
+              <button
+                onClick={() => setSearchParamMode('fetch')}
+                className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'fetch' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                Auto Search
+              </button>
+              <button
+                onClick={() => setSearchParamMode('navigate')}
+                className={`text-xs font-medium px-4 py-1.5 rounded-lg transition-colors ${searchParamMode === 'navigate' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                Web Navigate
+              </button>
+            </div>
+            
+            {searchParamMode === 'fetch' && (
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50">
+                <input 
+                  type="checkbox" 
+                  checked={isDeepSearch} 
+                  onChange={(e) => setIsDeepSearch(e.target.checked)} 
+                  className="rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer" 
+                />
+                Deep Scan Match
+              </label>
+            )}
           </div>
         </div>
       </div>
@@ -399,7 +522,15 @@ export const DashboardView = () => {
                         className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
                       >
                         <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-emerald-400 group-hover:bg-emerald-500/10 transition-colors flex-shrink-0">
-                          <Globe size={18} />
+                          {p.icon ? (
+                            p.icon.includes('<svg') || p.icon.includes('http') ? (
+                              <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                            ) : (
+                              <span className="text-lg">{p.icon}</span>
+                            )
+                          ) : (
+                            <Globe size={18} />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-medium text-zinc-200 truncate group-hover:text-emerald-300 transition-colors">{p.name}</h4>
@@ -428,7 +559,15 @@ export const DashboardView = () => {
                       className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
                     >
                       <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-500 transition-colors flex-shrink-0">
-                        <Globe size={18} />
+                        {p.icon ? (
+                          p.icon.includes('<svg') || p.icon.includes('http') ? (
+                            <div className="w-5 h-5" dangerouslySetInnerHTML={{__html: p.icon.includes('<svg') ? p.icon : `<img src="${p.icon}" class="w-full h-full object-contain" />`}} />
+                          ) : (
+                            <span className="text-lg">{p.icon}</span>
+                          )
+                        ) : (
+                          <Globe size={18} />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-zinc-300 truncate">{p.name}</h4>

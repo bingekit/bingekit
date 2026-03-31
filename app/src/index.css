@@ -64,3 +64,7 @@ button {
 .relative>.z-10:has(.relative>button+div) {
   z-index: 11
 }
+
+* {
+  outline: 0 !important;
+}

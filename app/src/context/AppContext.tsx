@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { ahk } from '../lib/ahk';
 import {
   BookmarkItem, WatchLaterItem, CredentialItem,
-  FollowedItem, CustomFlow, Userscript, SitePlugin
+  FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
 } from '../types';
 
 interface AppContextType {
@@ -40,12 +40,15 @@ interface AppContextType {
   showCredModal: boolean; setShowCredModal: React.Dispatch<React.SetStateAction<boolean>>;
   searchParamMode: 'fetch' | 'navigate'; setSearchParamMode: React.Dispatch<React.SetStateAction<'fetch' | 'navigate'>>;
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
+  defaultSearchEngine: string; setDefaultSearchEngine: React.Dispatch<React.SetStateAction<string>>;
   playerRef: React.RefObject<HTMLDivElement>;
 
   savePlugin: () => void;
   deletePlugin: (plugin: SitePlugin) => void;
   updateEditingPlugin: (section: keyof SitePlugin | 'root', field: string, value: any) => void;
   fetchTitleForUrl: (targetUrl: string) => string;
+  networkFilters: Record<string, boolean>;
+  setNetworkFilters: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
@@ -64,6 +67,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
+  const [networkFilters, setNetworkFilters] = useState<Record<string, boolean>>({});
   const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
   const isInitialThemeMount = useRef(true);
   const [theme, setTheme] = useState({
@@ -74,7 +78,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     border: '#27272a',
     accent: '#6366f1',
     textMain: '#fafafa',
-    textSec: '#a1a1aa'
+    textSec: '#a1a1aa',
+    titlebarText: '#a1a1aa',
+    titlebarTextHover: '#fafafa',
+    titlebarAccent: '#6366f1',
+    titlebarAlt: '#18181b',
+    titlebarAlt2: '#27272a'
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -107,6 +116,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [showCredModal, setShowCredModal] = useState(false);
   const [searchParamMode, setSearchParamMode] = useState<'fetch' | 'navigate'>('fetch');
   const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(true);
+  const [defaultSearchEngine, setDefaultSearchEngine] = useState('https://duckduckgo.com/?q=');
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
   const lastSyncUrl = useRef<string | null>(null);
@@ -143,7 +153,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeTab === 'player') {
       if (lastSyncUrl.current !== url) {
         lastSyncUrl.current = url;
-        ahk.call('UpdatePlayerUrl', url);
+        const navUrl = url.startsWith('custom:') ? `about:blank#${encodeURIComponent(url)}` : url;
+        ahk.call('UpdatePlayerUrl', navUrl);
       }
     }
   }, [activeTab, url]);
@@ -151,13 +162,27 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleEvent = (e: any) => {
       if (e.detail && e.detail.url) {
+        if ((e.detail.url === 'about:blank' || e.detail.url.startsWith('data:text/html')) && lastSyncUrl.current?.startsWith('custom:')) {
+          return;
+        }
         lastSyncUrl.current = e.detail.url;
         setUrl(e.detail.url);
         setInputUrl(e.detail.url);
       }
     };
     window.addEventListener('player-url-changed', handleEvent);
-    return () => window.removeEventListener('player-url-changed', handleEvent);
+
+    const handleMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'addNetworkFilter' && e.data?.term) {
+        setNetworkFilters(prev => ({ ...(prev || {}), [e.data.term]: true }));
+      }
+    };
+    window.addEventListener('message', handleMsg);
+
+    return () => {
+      window.removeEventListener('player-url-changed', handleEvent);
+      window.removeEventListener('message', handleMsg);
+    };
   }, []);
 
   useEffect(() => {
@@ -236,6 +261,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedCreds = ahk.call('LoadData', 'credentials.json');
     if (savedCreds) { try { setCredentials(JSON.parse(savedCreds)); } catch (e) { } }
 
+    const savedFilters = ahk.call('LoadData', 'network_filters.json');
+    if (savedFilters) {
+      try {
+        const parsed = JSON.parse(savedFilters);
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          setNetworkFilters(parsed);
+        } else {
+          setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+        }
+      } catch (e) { }
+    } else {
+      setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+    }
+
     const loadUserscripts = () => {
       const filesStr = ahk.call('ListScripts');
       const loadedScripts: Userscript[] = [];
@@ -278,10 +317,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           border: parsed.border || '#27272a',
           accent: parsed.accent || '#6366f1',
           textMain: parsed.textMain || '#fafafa',
-          textSec: parsed.textSec || '#a1a1aa'
+          textSec: parsed.textSec || '#a1a1aa',
+          titlebarText: parsed.titlebarText || parsed.textSec || '#a1a1aa',
+          titlebarTextHover: parsed.titlebarTextHover || parsed.textMain || '#fafafa',
+          titlebarAccent: parsed.titlebarAccent || parsed.accent || '#6366f1',
+          titlebarAlt: parsed.titlebarAlt || '#18181b',
+          titlebarAlt2: parsed.titlebarAlt2 || '#27272a'
         });
       } catch (e) { }
     }
+
+    const savedSearchEngine = ahk.call('LoadData', 'search_engine.txt');
+    if (savedSearchEngine) { setDefaultSearchEngine(savedSearchEngine); }
 
     setTimeout(() => ahk.call('HideSplash'), 500);
   }, []);
@@ -290,55 +337,187 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => { ahk.call('SaveData', 'history.json', JSON.stringify(history)); }, [history]);
   useEffect(() => { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); }, [discoveryItems]);
   useEffect(() => { ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); }, [isHistoryEnabled]);
+  useEffect(() => { ahk.call('SaveData', 'search_engine.txt', defaultSearchEngine); }, [defaultSearchEngine]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
+  useEffect(() => {
+    ahk.call('SaveData', 'network_filters.json', JSON.stringify(networkFilters));
+    try { ahk.call('UpdateNetworkFilters', JSON.stringify(networkFilters)); } catch (e) { }
+  }, [networkFilters]);
+  useEffect(() => {
+    try { ahk.call('UpdateAdblockStatus', isAdblockEnabled ? 'true' : 'false'); } catch (e) { }
+  }, [isAdblockEnabled]);
 
   useEffect(() => {
     if (isInitialThemeMount.current) { isInitialThemeMount.current = false; return; }
     ahk.call('SaveData', 'theme.json', JSON.stringify(theme));
   }, [theme]);
 
-  // Save userscripts and sync payload to AHK
+  // Aggregate Plugin Blockers into Network Filters
+  useEffect(() => {
+    if (plugins.length === 0) return;
+    setNetworkFilters(prev => {
+      const merged = { ...prev };
+      let changed = false;
+      plugins.filter(p => p.enabled && p.networkBlockers && p.networkBlockers.length > 0).forEach(p => {
+        p.networkBlockers!.forEach(term => {
+          if (!merged[term]) {
+            merged[term] = true;
+            changed = true;
+          }
+        });
+      });
+      return changed ? merged : prev;
+    });
+
+    const siteBlockers: Record<string, { inline: string[], redirect: string[] }> = {};
+    let hasBlockers = false;
+    plugins.filter(p => p.enabled).forEach(p => {
+      try {
+        const host = new URL(p.baseUrl).hostname || p.baseUrl;
+        if (p.inlineBlockers?.length || p.redirectBlockers?.length) {
+          siteBlockers[host] = {
+            inline: p.inlineBlockers || [],
+            redirect: p.redirectBlockers || []
+          };
+          hasBlockers = true;
+        }
+      } catch (e) { }
+    });
+    if (hasBlockers) {
+      try { ahk.call('UpdateSiteBlockers', JSON.stringify(siteBlockers)); } catch (e) { }
+    }
+  }, [plugins]);
+
+  // Sync payload to AHK (Runs on script/plugin changes or URL changes)
   useEffect(() => {
     const activeScripts = userscripts.filter(s => s.enabled);
     let payload = '';
 
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs)) {
       payload = `
-        var currentHost = window.location.hostname;
-        var scripts = ${JSON.stringify(activeScripts)};
-        scripts.forEach(s => {
-          var matches = s.domains.includes('*') || s.domains.some(d => currentHost.includes(d));
-          if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
-        });
-        var sitePlugins = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss, js: p.customJs })).filter(p => p.css || p.js))};
-        sitePlugins.forEach(p => {
-          try {
-            var pHost = '';
-            try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
-            if (currentHost.includes(pHost) || pHost.includes(currentHost)) {
-              if (p.css) {
-                var style = document.createElement('style');
-                style.innerHTML = p.css;
-                document.head.appendChild(style);
-              }
-              if (p.js) {
-                try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
-              }
-            }
-          } catch(e) {}
-        });
+        (function() {
+          window._svPluginStyles = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, css: p.customCss })).filter(p => p.css))};
+
+          function ensureStyles() {
+            var currentUrl = window.location.href;
+            var currentHost = window.location.hostname;
+            if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+            
+            window._svPluginStyles.forEach(p => {
+              try {
+                var pHost = '';
+                try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                
+                var matchP = false;
+                if (pHost.startsWith('custom:')) {
+                  matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                } else {
+                  matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                }
+                
+                if (matchP) {
+                  if (p.css && !document.getElementById('sv-plugin-style-' + pHost)) {
+                    var style = document.createElement('style');
+                    style.id = 'sv-plugin-style-' + pHost;
+                    style.innerHTML = p.css;
+                    (document.head || document.documentElement).appendChild(style);
+                  }
+                }
+              } catch(e) {}
+            });
+          }
+
+          function applyStreamViewPayload() {
+            var currentUrl = window.location.href;
+            var currentHost = window.location.hostname;
+            if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
+            
+            var scripts = ${JSON.stringify(activeScripts)};
+            scripts.forEach(s => {
+              var matches = s.domains.includes('*') || s.domains.some(d => {
+                if (d.startsWith('custom:')) return d.endsWith('*') ? currentUrl.startsWith(d.slice(0, -1)) : currentUrl === d;
+                return currentHost.includes(d) || currentUrl.includes(d);
+              });
+              if (matches) { try { eval(s.code); } catch(e) { console.error('[Userscript Error]', s.name, e); } }
+            });
+            
+            var siteJs = ${JSON.stringify(plugins.map(p => ({ baseUrl: p.baseUrl, js: p.customJs })).filter(p => p.js))};
+            siteJs.forEach(p => {
+              try {
+                var pHost = '';
+                try { pHost = new URL(p.baseUrl).hostname; } catch(e) { pHost = p.baseUrl; }
+                var matchP = false;
+                if (pHost.startsWith('custom:')) {
+                  matchP = pHost.endsWith('*') ? currentUrl.startsWith(pHost.slice(0, -1)) : currentUrl === pHost;
+                } else {
+                  matchP = currentHost.includes(pHost) || pHost.includes(currentHost) || currentUrl.includes(pHost);
+                }
+                if (matchP && p.js) {
+                  try { eval(p.js); } catch(e) { console.error('[Plugin JS Error]', p.baseUrl, e); }
+                }
+              } catch(e) {}
+            });
+            
+            ensureStyles();
+          }
+
+          window._svApplyPayload = applyStreamViewPayload;
+          window._svEnsureStyles = ensureStyles;
+
+          // Apply immediately
+          window._svApplyPayload();
+
+          // Continuous style enforcement
+          if (!window._svStyleEnforcer) {
+            window._svStyleEnforcer = setInterval(() => {
+              if (window._svEnsureStyles) window._svEnsureStyles();
+            }, 1000);
+          }
+
+          // Apply on AJAX navigations safely if not already hooked
+          if (!window._svAjaxHooked) {
+             window._svAjaxHooked = true;
+             const origPush = window.history.pushState;
+             window.history.pushState = function() {
+                var res = origPush.apply(this, arguments);
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
+                return res;
+             };
+             const origReplace = window.history.replaceState;
+             window.history.replaceState = function() {
+                var res = origReplace.apply(this, arguments);
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
+                return res;
+             };
+             window.addEventListener('popstate', () => { 
+                if (window._svApplyPayload) {
+                    setTimeout(window._svApplyPayload, 50);
+                    setTimeout(window._svEnsureStyles, 500);
+                }
+             });
+          }
+        })();
       `;
     }
 
     ahk.call('UpdateUserscriptPayload', payload);
+  }, [userscripts, plugins, url]);
 
+  // Save userscripts to disk
+  useEffect(() => {
     const saveTimer = setTimeout(() => {
       userscripts.forEach(s => ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(s, null, 2)));
     }, 500);
     return () => clearTimeout(saveTimer);
-  }, [userscripts, plugins]);
+  }, [userscripts]);
 
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
@@ -370,10 +549,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
-    let finalUrl = inputUrl;
-    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+    let finalUrl = inputUrl.trim();
+    if (finalUrl.startsWith('about:') || finalUrl.startsWith('custom:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
+      // Leave as is
+    } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {
-        finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(finalUrl)}`;
+        finalUrl = `${defaultSearchEngine}${encodeURIComponent(finalUrl)}`;
       } else {
         finalUrl = `https://${finalUrl}`;
       }
@@ -400,15 +581,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const updateEditingPlugin = (section: keyof SitePlugin | 'root', field: string, value: any) => {
-    if (!editingPlugin) return;
-    if (section === 'root') {
-      setEditingPlugin({ ...editingPlugin, [field]: value });
-    } else {
-      setEditingPlugin({
-        ...editingPlugin,
-        [section]: { ...(editingPlugin[section as keyof SitePlugin] as any), [field]: value }
-      });
-    }
+    setEditingPlugin((prev) => {
+      if (!prev) return prev;
+      if (section === 'root') {
+        return { ...prev, [field]: value };
+      } else {
+        return {
+          ...prev,
+          [section]: { ...(prev[section as keyof SitePlugin] as any), [field]: value }
+        };
+      }
+    });
   };
 
   const fetchTitleForUrl = (targetUrl: string): string => {
@@ -431,7 +614,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       let res = str.replace(/\{\{CURRENT_URL\}\}/g, url)
         .replace(/\{\{PREV\}\}/g, currentVar)
         .replace(/\{\{SEARCH\}\}/g, multiSearchQuery);
-      
+
       Object.entries(customVars).forEach(([key, val]) => {
         res = res.replace(new RegExp(`\\{${key}\\}`, 'g'), val);
       });
@@ -451,12 +634,55 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (step.type === 'navigate') {
         const dest = await resolveVars(step.params.url || '');
-        ahk.call('UpdatePlayerUrl', dest);
+        const navUrl = dest.startsWith('custom:') ? `data:text/html,<html><body></body></html>#${encodeURIComponent(dest)}` : dest;
+        ahk.call('UpdatePlayerUrl', navUrl);
         currentVar = dest;
         await new Promise(r => setTimeout(r, 1500));
       } else if (step.type === 'inject') {
         const code = await resolveVars(step.params.code || '');
         ahk.call('InjectJS', code);
+      } else if (step.type === 'waitForElement') {
+        const selector = await resolveVars(step.params.selector || '');
+        console.log('[Flow] Waiting for element:', selector);
+        let found = false;
+        let attempts = 0;
+        while (!found && attempts < 100) {
+          const js = `!!document.querySelector('${selector.replace(/'/g, "\\'")}')`;
+          try {
+            const res = await ahk.call('EvalPlayerJS', js);
+            if (res === 'true') {
+              found = true;
+              console.log('[Flow] Element found!');
+              break;
+            }
+          } catch (e) { }
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        if (!found) console.warn('[Flow] Timed out waiting for element:', selector);
+      } else if (step.type === 'interact') {
+        const selector = await resolveVars(step.params.selector || '');
+        const actionType = step.params.actionType || 'click';
+        const value = await resolveVars(step.params.value || '');
+        console.log('[Flow] Interacting with:', selector, actionType);
+
+        const jsCode = `
+          (function() {
+            var el = document.querySelector('${selector.replace(/'/g, "\\'")}');
+            if (el) {
+              ${actionType === 'setValue' ? `
+                 el.value = '${value.replace(/'/g, "\\'")}';
+                 el.dispatchEvent(new Event('input', {bubbles: true}));
+                 el.dispatchEvent(new Event('change', {bubbles: true}));
+                 if (el.tagName === 'FORM') el.submit();
+              ` : `el.click();`}
+              return true;
+            }
+            return false;
+          })();
+        `;
+        ahk.call('InjectJS', jsCode);
+        await new Promise(r => setTimeout(r, 200));
       } else if (step.type === 'RawFetchHTML') {
         const fetchUrl = await resolveVars(step.params.url || '');
         const html = ahk.call('RawFetchHTML', fetchUrl);
@@ -495,9 +721,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const targetUrl = await resolveVars(step.params.url || '');
         const targetPluginId = await resolveVars(step.params.pluginId || '');
         const targetPlugin = plugins.find(p => p.id === targetPluginId);
-        
+
         if (targetPlugin && targetUrl && window.SmartFetch) {
-           const jsQuery = `
+          const jsQuery = `
               const items = Array.from(document.querySelectorAll('${targetPlugin.search.itemSel.replace(/'/g, "\\'") || 'body'}'));
               return items.slice(0, 10).map(item => {
                  let el = item.querySelector('${targetPlugin.search.titleSel.replace(/'/g, "\\'")}');
@@ -507,9 +733,36 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                  return { title, href };
               });
            `;
-           const res = await window.SmartFetch(targetUrl, jsQuery);
-           if (res) currentVar = res;
+          const res = await window.SmartFetch(targetUrl, jsQuery);
+          if (res) currentVar = res;
         }
+      } else if (step.type === 'customSmartFetch') {
+        const targetUrl = await resolveVars(step.params.url || '');
+        const jsCode = await resolveVars(step.params.code || 'return [];');
+
+        if (targetUrl && window.SmartFetch) {
+          const jsQuery = `
+             return new Promise(async (resolve) => {
+               try {
+                 const res = await (async () => {
+                   ${jsCode}
+                 })();
+                 resolve(res);
+               } catch(e) {
+                 resolve({ error: e.message || String(e) });
+               }
+             });
+           `;
+          console.log('[Flow] Executing Custom SmartFetch on:', targetUrl);
+          const res = await window.SmartFetch(targetUrl, jsQuery);
+          currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
+          console.log('[Flow] Custom SmartFetch Result:', currentVar);
+        }
+      } else if (step.type === 'wait') {
+        const msStr = await resolveVars(step.params.ms || '1000');
+        const ms = parseInt(msStr) || 1000;
+        console.log(`[Flow] Waiting for ${ms}ms...`);
+        await new Promise(r => setTimeout(r, ms));
       }
     }
     return currentVar;
@@ -525,7 +778,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    networkFilters, setNetworkFilters
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

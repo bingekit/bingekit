@@ -5,6 +5,14 @@ export interface FormExtraAction {
   value: string;
 }
 
+export interface BaseMetadata {
+  version?: string;
+  updateUrl?: string;
+  author?: string;
+  description?: string;
+  icon?: string;
+}
+
 export interface BookmarkItem {
   id: string;
   title: string;
@@ -63,7 +71,7 @@ export interface FlowStep {
   params: Record<string, any>;
 }
 
-export interface CustomFlow {
+export interface CustomFlow extends BaseMetadata {
   id: string;
   name: string;
   description: string;
@@ -72,7 +80,7 @@ export interface CustomFlow {
   enabled?: boolean;
 }
 
-export interface Userscript {
+export interface Userscript extends BaseMetadata {
   id: string;
   name: string;
   domains: string[];
@@ -101,7 +109,7 @@ export interface SearchConfig {
   delegateFlowInputs?: Record<string, string>;
 }
 
-export interface SitePlugin {
+export interface SitePlugin extends BaseMetadata {
   id: string;
   name: string;
   baseUrl: string;
@@ -132,6 +140,9 @@ export interface SitePlugin {
     delegateFlowInputs?: Record<string, string>;
   };
   additionalSearches?: SearchConfig[];
+  networkBlockers?: string[];
+  inlineBlockers?: string[];
+  redirectBlockers?: string[];
   enabled?: boolean;
   details: {
     titleSel: string;
@@ -149,6 +160,7 @@ export interface SitePlugin {
   media: {
     seasonSel: string;
     epSel: string;
+    deepJs?: string;
   };
   player: {
     playerSel: string;
@@ -167,13 +179,21 @@ export interface SitePlugin {
 export const DEFAULT_PLUGIN: SitePlugin = {
   id: '',
   name: 'New Site Plugin',
+  description: '',
+  version: '1.0.0',
+  author: '',
+  updateUrl: '',
+  icon: '',
   baseUrl: 'https://',
   auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
   additionalSearches: [],
+  networkBlockers: [],
+  inlineBlockers: [],
+  redirectBlockers: [],
   enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
-  media: { seasonSel: '', epSel: '' },
+  media: { seasonSel: '', epSel: '', deepJs: '' },
   player: { playerSel: '', focusCss: 'position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background: #000;' },
   tags: [],
   customFunctions: [],
