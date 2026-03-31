@@ -408,12 +408,19 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     GetUserscriptPayload: AHK_GetUserscriptPayload,
                     CacheSet: AHK_CacheSet,
                     CacheGet: AHK_CacheGet,
-                    CacheClear: AHK_CacheClear
+                    CacheClear: AHK_CacheClear,
+                    AddNetworkFilter: AHK_AddNetworkFilter
                 })
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
                 PlayerWV.wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
+                try {
+                    PlayerWV.wv.AddWebResourceRequestedFilter("*", 0)
+                    PlayerWV.wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
+                } catch as e {
+                    OutputDebug(e.Message)
+                }
                 ;PlayerWV.SourceChanged(xWebView2.Handler(AHK_PlayerUrlChanged))
                 if (PendingPlayerUrl != "") {
                     PlayerCurrentUrl := PendingPlayerUrl
@@ -671,6 +678,69 @@ AHK_HideTooltip(*) {
     ToolTip()
 }
 
+global NetworkFilters := Map()
+global NetworkAdblockEnabled := true
+
+AHK_UpdateNetworkFilters(jsonStr) {
+    global NetworkFilters
+    NetworkFilters.Clear()
+    pos := 1
+    while RegExMatch(jsonStr, '"([^"]+)":\s*true', &match, pos) {
+        NetworkFilters[match[1]] := true
+        pos := match.Pos(1) + StrLen(match[1])
+    }
+}
+
+AHK_AddNetworkFilter(term) {
+    global NetworkFilters, MainGui
+    if (!NetworkFilters.Has(term)) {
+        NetworkFilters[term] := true
+        try {
+            MainGui.Control.ExecuteScriptAsync("window.postMessage({ type: 'addNetworkFilter', term: '" term "' }, '*');")
+        } catch as e {
+            OutputDebug(e.Message)
+        }
+        
+        json := "{"
+        for t, _ in NetworkFilters {
+            json .= '"' t '": true,'
+        }
+        json := RTrim(json, ",")
+        json .= "}"
+        AHK_SaveData("network_filters.json", json)
+    }
+}
+
+AHK_UpdateAdblockStatus(status) {
+    global NetworkAdblockEnabled
+    NetworkAdblockEnabled := (status = "true")
+}
+
+AHK_PlayerResourceRequested(sender, args) {
+    global NetworkFilters, NetworkAdblockEnabled
+    if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
+        return
+    }
+
+    uri := args.Request.Uri
+    isBlocked := false
+    for term, _ in NetworkFilters {
+        if (InStr(uri, term)) {
+            isBlocked := true
+            break
+        }
+    }
+
+    if (isBlocked) {
+        try {
+            ; Return 403 Forbidden to block it seamlessly.
+            args.Response := sender.Environment.CreateWebResourceResponse(0, 403, "Blocked", "")
+        } catch {
+            ; Fallback if Environment isn't directly exposed
+        }
+    }
+}
+
 ; Expose AHK functions to the WebView (JavaScript) using a plain object
 WV.AddHostObjectToScript("ahk", {
     HideSplash: AHK_HideSplash,
@@ -700,6 +770,9 @@ WV.AddHostObjectToScript("ahk", {
     UpdateURL: AHK_UpdateURL,
     UpdateUserscriptPayload: AHK_UpdateUserscriptPayload,
     GetUserscriptPayload: AHK_GetUserscriptPayload,
+    UpdateNetworkFilters: AHK_UpdateNetworkFilters,
+    AddNetworkFilter: AHK_AddNetworkFilter,
+    UpdateAdblockStatus: AHK_UpdateAdblockStatus,
     ListScripts: AHK_ListScripts,
     SaveScript: AHK_SaveScript,
     LoadScript: AHK_LoadScript,

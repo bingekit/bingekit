@@ -2,7 +2,8 @@
     window.ahk = {
         CacheSet: function (k, v) { return window.chrome.webview.hostObjects.sync.ahk.CacheSet(k, v); },
         CacheGet: function (k) { return window.chrome.webview.hostObjects.sync.ahk.CacheGet(k); },
-        CacheClear: function () { return window.chrome.webview.hostObjects.sync.ahk.CacheClear(); }
+        CacheClear: function () { return window.chrome.webview.hostObjects.sync.ahk.CacheClear(); },
+        AddNetworkFilter: function (t) { return window.chrome.webview.hostObjects.sync.ahk.AddNetworkFilter(t); }
     };
 
     function syncUrlToAhk() {

@@ -47,6 +47,8 @@ interface AppContextType {
   deletePlugin: (plugin: SitePlugin) => void;
   updateEditingPlugin: (section: keyof SitePlugin | 'root', field: string, value: any) => void;
   fetchTitleForUrl: (targetUrl: string) => string;
+  networkFilters: Record<string, boolean>;
+  setNetworkFilters: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
@@ -65,6 +67,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
+  const [networkFilters, setNetworkFilters] = useState<Record<string, boolean>>({});
   const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
   const isInitialThemeMount = useRef(true);
   const [theme, setTheme] = useState({
@@ -168,7 +171,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     window.addEventListener('player-url-changed', handleEvent);
-    return () => window.removeEventListener('player-url-changed', handleEvent);
+
+    const handleMsg = (e: MessageEvent) => {
+      if (e.data?.type === 'addNetworkFilter' && e.data?.term) {
+        setNetworkFilters(prev => ({ ...(prev || {}), [e.data.term]: true }));
+      }
+    };
+    window.addEventListener('message', handleMsg);
+
+    return () => {
+      window.removeEventListener('player-url-changed', handleEvent);
+      window.removeEventListener('message', handleMsg);
+    };
   }, []);
 
   useEffect(() => {
@@ -247,6 +261,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedCreds = ahk.call('LoadData', 'credentials.json');
     if (savedCreds) { try { setCredentials(JSON.parse(savedCreds)); } catch (e) { } }
 
+    const savedFilters = ahk.call('LoadData', 'network_filters.json');
+    if (savedFilters) {
+      try {
+        const parsed = JSON.parse(savedFilters);
+        if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+          setNetworkFilters(parsed);
+        } else {
+          setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+        }
+      } catch (e) { }
+    } else {
+      setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+    }
+
     const loadUserscripts = () => {
       const filesStr = ahk.call('ListScripts');
       const loadedScripts: Userscript[] = [];
@@ -313,11 +341,36 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
+  useEffect(() => {
+    ahk.call('SaveData', 'network_filters.json', JSON.stringify(networkFilters));
+    try { ahk.call('UpdateNetworkFilters', JSON.stringify(networkFilters)); } catch (e) { }
+  }, [networkFilters]);
+  useEffect(() => {
+    try { ahk.call('UpdateAdblockStatus', isAdblockEnabled ? 'true' : 'false'); } catch (e) { }
+  }, [isAdblockEnabled]);
 
   useEffect(() => {
     if (isInitialThemeMount.current) { isInitialThemeMount.current = false; return; }
     ahk.call('SaveData', 'theme.json', JSON.stringify(theme));
   }, [theme]);
+
+  // Aggregate Plugin Blockers into Network Filters
+  useEffect(() => {
+    if (plugins.length === 0) return;
+    setNetworkFilters(prev => {
+      const merged = { ...prev };
+      let changed = false;
+      plugins.filter(p => p.enabled && p.networkBlockers && p.networkBlockers.length > 0).forEach(p => {
+        p.networkBlockers!.forEach(term => {
+          if (!merged[term]) {
+            merged[term] = true;
+            changed = true;
+          }
+        });
+      });
+      return changed ? merged : prev;
+    });
+  }, [plugins]);
 
   // Sync payload to AHK (Runs on script/plugin changes or URL changes)
   useEffect(() => {
@@ -531,17 +584,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         let found = false;
         let attempts = 0;
         while (!found && attempts < 100) {
-            const js = `!!document.querySelector('${selector.replace(/'/g, "\\'")}')`;
-            try {
-                const res = await ahk.call('EvalPlayerJS', js);
-                if (res === 'true') {
-                    found = true;
-                    console.log('[Flow] Element found!');
-                    break;
-                }
-            } catch(e) {}
-            await new Promise(r => setTimeout(r, 100));
-            attempts++;
+          const js = `!!document.querySelector('${selector.replace(/'/g, "\\'")}')`;
+          try {
+            const res = await ahk.call('EvalPlayerJS', js);
+            if (res === 'true') {
+              found = true;
+              console.log('[Flow] Element found!');
+              break;
+            }
+          } catch (e) { }
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
         }
         if (!found) console.warn('[Flow] Timed out waiting for element:', selector);
       } else if (step.type === 'interact') {
@@ -549,7 +602,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const actionType = step.params.actionType || 'click';
         const value = await resolveVars(step.params.value || '');
         console.log('[Flow] Interacting with:', selector, actionType);
-        
+
         const jsCode = `
           (function() {
             var el = document.querySelector('${selector.replace(/'/g, "\\'")}');
@@ -623,9 +676,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (step.type === 'customSmartFetch') {
         const targetUrl = await resolveVars(step.params.url || '');
         const jsCode = await resolveVars(step.params.code || 'return [];');
-        
+
         if (targetUrl && window.SmartFetch) {
-           const jsQuery = `
+          const jsQuery = `
              return new Promise(async (resolve) => {
                try {
                  const res = await (async () => {
@@ -637,10 +690,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
                }
              });
            `;
-           console.log('[Flow] Executing Custom SmartFetch on:', targetUrl);
-           const res = await window.SmartFetch(targetUrl, jsQuery);
-           currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
-           console.log('[Flow] Custom SmartFetch Result:', currentVar);
+          console.log('[Flow] Executing Custom SmartFetch on:', targetUrl);
+          const res = await window.SmartFetch(targetUrl, jsQuery);
+          currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
+          console.log('[Flow] Custom SmartFetch Result:', currentVar);
         }
       } else if (step.type === 'wait') {
         const msStr = await resolveVars(step.params.ms || '1000');
@@ -662,7 +715,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    networkFilters, setNetworkFilters
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

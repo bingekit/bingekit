@@ -50,6 +50,7 @@ const MainLayout = () => {
           --theme-titlebar-accent: ${theme.titlebarAccent || theme.accent || '#6366f1'};
           --theme-titlebar-alt: ${theme.titlebarAlt || '#18181b'};
           --theme-titlebar-alt2: ${theme.titlebarAlt2 || '#27272a'};
+          --theme-surface: var(--theme-main);
         }
 
 

@@ -191,6 +191,8 @@
             .pop-under,
             #popad,
             body~*,
+            footer,
+            footer~*,
             .overlay-ad {
                 display: none!important;
                 width: 0!important;

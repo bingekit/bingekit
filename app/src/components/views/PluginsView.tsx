@@ -146,7 +146,13 @@ export const PluginsView = () => {
                     onChange={newTags => updateEditingPlugin('root', 'tags', newTags)}
                   />
                 </div>
-                <div className="hidden md:block"></div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Network Blockers</label>
+                  <TagsInput
+                    tags={editingPlugin.networkBlockers || []}
+                    onChange={newTags => updateEditingPlugin('root', 'networkBlockers', newTags)}
+                  />
+                </div>
                 <div>
                   <label className="block text-xs text-zinc-500 mb-1.5">Custom CSS</label>
                   <textarea

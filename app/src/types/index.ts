@@ -132,6 +132,7 @@ export interface SitePlugin {
     delegateFlowInputs?: Record<string, string>;
   };
   additionalSearches?: SearchConfig[];
+  networkBlockers?: string[];
   enabled?: boolean;
   details: {
     titleSel: string;
