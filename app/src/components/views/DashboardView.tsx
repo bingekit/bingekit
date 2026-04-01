@@ -155,12 +155,39 @@ export const DashboardView = () => {
                       const isFormSearch = !!cfg.isFormSearch;
                       const encodedExtras = JSON.stringify(cfg.formExtraActions || []);
 
+                      const pluginConfigString = JSON.stringify({
+                        itemSel: cfg.itemSel || '',
+                        titleSel: cfg.titleSel || '',
+                        linkSel: cfg.linkSel || ''
+                      });
+
                       const jsQuery = `
+                                  if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                                  if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
+                                  if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                                  if (!Element.prototype.$$) Element.prototype.$$ = function(s) { return this.querySelector(s); };
+                                  
+                                  const pluginConfig = ${pluginConfigString};
                                   function extractValue(el, selector, defaultAttr) {
                                     if (!el) return '';
-                                    if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
-                                    if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
-                                    if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
+                                    if (!selector && !defaultAttr) {
+                                      if (typeof el === 'object' && !el.nodeType) return el.title || el.href || el.text || '';
+                                      return el.textContent ? el.textContent.trim() : '';
+                                    }
+                                    
+                                    if (selector.startsWith('js:')) {
+                                      let code = selector.slice(3).trim();
+                                      if (!/\breturn\b/.test(code)) code = 'return (' + code + ');';
+                                      try { return new Function('el', code)(el); } catch(e) { return ''; }
+                                    }
+                                    if (selector.startsWith('()=>')) {
+                                      try { return eval(selector.slice(4))(el); } catch(e) { return ''; }
+                                    }
+                                    
+                                    if (typeof el === 'object' && !el.nodeType) {
+                                      let key = selector || defaultAttr;
+                                      return key ? (el[key] || '') : (el.title || el.href || el.text || '');
+                                    }
                                     
                                     let targetSel = selector;
                                     let attr = defaultAttr;
@@ -182,11 +209,21 @@ export const DashboardView = () => {
                                   }
                                   
                                   function scrapeItems() {
-                                    const itemSelector = '${cfg.itemSel ? cfg.itemSel.replace(/'/g, "\\'") : 'body'}';
-                                    const items = Array.from(document.querySelectorAll(itemSelector));
+                                    let items = [];
+                                    const itemSel = pluginConfig.itemSel;
+                                    if (itemSel.startsWith('js:')) {
+                                      let code = itemSel.slice(3).trim();
+                                      if (!/\breturn\b/.test(code)) code = 'return (' + code + ');';
+                                      try { items = new Function(code)() || []; } catch(e) {}
+                                    } else if (itemSel.startsWith('()=>')) {
+                                      try { items = eval(itemSel.slice(4))() || []; } catch(e) {}
+                                    } else {
+                                      items = Array.from(document.querySelectorAll(itemSel || 'body'));
+                                    }
+                                    
                                     return items.slice(0, 10).map(item => {
-                                      let titleStr = extractValue(item, '${cfg.titleSel ? cfg.titleSel.replace(/'/g, "\\'") : ''}', null);
-                                      let linkStr = extractValue(item, '${cfg.linkSel ? cfg.linkSel.replace(/'/g, "\\'") : ''}', 'href');
+                                      let titleStr = extractValue(item, pluginConfig.titleSel, null);
+                                      let linkStr = extractValue(item, pluginConfig.linkSel, 'href');
                                       
                                       if (linkStr && !linkStr.startsWith('http')) {
                                         try { linkStr = new URL(linkStr, '${plugin.baseUrl}').href; } catch(e) {}
@@ -319,13 +356,40 @@ export const DashboardView = () => {
                                    });
                                  `;
                               } else {
+                                const tvConfigString = JSON.stringify({
+                                  epSel: plugin.media.epSel || '',
+                                  seasonSel: plugin.media.seasonSel || ''
+                                });
+
                                 deepJsQuery = `
+                                   if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                                   if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
+                                   if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                                   if (!Element.prototype.$$) Element.prototype.$$ = function(s) { return this.querySelector(s); };
+                                   
+                                   const tvConfig = ${tvConfigString};
+                                   function getNodes(sel) {
+                                     if (!sel) return [];
+                                     if (sel.startsWith('js:')) {
+                                        let code = sel.slice(3).trim();
+                                        if (!/\breturn\b/.test(code)) code = 'return (' + code + ');';
+                                        try { return new Function(code)() || []; } catch(e) { console.error('js: error', e); return []; }
+                                     }
+                                     if (sel.startsWith('()=>')) {
+                                        try { return eval(sel.slice(4))() || []; } catch(e) { return []; }
+                                     }
+                                     return Array.from(document.querySelectorAll(sel));
+                                   }
                                    function getEps() {
                                      let items = [];
-                                     let nodes = document.querySelectorAll('${epSelEscaped}');
-                                     if (nodes.length === 0) nodes = document.querySelectorAll('${seasonSelEscaped}');
+                                     let nodes = getNodes(tvConfig.epSel);
+                                     if (nodes.length === 0) nodes = getNodes(tvConfig.seasonSel);
                                      
                                      nodes.forEach(el => {
+                                       if (typeof el === 'object' && !el.nodeType) {
+                                          if (el.href && el.title) items.push(el);
+                                          return;
+                                       }
                                        let text = el.textContent ? el.textContent.trim() : '';
                                        if (!text) text = el.getAttribute('title') || el.getAttribute('alt') || 'Episode';
                                        let href = el.getAttribute('href') || '';

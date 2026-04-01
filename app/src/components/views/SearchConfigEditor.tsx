@@ -241,6 +241,11 @@ export const SearchConfigEditor = ({
               </div>
             </div>
           )}
+
+          <div className="bg-zinc-800/40 border border-zinc-700/50 rounded-lg p-3 mb-4 text-xs text-zinc-400">
+            <strong className="text-zinc-300">Pro Tip:</strong> Prefix any selector below with <code className="text-zinc-300 bg-zinc-900 px-1 py-0.5 rounded">js:</code> to run a JavaScript expression instead of a CSS query. (e.g. <code className="text-zinc-300 bg-zinc-900 px-1 py-0.5 rounded">js: return el.href;</code> or <code className="text-zinc-300 bg-zinc-900 px-1 py-0.5 rounded">js: return [];</code> for items)
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-zinc-500 mb-1.5">List Item Selector</label>
@@ -324,12 +329,39 @@ export const SearchConfigEditor = ({
 
                     const encodedExtras = JSON.stringify(config.formExtraActions || []);
 
+                    const pluginConfigString = JSON.stringify({
+                      itemSel: config.itemSel || '',
+                      titleSel: config.titleSel || '',
+                      linkSel: config.linkSel || ''
+                    });
+
                     const jsQuery = `
+                      if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                      if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
+                      if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
+                      if (!Element.prototype.$$) Element.prototype.$$ = function(s) { return this.querySelector(s); };
+                      
+                      const pluginConfig = ${pluginConfigString};
                       function extractValue(el, selector, defaultAttr) {
                         if (!el) return '';
-                        if (!selector && !defaultAttr) return el.textContent ? el.textContent.trim() : '';
-                        if (!selector && defaultAttr) return el.getAttribute(defaultAttr) || '';
-                        if (selector.startsWith('()=>')) return eval(selector.slice(4))(el);
+                        if (!selector && !defaultAttr) {
+                          if (typeof el === 'object' && !el.nodeType) return el.title || el.href || el.text || '';
+                          return el.textContent ? el.textContent.trim() : '';
+                        }
+                        
+                        if (selector.startsWith('js:')) {
+                          let code = selector.slice(3).trim();
+                          if (!/\breturn\b/.test(code)) code = 'return (' + code + ');';
+                          try { return new Function('el', code)(el); } catch(e) { return 'ERR: ' + e.message; }
+                        }
+                        if (selector.startsWith('()=>')) {
+                          try { return eval(selector.slice(4))(el); } catch(e) { return 'ERR: ' + e.message; }
+                        }
+                        
+                        if (typeof el === 'object' && !el.nodeType) {
+                          let key = selector || defaultAttr;
+                          return key ? (el[key] || '') : (el.title || el.href || el.text || '');
+                        }
                         let targetSel = selector;
                         let attr = defaultAttr;
                         if (selector.includes('@')) {
@@ -346,13 +378,33 @@ export const SearchConfigEditor = ({
                       }
                       
                       function scrapeItems() {
-                        const itemSelector = '${config.itemSel ? config.itemSel.replace(/'/g, "\\'") : 'body'}';
-                        const items = Array.from(document.querySelectorAll(itemSelector));
-                        const results = items.slice(0, 5).map(item => ({
-                          title: extractValue(item, '${config.titleSel ? config.titleSel.replace(/'/g, "\\'") : ''}', null),
-                          href: extractValue(item, '${config.linkSel ? config.linkSel.replace(/'/g, "\\'") : ''}', 'href'),
-                          htmlPreview: item.outerHTML.substring(0, 150) + '...'
-                        }));
+                        let items = [];
+                        const itemSel = pluginConfig.itemSel;
+                        if (itemSel.startsWith('js:')) {
+                            let code = itemSel.slice(3).trim();
+                            if (!/\breturn\b/.test(code)) code = 'return (' + code + ');';
+                            try { items = new Function(code)() || []; } catch(e) { console.error('item list err', e); }
+                        } else if (itemSel.startsWith('()=>')) {
+                            try { items = eval(itemSel.slice(4))() || []; } catch(e) {}
+                        } else {
+                            items = Array.from(document.querySelectorAll(itemSel || 'body'));
+                        }
+                        
+                        const parsed = items.map(item => {
+                          let title = extractValue(item, pluginConfig.titleSel, null);
+                          let href = extractValue(item, pluginConfig.linkSel, 'href');
+                          if (href && !href.startsWith('http') && !href.startsWith('ERR:')) {
+                            try { href = new URL(href, '${rawUrl}').href; } catch(e) {}
+                          }
+                          return {
+                            title,
+                            href,
+                            htmlPreview: (item && item.nodeType) ? item.outerHTML.substring(0, 150) + '...' : JSON.stringify(item)
+                          };
+                        });
+                        
+                        const validResults = parsed.filter(p => (p.title || p.href) && !p.href.startsWith('ERR:'));
+                        const results = (validResults.length > 0 ? validResults : parsed).slice(0, 5);
                         return { count: items.length, items: results };
                       }
                       
