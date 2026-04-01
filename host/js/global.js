@@ -63,7 +63,13 @@
         let playing = false;
         let pTime = 0;
         let pDur = 0;
+        
+        if (window._svIgnoreVideoUrls && window._svIgnoreVideoUrls.split(',').some(u => u.trim() && location.href.includes(u.trim()))) {
+            return; // Ignore this entire frame
+        }
+
         document.querySelectorAll('video').forEach(v => {
+            if (window._svIgnoreVideoCSS && v.matches(window._svIgnoreVideoCSS)) return;
             if (v.readyState !== 0 && !v.paused) {
                 playing = true;
                 pTime = v.currentTime;
@@ -141,6 +147,12 @@
             window._svSeekObserver.observe(document.body, { childList: true, subtree: true });
             setTimeout(() => { if (window._svSeekObserver) window._svSeekObserver.disconnect(); }, 15000);
             
+            Array.from(document.querySelectorAll('iframe')).forEach(f => {
+                try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
+            });
+        } else if (e.data && e.data.type === 'sv-ignore-cfg') {
+            window._svIgnoreVideoUrls = e.data.urls;
+            window._svIgnoreVideoCSS = e.data.css;
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
             });

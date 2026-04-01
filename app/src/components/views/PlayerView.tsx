@@ -137,7 +137,15 @@ export const PlayerView = () => {
               `);
       }
     }
+
   }, [isFocusedMode, activeTab, playerStatus, url, plugins]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'player') return;
+    const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+    const { ignoreVideoUrls, ignoreVideoCSS } = plugin?.player || {};
+    ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
+  }, [url, activeTab, plugins]);
 
   React.useEffect(() => {
     if (activeTab !== 'player' || playerStatus !== 'found') return;

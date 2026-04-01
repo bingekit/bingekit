@@ -1341,6 +1341,28 @@ export const PluginsView = () => {
                           and hide site navigation.
                         </p>
                       </div>
+                      <div className="pt-2 border-t border-zinc-800/50">
+                        <label className="block text-xs text-zinc-500 mb-1.5 font-medium">Ignore Video URLs (Optional)</label>
+                        <input
+                          type="text"
+                          value={editingPlugin.player.ignoreVideoUrls || ''}
+                          placeholder="e.g. youtube.com, trailer.mp4 (comma separated)"
+                          onChange={e => updateEditingPlugin('player', 'ignoreVideoUrls', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono tracking-wide"
+                        />
+                        <p className="text-[10px] text-zinc-600 mt-1">If the video or its iframe URL contains any of these strings, watch progress will not be tracked.</p>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-zinc-500 mb-1.5 font-medium">Ignore Video CSS (Optional)</label>
+                        <input
+                          type="text"
+                          value={editingPlugin.player.ignoreVideoCSS || ''}
+                          placeholder="e.g. video.trailer-player, .ad-video"
+                          onChange={e => updateEditingPlugin('player', 'ignoreVideoCSS', e.target.value)}
+                          className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono tracking-wide"
+                        />
+                        <p className="text-[10px] text-zinc-600 mt-1">Any video element matching this selector will not be tracked for watch progress.</p>
+                      </div>
                     </div>
                   </div>
 

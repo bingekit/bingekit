@@ -192,6 +192,8 @@ export interface SitePlugin extends BaseMetadata {
   player: {
     playerSel: string;
     focusCss: string;
+    ignoreVideoUrls?: string;
+    ignoreVideoCSS?: string;
   };
   tags?: string[];
   customFunctions: {
