@@ -139,6 +139,16 @@ AHK_ListSites(*) {
     return RTrim(fileList, "|")
 }
 
+AHK_ListInterfaces(*) {
+    global WorkspaceDir
+    if !DirExist(WorkspaceDir "\interfaces")
+        DirCreate(WorkspaceDir "\interfaces")
+    folderList := ""
+    Loop Files, WorkspaceDir "\interfaces\*", "D"
+        folderList .= A_LoopFileName "|"
+    return RTrim(folderList, "|")
+}
+
 AHK_SaveSite(filename, data) {
     global WorkspaceDir
     if !DirExist(WorkspaceDir "\sites")

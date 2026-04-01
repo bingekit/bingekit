@@ -30,7 +30,7 @@
 
     function syncUrlToAhk() {
         if (!runSync) return;
-        try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace("/index.htm", "/")); } catch (e) { }
+        try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
     }
 
     if (!window._svGlobalAjaxHooked) {

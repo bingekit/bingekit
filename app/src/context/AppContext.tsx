@@ -5,6 +5,7 @@ import {
   BookmarkItem, WatchLaterItem, CredentialItem,
   FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
 } from '../types';
+export type NavButtonsConfig = { home: boolean; back: boolean; forward: boolean; reload: boolean };
 
 interface AppContextType {
   url: string; setUrl: React.Dispatch<React.SetStateAction<string>>;
@@ -48,6 +49,8 @@ interface AppContextType {
   authStatus: 'unknown' | 'loggedIn' | 'loggedOut'; setAuthStatus: React.Dispatch<React.SetStateAction<'unknown' | 'loggedIn' | 'loggedOut'>>;
   playerStatus: 'notFound' | 'found'; setPlayerStatus: React.Dispatch<React.SetStateAction<'notFound' | 'found'>>;
   pageTitle: string;
+  navButtons: NavButtonsConfig; setNavButtons: React.Dispatch<React.SetStateAction<NavButtonsConfig>>;
+  installedInterfaces: string[];
 
   savePlugin: () => void;
   deletePlugin: (plugin: SitePlugin) => void;
@@ -70,6 +73,8 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+  const [navButtons, setNavButtons] = useState<NavButtonsConfig>({ home: true, back: true, forward: true, reload: true });
+  const [installedInterfaces, setInstalledInterfaces] = useState<string[]>([]);
   const [homePage, setHomePage] = useState('https://example.com/stream');
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
@@ -175,6 +180,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           navUrl = 'data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E';
         } else if (url.startsWith('custom:')) {
           navUrl = `data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E#${url}`;
+        } else if (url.startsWith('interface:')) {
+          let path = url.replace('interface:', '');
+          if (!path.includes('.')) {
+            if (path && !path.endsWith('/')) { path += '/'; }
+            path += 'index.html';
+          }
+          navUrl = `http://interface.localhost/${path}`;
+          console.log(url);
         }
         ahk.call('UpdatePlayerUrl', navUrl);
         ahk.call('UpdateURL', url);
@@ -189,9 +202,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('data:text/html')) && (lastSyncUrl.current?.startsWith('custom:') || lastSyncUrl.current === 'about:blank')) {
           return;
         }
-        lastSyncUrl.current = e.detail.url;
-        setUrl(e.detail.url);
-        setInputUrl(e.detail.url);
+        let reportedUrl = e.detail.url;
+        if (reportedUrl.startsWith('http://interface.localhost/')) {
+          reportedUrl = reportedUrl.replace('http://interface.localhost/', 'interface:');
+          reportedUrl = reportedUrl.replace(/\/index\.html?$/i, '');
+          reportedUrl = reportedUrl.replace(/index\.html?$/i, '');
+          reportedUrl = reportedUrl.replace(/\/$/, '');
+        }
+        lastSyncUrl.current = reportedUrl;
+        setUrl(reportedUrl);
+        setInputUrl(reportedUrl);
         setPageTitle('');
         pageTitleRef.current = '';
       }
@@ -501,6 +521,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setUrl(savedHomePage);
       setInputUrl(savedHomePage);
     }
+    
+    const savedNavButtons = ahk.call('LoadData', 'nav_buttons.json');
+    if (savedNavButtons) {
+      try { setNavButtons(JSON.parse(savedNavButtons)); } catch (e) { }
+    }
+    const interfacesStr = ahk.call('ListInterfaces');
+    if (interfacesStr) {
+      setInstalledInterfaces(interfacesStr.split('|').filter(Boolean));
+    }
 
     setTimeout(() => ahk.call('HideSplash'), 500);
   }, []);
@@ -529,6 +558,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }, 500);
     return () => clearTimeout(saveTimer);
   }, [homePage]);
+  useEffect(() => { ahk.call('SaveData', 'nav_buttons.json', JSON.stringify(navButtons)); }, [navButtons]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
@@ -871,7 +901,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
     let finalUrl = inputUrl.trim();
-    if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
+    if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('interface:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
       // Leave as is
     } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {
@@ -960,6 +990,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           navUrl = 'data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E';
         } else if (dest.startsWith('custom:')) {
           navUrl = `data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E#${dest}`;
+        } else if (dest.startsWith('interface:')) {
+          let path = dest.replace('interface:', '');
+          if (!path.includes('.')) {
+            if (path && !path.endsWith('/')) { path += '/'; }
+            path += 'index.html';
+          }
+          navUrl = `http://interface.localhost/${path}`;
         }
         ahk.call('UpdatePlayerUrl', navUrl);
         currentVar = dest;
@@ -1104,7 +1141,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle
   };
 

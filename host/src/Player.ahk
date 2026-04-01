@@ -71,6 +71,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                 PlayerWV.Settings.IsGeneralAutofillEnabled := 0
                 PlayerWV.Settings.IsSwipeNavigationEnabled := 0
                 PlayerWV.Settings.IsBuiltInErrorPageEnabled := 0
+                PlayerWV.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
                 PlayerWV.AddHostObjectToScript("ahk", {
                     UpdateURL: AHK_UpdateURL,
                     GetUserscriptPayload: AHK_GetUserscriptPayload,

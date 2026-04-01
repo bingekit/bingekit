@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
+import { Search, Bookmark, Settings, Minus, ChevronDown, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
@@ -10,7 +10,6 @@ import { Modal } from '../ui/Modal';
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
-
 export const SettingsView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -23,13 +22,57 @@ export const SettingsView = () => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
-    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters
+    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons
   } = useAppContext();
 
   const [workspaces, setWorkspaces] = useState<string[]>([]);
   const [currentWs, setCurrentWs] = useState<string>('default');
   const [showWsModal, setShowWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
+
+const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative w-48">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none transition-colors hover:border-zinc-700 h-[38px] cursor-pointer"
+      >
+        <span className="truncate">{Object.values(navButtons).filter(Boolean).length} Active Buttons</span>
+        <ChevronDown size={14} className={`text-[color-mix(in_srgb,var(--theme-text)_50%,transparent)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div style={{ backgroundColor: 'var(--theme-sidebar)' }} className="absolute z-10 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40 py-1">
+          {Object.entries({ home: 'Home', back: 'Back', forward: 'Forward', reload: 'Reload' }).map(([key, label]) => (
+            <label key={key} className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-300">
+              <input
+                type="checkbox"
+                checked={navButtons[key as keyof typeof navButtons]}
+                onChange={(e) => setNavButtons({ ...navButtons, [key]: e.target.checked })}
+                className="rounded bg-black/20 border-white/10"
+              />
+              {label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
   useEffect(() => {
     try {
@@ -170,6 +213,13 @@ export const SettingsView = () => {
                 ]}
               />
             </div>
+          </div>
+          <div className="flex items-center justify-between pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
+            <div>
+              <h4 className="text-sm font-medium text-zinc-300">URL Bar Navigation Buttons</h4>
+              <p className="text-xs text-zinc-500 mt-1">Select which buttons show up on the URL bar.</p>
+            </div>
+            <NavButtonsSelect navButtons={navButtons} setNavButtons={setNavButtons} />
           </div>
         </div>
 

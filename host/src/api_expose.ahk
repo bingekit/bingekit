@@ -13,6 +13,7 @@ WV.AddHostObjectToScript("ahk", {
     CacheSet: AHK_CacheSet,
     CacheGet: AHK_CacheGet,
     CacheClear: AHK_CacheClear,
+    ListInterfaces: AHK_ListInterfaces,
     ListSites: AHK_ListSites,
     SaveSite: AHK_SaveSite,
     LoadSite: AHK_LoadSite,

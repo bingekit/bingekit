@@ -11,7 +11,7 @@ import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-javascript';
 
 import {
-  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap, Home
+  Film, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap, Home
 } from 'lucide-react';
 
 // UI Wrappers
@@ -30,10 +30,12 @@ const MainLayout = () => {
     activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme,
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
-    isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage
+    isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage,
+    navButtons, installedInterfaces
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
+  const [showInterfaces, setShowInterfaces] = React.useState(false);
 
   React.useEffect(() => {
     const handlePlayState = (e: any) => {
@@ -172,58 +174,109 @@ const MainLayout = () => {
               </div>
             ) : (
               <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
-                <div className="flex items-center px-2 gap-1 text-zinc-500">
-                  <TooltipWrapper text="Home">
-                    <button type="button" onClick={() => { setUrl(homePage || 'https://example.com/stream'); setInputUrl(homePage || 'https://example.com/stream'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Go Back">
-                    <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Go Forward">
-                    <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Refresh">
-                    <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
-                  </TooltipWrapper>
+                <div className="flex items-center px-2 gap-1 text-zinc-500 relative">
+                  {navButtons.home && (
+                    <div className="flex items-center">
+                      <TooltipWrapper text="Home">
+                        <button type="button" onClick={() => { setUrl(homePage || 'https://example.com/stream'); setInputUrl(homePage || 'https://example.com/stream'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
+                      </TooltipWrapper>
+                      {installedInterfaces.length > 0 && (
+                        <div className="relative flex items-center">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setShowInterfaces(!showInterfaces); }}
+                            className={`p-0.5 ml-0.5 transition-colors rounded ${showInterfaces ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}
+                          >
+                            <ChevronDown size={12} className={`transition-transform duration-200 ${showInterfaces ? 'rotate-180' : ''}`} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {navButtons.back && !showInterfaces && (
+                    <TooltipWrapper text="Go Back">
+                      <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
+                    </TooltipWrapper>
+                  )}
+                  {navButtons.forward && !showInterfaces && (
+                    <TooltipWrapper text="Go Forward">
+                      <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
+                    </TooltipWrapper>
+                  )}
+                  {navButtons.reload && !showInterfaces && (
+                    <TooltipWrapper text="Refresh">
+                      <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
+                    </TooltipWrapper>
+                  )}
                 </div>
 
-                <div className="w-px h-3 bg-zinc-800 mx-1" />
 
-                <div className="flex-1 flex items-center px-2 gap-2">
-                  <Search size={12} className="text-zinc-500" />
-                  <input
-                    type="text"
-                    value={inputUrl}
-                    onChange={(e) => setInputUrl(e.target.value)}
-                    placeholder="Search streams or enter URL..."
-                    className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
-                  />
+                {!showInterfaces && (
+                  <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
+                )}
+
+                <div className="flex-1 flex items-center px-2 gap-2 overflow-hidden">
+                  {showInterfaces ? (
+                    <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar py-0.5 animate-in fade-in slide-in-from-left-2 duration-200">
+                      <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mr-1">Interfaces</span>
+                      {installedInterfaces.map(inf => (
+                        <button
+                          key={inf}
+                          type="button"
+                          onClick={() => {
+                            setShowInterfaces(false);
+                            setUrl(`interface:${inf}`);
+                            setInputUrl(`interface:${inf}`);
+                          }}
+                          className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
+                        >
+                          {inf}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <Search size={12} className="text-zinc-500 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={inputUrl}
+                        onChange={(e) => setInputUrl(e.target.value)}
+                        placeholder="Search streams or enter URL..."
+                        className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
+                      />
+                    </>
+                  )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!bookmarks.find(b => b.url === url)) {
-                      setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
-                    }
-                  }}
-                  className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
-                  title="Bookmark"
-                >
-                  <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!watchLater.find(w => w.url === url)) {
-                      setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
-                    }
-                  }}
-                  className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors"
-                  title="Watch Later"
-                >
-                  <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
-                </button>
+                {!showInterfaces && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!bookmarks.find(b => b.url === url)) {
+                          setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
+                        }
+                      }}
+                      className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
+                      title="Bookmark"
+                    >
+                      <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!watchLater.find(w => w.url === url)) {
+                          setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
+                        }
+                      }}
+                      className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
+                      title="Watch Later"
+                    >
+                      <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
+                    </button>
+                  </>
+                )}
               </form>
             )}
           </div>
