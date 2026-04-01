@@ -17,6 +17,22 @@ export const HistoryView = () => {
     return searchMatch && typeMatch;
   });
 
+  const deduplicatedHistory = React.useMemo(() => {
+    const urlMap = new Map<string, typeof history[0]>();
+    const sorted = [...filteredHistory].sort((a, b) => b.timestamp - a.timestamp);
+    sorted.forEach(item => {
+      const existing = urlMap.get(item.url);
+      if (!existing) {
+        urlMap.set(item.url, { ...item });
+      } else {
+        if (existing.type === 'browse' && item.type === 'watch') {
+           urlMap.set(item.url, { ...item, timestamp: Math.max(existing.timestamp, item.timestamp) });
+        }
+      }
+    });
+    return Array.from(urlMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+  }, [filteredHistory]);
+
   const formatDuration = (ms: number) => {
     if (!ms) return '';
     const totalSeconds = Math.floor(ms / 1000);
@@ -36,7 +52,7 @@ export const HistoryView = () => {
     const weekMs = 7 * dayMs;
     const monthMs = 30 * dayMs;
 
-    filteredHistory.forEach(item => {
+    deduplicatedHistory.forEach(item => {
       if (groupBy === 'site') {
         const domain = item.domain || 'Unknown';
         if (!groups[domain]) groups[domain] = [];
@@ -222,7 +238,7 @@ export const HistoryView = () => {
         </div>
       ))}
 
-      {filteredHistory.length === 0 && (
+      {deduplicatedHistory.length === 0 && (
         <div className="text-center py-20 text-zinc-500">
           <Clock size={48} className="mx-auto mb-4 opacity-20" />
           No history found.

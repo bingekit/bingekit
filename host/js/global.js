@@ -113,6 +113,25 @@
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage('sv-toggle-play', '*'); } catch (err) { }
             });
+        } else if (e.data && e.data.type === 'sv-seek-cmd') {
+            const attemptSeek = () => {
+                document.querySelectorAll('video').forEach(v => {
+                    if (!v.dataset.svAutoSeeked) {
+                        v.dataset.svAutoSeeked = 'true';
+                        // Wait until metadata is loaded to set currentTime reliably
+                        if (v.readyState >= 1) { v.currentTime = e.data.time; }
+                        else { v.addEventListener('loadedmetadata', () => { v.currentTime = e.data.time; }); }
+                    }
+                });
+            };
+            attemptSeek();
+            const obs = new MutationObserver(attemptSeek);
+            obs.observe(document.body, { childList: true, subtree: true });
+            setTimeout(() => obs.disconnect(), 15000);
+            
+            Array.from(document.querySelectorAll('iframe')).forEach(f => {
+                try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
+            });
         }
     });
 

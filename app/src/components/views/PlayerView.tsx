@@ -22,9 +22,11 @@ export const PlayerView = () => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
-    discoveryItems, setDiscoveryItems,
+    discoveryItems, setDiscoveryItems, history,
     isFocusedMode, setIsFocusedMode, authStatus, playerStatus
   } = useAppContext();
+
+  const lastResumeUrl = React.useRef('');
 
   React.useEffect(() => {
     // Discovery Engine Background Task
@@ -136,6 +138,21 @@ export const PlayerView = () => {
       }
     }
   }, [isFocusedMode, activeTab, playerStatus, url, plugins]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'player' || playerStatus !== 'found') return;
+    if (url === lastResumeUrl.current) return;
+    
+    // Auto-Resume Video from History
+    const hItem = history.find(h => h.url === url && h.type === 'watch');
+    if (hItem && hItem.currentTime && hItem.duration) {
+      // Only resume if we are past the first 5 seconds and not in the last 10% 
+      if (hItem.currentTime > 5 && hItem.currentTime < (hItem.duration * 0.9)) {
+        lastResumeUrl.current = url;
+        ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-seek-cmd', time: ${hItem.currentTime} }, '*');`);
+      }
+    }
+  }, [url, activeTab, playerStatus, history]);
 
   return (
 
