@@ -149,7 +149,7 @@ export const PlayerView = () => {
       // Only resume if we are past the first 5 seconds and not in the last 10% 
       if (hItem.currentTime > 5 && hItem.currentTime < (hItem.duration * 0.9)) {
         lastResumeUrl.current = url;
-        ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-seek-cmd', time: ${hItem.currentTime} }, '*');`);
+        ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`);
       }
     }
   }, [url, activeTab, playerStatus, history]);

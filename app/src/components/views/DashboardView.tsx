@@ -324,25 +324,24 @@ export const DashboardView = () => {
                       console.log(`[Search] ${opName} returned from SmartFetch:`, fetchResults);
 
                       if (Array.isArray(fetchResults) && fetchResults.length > 0) {
-                        let validCount = 0;
-                        for (let i = 0; i < fetchResults.length; i++) {
-                          const res = fetchResults[i];
-                          if (res.title && res.href) {
-                            validCount++;
-                            const queryClean = multiSearchQuery.trim().toLowerCase();
-                            const titleClean = res.title.trim().toLowerCase();
-                            const isExactMatch = titleClean === queryClean;
-                            let matchedDeep = false;
+                        const validResults = fetchResults.filter(r => r.title && r.href);
+                        const totalValidCount = validResults.length;
+                        
+                        for (let i = 0; i < validResults.length; i++) {
+                          const res = validResults[i];
+                          const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+                          const isExactMatch = cleanStr(res.title) === cleanStr(multiSearchQuery);
+                          let matchedDeep = false;
 
-                            if (isDeepSearch && isExactMatch && (plugin.media?.deepJs || plugin.media?.epSel || plugin.media?.seasonSel)) {
-                              console.log(`[Search] Deep Scan exact match found for ${res.title}. Executing target script!`);
+                          if (isDeepSearch && (isExactMatch || totalValidCount === 1)) {
+                            console.log(`[Search] Deep Scan match found for ${res.title}. Executing target script!`);
 
-                              const epSelEscaped = (plugin.media.epSel || '').replace(/'/g, "\\'");
-                              const seasonSelEscaped = (plugin.media.seasonSel || '').replace(/'/g, "\\'");
-                              const customJs = plugin.media.deepJs || '';
+                            const epSelEscaped = (plugin.media?.epSel || '').replace(/'/g, "\\'");
+                            const seasonSelEscaped = (plugin.media?.seasonSel || '').replace(/'/g, "\\'");
+                            const customJs = plugin.media?.deepJs || '';
 
-                              let deepJsQuery = '';
-                              if (customJs) {
+                            let deepJsQuery = '';
+                            if (customJs) {
                                 deepJsQuery = `
                                    return new Promise(async (resolve) => {
                                      try {
@@ -452,9 +451,8 @@ export const DashboardView = () => {
                                 type: 'result'
                               });
                             }
-                          }
                         }
-                        if (validCount === 0) {
+                        if (totalValidCount === 0) {
                           console.log(`[Search] ${opName} found 0 valid results.`);
                           results.push({
                             id: plugin.id + '_empty_' + Math.random().toString(36).substring(7),

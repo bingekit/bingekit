@@ -99,35 +99,47 @@
             if (active) {
                 lastPausedVideo = active;
                 active.pause();
-                if (window.top === window) { window._svIsGloballyPlaying = false; }
             } else {
                 if (lastPausedVideo) {
                     lastPausedVideo.play();
-                    if (window.top === window) { window._svIsGloballyPlaying = true; }
                 } else if (window.top === window && videos.length > 0) {
                     const largest = videos.sort((a, b) => (b.videoWidth * b.videoHeight) - (a.videoWidth * a.videoHeight))[0];
                     if (largest) largest.play();
-                    window._svIsGloballyPlaying = true;
                 }
             }
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage('sv-toggle-play', '*'); } catch (err) { }
             });
         } else if (e.data && e.data.type === 'sv-seek-cmd') {
+            if (window.top === window && e.data.mainUrl) {
+                const currentMain = location.href.replace(/\/index\.html?$/i, "/").replace(/\/$/, "");
+                const targetMain = e.data.mainUrl.replace(/\/index\.html?$/i, "/").replace(/\/$/, "");
+                if (currentMain !== targetMain) return;
+            }
+
+            if (window._svSeekObserver) {
+                window._svSeekObserver.disconnect();
+            }
+
             const attemptSeek = () => {
                 document.querySelectorAll('video').forEach(v => {
-                    if (!v.dataset.svAutoSeeked) {
-                        v.dataset.svAutoSeeked = 'true';
-                        // Wait until metadata is loaded to set currentTime reliably
-                        if (v.readyState >= 1) { v.currentTime = e.data.time; }
-                        else { v.addEventListener('loadedmetadata', () => { v.currentTime = e.data.time; }); }
+                    if (v.dataset.svAutoSeeked === e.data.mainUrl) return;
+                    v.dataset.svAutoSeeked = e.data.mainUrl;
+                    
+                    if (v.readyState >= 1) { v.currentTime = e.data.time; }
+                    else { 
+                        v.addEventListener('loadedmetadata', function onLoaded() { 
+                            v.currentTime = e.data.time; 
+                            v.removeEventListener('loadedmetadata', onLoaded);
+                        }); 
                     }
                 });
             };
+            
             attemptSeek();
-            const obs = new MutationObserver(attemptSeek);
-            obs.observe(document.body, { childList: true, subtree: true });
-            setTimeout(() => obs.disconnect(), 15000);
+            window._svSeekObserver = new MutationObserver(() => attemptSeek());
+            window._svSeekObserver.observe(document.body, { childList: true, subtree: true });
+            setTimeout(() => { if (window._svSeekObserver) window._svSeekObserver.disconnect(); }, 15000);
             
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
