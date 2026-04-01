@@ -90,6 +90,24 @@ export const DashboardView = () => {
                 }
 
                 // Multi-search Logic (Fetch mode)
+                let baseQuery = multiSearchQuery;
+                let queryTargetSeason = '';
+                let queryTargetEpisode = '';
+                let querySubtitle = '';
+                
+                const metaMatch = multiSearchQuery.match(/(.*?)(?:\s*-\s*|\s+)s(\d{1,2})(?:e(\d{1,2}))?(?:\s|$)/i);
+                if (metaMatch) {
+                  baseQuery = metaMatch[1].trim() || metaMatch[0];
+                  queryTargetSeason = metaMatch[2];
+                  queryTargetEpisode = metaMatch[3] || '';
+                } else {
+                  const dashMatch = multiSearchQuery.match(/(.*?)\s*-\s*(.*)/);
+                  if (dashMatch) {
+                    baseQuery = dashMatch[1].trim();
+                    querySubtitle = dashMatch[2].trim();
+                  }
+                }
+
                 const results: any[] = [];
 
                 // Build search operations based on selected tags
@@ -150,7 +168,7 @@ export const DashboardView = () => {
                   } else if (cfg.urlFormat) {
                     console.log(`[Search] Starting fetch for ${opName}...`);
                     const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
-                    const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
+                    const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(baseQuery));
                     try {
                       const isFormSearch = !!cfg.isFormSearch;
                       const encodedExtras = JSON.stringify(cfg.formExtraActions || []);
@@ -260,7 +278,7 @@ export const DashboardView = () => {
                                   if (${isFormSearch}) {
                                     return new Promise((resolve) => {
                                       const isAjax = "${cfg.searchWaitMode}" === "ajax";
-                                      const query = "${multiSearchQuery.replace(/"/g, '\\"')}";
+                                      const query = "${baseQuery.replace(/"/g, '\\"')}";
                                       const extras = ${encodedExtras};
                                       
                                       if (sessionStorage.getItem('sv_search_phase')) {
@@ -330,7 +348,7 @@ export const DashboardView = () => {
                         for (let i = 0; i < validResults.length; i++) {
                           const res = validResults[i];
                           const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-                          const isExactMatch = cleanStr(res.title) === cleanStr(multiSearchQuery);
+                          const isExactMatch = cleanStr(res.title) === cleanStr(baseQuery) || cleanStr(res.title) === cleanStr(multiSearchQuery);
                           let matchedDeep = false;
 
                           if (isDeepSearch && (isExactMatch || totalValidCount === 1)) {
@@ -343,6 +361,10 @@ export const DashboardView = () => {
                             let deepJsQuery = '';
                             if (customJs) {
                                 deepJsQuery = `
+                                   window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
+                                   window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
+                                   window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
+                                   window.SV_BASE_QUERY = ${JSON.stringify(baseQuery)};
                                    return new Promise(async (resolve) => {
                                      try {
                                        const res = await (async () => {
@@ -361,6 +383,11 @@ export const DashboardView = () => {
                                 });
 
                                 deepJsQuery = `
+                                   window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
+                                   window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
+                                   window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
+                                   window.SV_BASE_QUERY = ${JSON.stringify(baseQuery)};
+                                   
                                    if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
                                    if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
                                    if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };

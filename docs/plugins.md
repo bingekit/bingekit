@@ -36,10 +36,35 @@ The core capability of a Site Plugin is standardizing the search process.
 
 ## Deep Scan Mode (Optional Plugin Step)
 
-StreamView supports an advanced parsing layer where a site search simply returns a "Show Page". 
-If you want the plugin to *automatically click through* the direct match and parse the Seasons/Episodes, you can orchestrate this using **Custom Flows**. 
+StreamView supports an advanced parsing layer where a site search returns a single exact-match "Show Page" or Movie. 
+If you want the plugin to *automatically click through* the direct match and parse the Seasons/Episodes natively in the UI, you can configure Media Structure selectors (`seasonSel`, `epSel`), or define a `Deep Scan JS Ripper`.
 
-If the primary `SmartFetch` script returns an object with a direct match URL, the Custom Flow can utilize a `[Hidden] Exec Custom SmartFetch` step to immediately spawn a second invisible window on that URL, scrape the episodes via `document.querySelectorAll`, and pipe them back to the StreamView player without the user ever leaving the Dashboard UI!
+### Advanced Parametrized Scripting
+Deep Scans are context-aware. If the user searches for a specific episode using common nomenclature (such as `Family Guy - s04e05`), the React Dashboard will automatically deconstruct this into parameters:
+1. `baseQuery`: "Family Guy" (The only string actually passed to the streaming site's search engine, preventing target misses).
+2. `queryTargetSeason`: "04"
+3. `queryTargetEpisode`: "05"
+
+If an Exact Match triggers on "Family Guy", these parameters are globally injected into the JS execution environment of the `Deep Scan JS Ripper`. Wait times, XHR/Fetch listeners, and multi-step navigation clicks can all be heavily optimized using these variables inside your script.
+
+You have full programmatic access inside a custom ripper securely using the following variables:
+- `window.SV_BASE_QUERY`
+- `window.SV_TARGET_SEASON`
+- `window.SV_TARGET_EPISODE`
+- `window.SV_TARGET_SUBTITLE`
+
+### Network Traffic Interception
+Additionally, StreamView intercepts the fundamental execution pipeline of the Chromium WebView, allowing you to await dynamically generated JSON or specific API responses *after* page load using:
+- `await window.SV_WAIT_XHR(urlRegexPattern, timeoutMs = 15000)`
+
+Because StreamView intercepts responses directly at the document's V8 engine creation, you do not suffer from any race conditions. Even if the network request resolved *before* your Javascript executes, calling `SV_WAIT_XHR` will instantly resolve the intercepted response payload synchronously!
+
+*Example Use Case:* If your target streaming site uses a dynamic obfuscated React payload to render episodes, you can instantly defeat the obfuscation:
+```javascript
+const responseText = await window.SV_WAIT_XHR("api/v1/episodes");
+const data = JSON.parse(responseText);
+return data.map(ep => ({ title: ep.name, href: ep.playUrl }));
+```
 
 ## Discovery Feed Integration
 
