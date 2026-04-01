@@ -3,8 +3,11 @@ import { DiscoveryView } from './DiscoveryView';
 import { ActivityView } from './ActivityView';
 import { Compass, Activity } from 'lucide-react';
 
+let cachedExploreSubTab = 'discovery';
+
 export const ExploreView = () => {
-  const [activeSubTab, setActiveSubTab] = useState('discovery');
+  const [activeSubTab, _setActiveSubTab] = useState(cachedExploreSubTab);
+  const setActiveSubTab = (val: string) => { cachedExploreSubTab = val; _setActiveSubTab(val); };
 
   return (
     <div className="w-full h-full flex flex-col relative bg-transparent">

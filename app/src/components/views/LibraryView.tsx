@@ -5,9 +5,12 @@ import { HistoryView } from './HistoryView';
 import { Bookmark, Clock } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 
+let cachedLibrarySubTab = 'bookmarks';
+
 export const LibraryView = () => {
   const { isHistoryEnabled } = useAppContext();
-  const [activeSubTab, setActiveSubTab] = useState('bookmarks');
+  const [activeSubTab, _setActiveSubTab] = useState(cachedLibrarySubTab);
+  const setActiveSubTab = (val: string) => { cachedLibrarySubTab = val; _setActiveSubTab(val); };
 
   return (
     <div className="w-full h-full flex flex-col relative bg-transparent">

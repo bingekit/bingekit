@@ -60,6 +60,8 @@ import {
 
 import { MetadataEditor } from "./MetadataEditor";
 
+let cachedFlowsEditTab: "general" | "steps" | "metadata" = "general";
+
 export const FlowsView = () => {
   const {
     url,
@@ -133,9 +135,10 @@ export const FlowsView = () => {
     loadPlugins,
   } = useAppContext();
 
-  const [editTab, setEditTab] = React.useState<
+  const [editTab, _setEditTab] = React.useState<
     "general" | "steps" | "metadata"
-  >("general");
+  >(cachedFlowsEditTab);
+  const setEditTab = (val: typeof cachedFlowsEditTab) => { cachedFlowsEditTab = val; _setEditTab(val); };
 
   return (
     <div className="flex h-full w-full overflow-hidden">

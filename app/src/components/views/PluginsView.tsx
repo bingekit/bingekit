@@ -61,6 +61,8 @@ import {
 
 import { MetadataEditor } from "./MetadataEditor";
 
+let cachedPluginsEditTab: "general" | "auth" | "search" | "media" | "tracking" | "functions" | "metadata" = "general";
+
 export const PluginsView = () => {
   const {
     url,
@@ -134,9 +136,10 @@ export const PluginsView = () => {
     loadPlugins,
   } = useAppContext();
 
-  const [editTab, setEditTab] = React.useState<
+  const [editTab, _setEditTab] = React.useState<
     "general" | "auth" | "search" | "media" | "tracking" | "functions" | "metadata"
-  >("general");
+  >(cachedPluginsEditTab);
+  const setEditTab = (val: typeof cachedPluginsEditTab) => { cachedPluginsEditTab = val; _setEditTab(val); };
 
   const [ideModalData, setIdeModalData] = React.useState<{
     title: string;

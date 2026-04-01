@@ -4,8 +4,11 @@ import { FlowsView } from './FlowsView';
 import { UserscriptsView } from './UserscriptsView';
 import { Puzzle, ListTree, Code } from 'lucide-react';
 
+let cachedExtensionsSubTab = 'plugins';
+
 export const ExtensionsView = () => {
-  const [activeSubTab, setActiveSubTab] = useState('plugins');
+  const [activeSubTab, _setActiveSubTab] = useState(cachedExtensionsSubTab);
+  const setActiveSubTab = (val: string) => { cachedExtensionsSubTab = val; _setActiveSubTab(val); };
 
   return (
     <div className="w-full h-full flex flex-col relative bg-transparent">
