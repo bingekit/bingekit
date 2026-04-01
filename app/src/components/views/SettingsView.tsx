@@ -21,7 +21,7 @@ export const SettingsView = () => {
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
-    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine,
+    showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters
   } = useAppContext();
@@ -248,6 +248,31 @@ export const SettingsView = () => {
                   { value: 'https://www.bing.com/search?q=', label: 'Bing' }
                 ]}
               />
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-zinc-800/50">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-zinc-200">Player Home Page</h3>
+                <p className="text-xs text-zinc-500 mt-1">Default page when opening the application player.</p>
+              </div>
+              <div className="w-full md:w-96 flex gap-2">
+                <input
+                  type="text"
+                  value={homePage || ''}
+                  onChange={(e) => setHomePage(e.target.value)}
+                  placeholder="Custom URL..."
+                  className="flex-1 min-w-0 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none"
+                />
+                <div className="w-32 flex-shrink-0">
+                  <CustomSelect
+                    value=""
+                    onChange={(val) => { if (val) setHomePage(val); }}
+                    options={plugins.map(p => ({ value: p.baseUrl, label: p.name }))}
+                    placeholder="Set to Plugin"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

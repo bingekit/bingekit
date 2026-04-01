@@ -126,6 +126,7 @@ export interface TrackingConfig {
   id?: string;
   name?: string;
   urlRegex?: string;
+  urlPattern?: string; // Format like: https://example.com/show/{id}
   listSel?: string; // List of episodes container
   itemSel?: string; // Individual episode item
   idExtractJs?: string; // JS to return standard ID (e.g. 's01e01')

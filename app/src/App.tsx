@@ -11,7 +11,7 @@ import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-javascript';
 
 import {
-  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap
+  Film, ChevronLeft, ChevronRight, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap, Home
 } from 'lucide-react';
 
 // UI Wrappers
@@ -30,7 +30,7 @@ const MainLayout = () => {
     activeTab, setActiveTab, urlBarMode, setUrlBarMode, theme,
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
-    isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle
+    isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -173,6 +173,9 @@ const MainLayout = () => {
             ) : (
               <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
                 <div className="flex items-center px-2 gap-1 text-zinc-500">
+                  <TooltipWrapper text="Home">
+                    <button type="button" onClick={() => { setUrl(homePage || 'https://example.com/stream'); setInputUrl(homePage || 'https://example.com/stream'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
+                  </TooltipWrapper>
                   <TooltipWrapper text="Go Back">
                     <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
                   </TooltipWrapper>

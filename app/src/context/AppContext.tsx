@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { ahk } from '../lib/ahk';
+import { ensureAuthForPlugin } from '../lib/authHelper';
 import {
   BookmarkItem, WatchLaterItem, CredentialItem,
   FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
@@ -41,6 +42,7 @@ interface AppContextType {
   searchParamMode: 'fetch' | 'navigate'; setSearchParamMode: React.Dispatch<React.SetStateAction<'fetch' | 'navigate'>>;
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
   defaultSearchEngine: string; setDefaultSearchEngine: React.Dispatch<React.SetStateAction<string>>;
+  homePage: string; setHomePage: React.Dispatch<React.SetStateAction<string>>;
   playerRef: React.RefObject<HTMLDivElement>;
   isFocusedMode: boolean; setIsFocusedMode: React.Dispatch<React.SetStateAction<boolean>>;
   authStatus: 'unknown' | 'loggedIn' | 'loggedOut'; setAuthStatus: React.Dispatch<React.SetStateAction<'unknown' | 'loggedIn' | 'loggedOut'>>;
@@ -68,6 +70,7 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+  const [homePage, setHomePage] = useState('https://example.com/stream');
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
@@ -77,6 +80,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const isInitialHistoryMount = useRef(true);
   const isInitialDiscoveryMount = useRef(true);
   const isInitialHistoryEnabledMount = useRef(true);
+  const isInitialHomePageMount = useRef(true);
   const [theme, setTheme] = useState({
     mode: 'dark',
     titlebarBg: '#09090b',
@@ -166,8 +170,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (activeTab === 'player') {
       if (lastSyncUrl.current !== url) {
         lastSyncUrl.current = url;
-        const navUrl = url.startsWith('custom:') ? `about:blank#${encodeURIComponent(url)}` : url;
+        let navUrl = url;
+        if (url === 'about:blank') {
+          navUrl = 'data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E';
+        } else if (url.startsWith('custom:')) {
+          navUrl = `data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E#${url}`;
+        }
         ahk.call('UpdatePlayerUrl', navUrl);
+        ahk.call('UpdateURL', url);
       }
     }
   }, [activeTab, url]);
@@ -175,7 +185,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const handleEvent = (e: any) => {
       if (e.detail && e.detail.url) {
-        if ((e.detail.url === 'about:blank' || e.detail.url.startsWith('data:text/html')) && lastSyncUrl.current?.startsWith('custom:')) {
+        console.log("player-url-changed", e.detail.url);
+        if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('data:text/html')) && (lastSyncUrl.current?.startsWith('custom:') || lastSyncUrl.current === 'about:blank')) {
           return;
         }
         lastSyncUrl.current = e.detail.url;
@@ -222,7 +233,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           if (prev.length > 0 && prev[0].url === url && prev[0].type === 'browse' && (Date.now() - prev[0].timestamp < 5 * 60 * 1000)) {
             return prev;
           }
-          const host = (() => { try { return new URL(url).hostname } catch{ return url } })();
+          const host = (() => { try { return new URL(url).hostname } catch { return url } })();
           const rawTitle = pageTitleRef.current || fetchTitleForUrl(url) || host;
           const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
           const newItem: HistoryItem = {
@@ -258,18 +269,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         totalWatchMs += (now - lastPlayTime);
         lastPlayTime = now;
       }
-      
+
       if (totalWatchMs < 2000) return; // Ignore < 2 seconds of play
-      
+
       const timeToSave = totalWatchMs;
       totalWatchMs = 0; // Immediately clear so subsequent intervals don't double count
       const currentUrl = url;
 
       setHistory(prev => {
-        const host = (() => { try { return new URL(currentUrl).hostname } catch{ return currentUrl } })();
+        const host = (() => { try { return new URL(currentUrl).hostname } catch { return currentUrl } })();
         let newHistory = [...prev];
         const existingIdx = newHistory.findIndex(h => h.url === currentUrl && h.type === 'watch' && (Date.now() - h.timestamp < 12 * 60 * 60 * 1000));
-        
+
         let tags: string[] = [];
         const plugin = plugins.find(p => currentUrl.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(currentUrl).hostname); } catch { return false; } })());
         if (plugin?.tags) tags = plugin.tags;
@@ -313,25 +324,25 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           isCurrentlyPlaying = true;
           lastPlayTime = now;
         } else if (!e.detail.isPlaying && isCurrentlyPlaying) {
-           isCurrentlyPlaying = false;
-           recordWatchSegment();
+          isCurrentlyPlaying = false;
+          recordWatchSegment();
         }
       }
     };
 
     window.addEventListener('player-play-state', handlePlayState);
     saveTimer = setInterval(() => {
-       if (isCurrentlyPlaying) {
-           recordWatchSegment();
-       }
+      if (isCurrentlyPlaying) {
+        recordWatchSegment();
+      }
     }, 2000); // Commit to history every 2 seconds of playing
 
     return () => {
       window.removeEventListener('player-play-state', handlePlayState);
       clearInterval(saveTimer);
       if (isCurrentlyPlaying) {
-         isCurrentlyPlaying = false;
-         recordWatchSegment();
+        isCurrentlyPlaying = false;
+        recordWatchSegment();
       }
     };
   }, [url, activeTab, isHistoryEnabled, plugins]);
@@ -484,26 +495,40 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedSearchEngine = ahk.call('LoadData', 'search_engine.txt');
     if (savedSearchEngine) { setDefaultSearchEngine(savedSearchEngine); }
 
+    const savedHomePage = ahk.call('LoadData', 'home_page.txt');
+    if (savedHomePage) {
+      setHomePage(savedHomePage);
+      setUrl(savedHomePage);
+      setInputUrl(savedHomePage);
+    }
+
     setTimeout(() => ahk.call('HideSplash'), 500);
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
-  
+
   useEffect(() => {
     if (isInitialHistoryMount.current) { isInitialHistoryMount.current = false; return; }
-    ahk.call('SaveData', 'history.json', JSON.stringify(history)); 
+    ahk.call('SaveData', 'history.json', JSON.stringify(history));
   }, [history]);
-  
+
   useEffect(() => {
     if (isInitialDiscoveryMount.current) { isInitialDiscoveryMount.current = false; return; }
-    ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems)); 
+    ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems));
   }, [discoveryItems]);
-  
+
   useEffect(() => {
     if (isInitialHistoryEnabledMount.current) { isInitialHistoryEnabledMount.current = false; return; }
-    ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false'); 
+    ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false');
   }, [isHistoryEnabled]);
   useEffect(() => { ahk.call('SaveData', 'search_engine.txt', defaultSearchEngine); }, [defaultSearchEngine]);
+  useEffect(() => {
+    if (isInitialHomePageMount.current) { isInitialHomePageMount.current = false; return; }
+    const saveTimer = setTimeout(() => {
+      ahk.call('SaveData', 'home_page.txt', homePage);
+    }, 500);
+    return () => clearTimeout(saveTimer);
+  }, [homePage]);
   useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
   useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
   useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
@@ -605,7 +630,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
               } catch(e) {}
             });
 
-            var themeVars = \`${Object.entries(theme).filter(([k]) => k !== 'mode').map(([k,v]) => `--theme-${k}: ${v};`).join(' ')}\`;
+            var themeVars = \`${Object.entries(theme).filter(([k]) => k !== 'mode').map(([k, v]) => `--theme-${k}: ${v};`).join(' ')}\`;
             var tStyle = document.getElementById('sv-theme-injection');
             if (!tStyle) {
               tStyle = document.createElement('style');
@@ -619,6 +644,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
           function applyStreamViewPayload() {
             var currentUrl = window.location.href;
+            if (currentUrl.includes('#custom:')) {
+              currentUrl = currentUrl.substring(currentUrl.indexOf('#custom:') + 1);
+            }
+            if (currentUrl === 'about:blank' || currentUrl.startsWith('data:text/html')) {
+              currentUrl = 'about:blank';
+            }
             var currentHost = window.location.hostname;
             if (!currentHost && currentUrl.startsWith('custom:')) currentHost = currentUrl;
             
@@ -672,11 +703,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs || p.details?.titleSel).map(p => ({
-             baseUrl: p.baseUrl,
-             playerSel: p.player?.playerSel || '',
-             checkAuthJs: p.auth?.checkAuthJs || '',
-             titleSel: p.details?.titleSel || ''
-           })))};
+        baseUrl: p.baseUrl,
+        playerSel: p.player?.playerSel || '',
+        checkAuthJs: p.auth?.checkAuthJs || '',
+        titleSel: p.details?.titleSel || ''
+      })))};
 
           if (!window._svPlayerStatusPoller) {
             window._svPlayerStatusPoller = setInterval(() => {
@@ -753,7 +784,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         })();
       `;
     }
-
     ahk.call('UpdateUserscriptPayload', payload);
   }, [userscripts, plugins, url, theme]);
 
@@ -783,6 +813,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (trackingConf && trackingConf.listSel && trackingConf.itemSel && window.SmartFetch) {
         try {
+          // Pre-flight check for authentication
+          const authValid = await ensureAuthForPlugin(plugin, credentials);
+          if (!authValid && plugin.auth?.loginUrl) {
+            console.warn("Auto-login failed for", plugin.name, "skipping updates");
+            continue;
+          }
+
           const js = `
             const items = Array.from(document.querySelectorAll('${trackingConf.itemSel.replace(/'/g, "\\\\'")}'));
             return items.map(el => {
@@ -800,15 +837,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           if (Array.isArray(results) && results.length > 0) {
             const newLatest = results[0]?.id || ''; // assuming chronologically sorted list
             if (item.latestAvailable !== newLatest) {
-               item.hasUpdate = true;
-               item.latestAvailable = newLatest;
+              item.hasUpdate = true;
+              item.latestAvailable = newLatest;
             }
             if (!item.watchedEpisodes) item.watchedEpisodes = [];
             const unwatched = results.filter(r => !item.watchedEpisodes?.includes(r.id));
             if (unwatched.length > 0) item.hasUpdate = true;
             item.knownCount = results.length;
           }
-        } catch(e) {
+        } catch (e) {
           console.error("Tracking update failed for", item.title, e);
         }
       } else {
@@ -834,7 +871,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
     let finalUrl = inputUrl.trim();
-    if (finalUrl.startsWith('about:') || finalUrl.startsWith('custom:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
+    if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
       // Leave as is
     } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {
@@ -918,7 +955,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (step.type === 'navigate') {
         const dest = await resolveVars(step.params.url || '');
-        const navUrl = dest.startsWith('custom:') ? `data:text/html,<html><body></body></html>#${encodeURIComponent(dest)}` : dest;
+        let navUrl = dest;
+        if (dest === 'about:blank') {
+          navUrl = 'data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E';
+        } else if (dest.startsWith('custom:')) {
+          navUrl = `data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E#${dest}`;
+        }
         ahk.call('UpdatePlayerUrl', navUrl);
         currentVar = dest;
         await new Promise(r => setTimeout(r, 1500));
@@ -1062,7 +1104,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    defaultSearchEngine, setDefaultSearchEngine, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle
   };
 
