@@ -1161,9 +1161,11 @@ export const PluginsView = () => {
                             <Trash2 size={16} />
                         </button>
 
-                        <div className="grid grid-cols-3 gap-4 border-b border-zinc-800/50 pb-4">
+                        <div className="grid grid-cols-4 gap-4 border-b border-zinc-800/50 pb-4">
                            <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">Flow ID</label>
+                              <label className="block text-xs text-zinc-500 mb-1.5 flex justify-between">
+                                  <span>Flow ID</span>
+                              </label>
                               <input type="text" value={flow.id || ""} onChange={(e) => {
                                  const flows = [...(editingPlugin.trackingFlows || [])];
                                  flows[flowIdx] = { ...flow, id: e.target.value };
@@ -1179,12 +1181,26 @@ export const PluginsView = () => {
                               }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" />
                            </div>
                            <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">URL Match Regex</label>
+                              <div className="flex flex-col mb-1.5">
+                                 <label className="text-xs text-zinc-500">URL Pattern ({'{id}'})</label>
+                                 <span className="text-[9px] text-zinc-600">Template for custom tracking</span>
+                              </div>
+                              <input type="text" value={flow.urlPattern || ""} onChange={(e) => {
+                                 const flows = [...(editingPlugin.trackingFlows || [])];
+                                 flows[flowIdx] = { ...flow, urlPattern: e.target.value };
+                                 updateEditingPlugin("root", "trackingFlows", flows);
+                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" placeholder="e.g. site.com/show/{id}" title="When a user tracks an `{id}`, the `{id}` parameter is cleanly injected into this full URL" />
+                           </div>
+                           <div>
+                              <div className="flex flex-col mb-1.5">
+                                 <label className="text-xs text-zinc-500">Auto-Detect URL Regex</label>
+                                 <span className="text-[9px] text-zinc-600">Regex to match this media</span>
+                              </div>
                               <input type="text" value={flow.urlRegex || ""} onChange={(e) => {
                                  const flows = [...(editingPlugin.trackingFlows || [])];
                                  flows[flowIdx] = { ...flow, urlRegex: e.target.value };
                                  updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" placeholder="leave blank for default" />
+                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" placeholder="leave blank for default" title="Used to auto-detect if an unknown URL matches this specific Tracking Flow layout" />
                            </div>
                         </div>
 

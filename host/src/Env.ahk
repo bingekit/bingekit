@@ -67,4 +67,8 @@ InitEnvironment() {
     WV.Settings.IsPinchZoomEnabled := 0
     WV.Settings.IsBuiltInErrorPageEnabled := 0
     WV.Settings.IsGeneralAutofillEnabled := 0
+
+    if !DirExist(WorkspaceDir "\interfaces")
+        DirCreate(WorkspaceDir "\interfaces")
+    MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
 }

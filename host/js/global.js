@@ -1,4 +1,26 @@
 (function () {
+    console.log("Global Script Loaded", location.href);
+    let runSync = true;
+    if (location.href === "chrome-error://chromewebdata/") {
+        window.chrome.webview.hostObjects.sync.ahk.UpdateURL("err://");
+        window.addEventListener("DOMContentLoaded", () => {
+            var style = document.createElement('style');
+            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{background:var(--theme-accent)}`;
+            document.head.appendChild(style);
+            document.body.innerHTML =
+                `<div style='display:flex;text-align:center;flex-direction:column;color:var(--theme-accent);justify-content:center;align-items:center;height:100%;font-size:2rem;'>
+                    Navigation Failed
+                    <div style='font-size:1rem;margin-top:1rem;color:var(--theme-textSec);'>Request failed.<br><br>Either the site is: down, blocked, fails to load, or fails smartscreen checks.</div>
+                </div>`;
+        });
+        return;
+    } else if ((location.href.startsWith("about:blank#") || location.href.startsWith("data:text/html")) && location.href.includes("#custom:")) {
+        const url = location.href.substring(location.href.indexOf("#custom:") + 1);
+        runSync = false;
+        window.addEventListener("DOMContentLoaded", () => {
+            window.chrome.webview.hostObjects.sync.ahk.UpdateURL(url);
+        });
+    }
     window.ahk = {
         CacheSet: function (k, v) { return window.chrome.webview.hostObjects.sync.ahk.CacheSet(k, v); },
         CacheGet: function (k) { return window.chrome.webview.hostObjects.sync.ahk.CacheGet(k); },
@@ -7,19 +29,20 @@
     };
 
     function syncUrlToAhk() {
-        try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace("/index.htm", "/")); } catch(e) {}
+        if (!runSync) return;
+        try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
     }
 
     if (!window._svGlobalAjaxHooked) {
         window._svGlobalAjaxHooked = true;
         const origPush = window.history.pushState;
-        window.history.pushState = function() {
+        window.history.pushState = function () {
             var res = origPush.apply(this, arguments);
             setTimeout(syncUrlToAhk, 50);
             return res;
         };
         const origReplace = window.history.replaceState;
-        window.history.replaceState = function() {
+        window.history.replaceState = function () {
             var res = origReplace.apply(this, arguments);
             setTimeout(syncUrlToAhk, 50);
             return res;
@@ -82,13 +105,13 @@
                     lastPausedVideo.play();
                     if (window.top === window) { window._svIsGloballyPlaying = true; }
                 } else if (window.top === window && videos.length > 0) {
-                    const largest = videos.sort((a,b) => (b.videoWidth*b.videoHeight) - (a.videoWidth*a.videoHeight))[0];
+                    const largest = videos.sort((a, b) => (b.videoWidth * b.videoHeight) - (a.videoWidth * a.videoHeight))[0];
                     if (largest) largest.play();
                     window._svIsGloballyPlaying = true;
                 }
             }
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
-                try { f.contentWindow?.postMessage('sv-toggle-play', '*'); } catch(err){}
+                try { f.contentWindow?.postMessage('sv-toggle-play', '*'); } catch (err) { }
             });
         }
     });
@@ -96,12 +119,12 @@
     if (window.top === window) {
         window._svPlayingTimers = new Map();
         window._svIsGloballyPlaying = false;
-        
-        window.updateGlobalPlayState = function() {
+
+        window.updateGlobalPlayState = function () {
             const now = Date.now();
             let cTime = window._svLastTimeLocal || 0;
             let cDur = window._svLastDurLocal || 0;
-            
+
             for (let [win, data] of window._svPlayingTimers.entries()) {
                 if (now - data.time > 3000) {
                     window._svPlayingTimers.delete(win);
@@ -115,7 +138,7 @@
             if (window._svIsGloballyPlaying !== isPlaying || (isPlaying && timeDiff >= 10)) {
                 window._svIsGloballyPlaying = isPlaying;
                 window._svLastReportedTime = cTime;
-                try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying, cTime, cDur); } catch(err){}
+                try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying, cTime, cDur); } catch (err) { }
             }
         };
 
@@ -126,7 +149,7 @@
                 window.updateGlobalPlayState();
             }
         });
-        
+
         setInterval(() => {
             window.updateGlobalPlayState();
         }, 1500);

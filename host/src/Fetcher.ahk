@@ -11,6 +11,32 @@ AHK_RawFetchHTML(url) {
         return ""
     }
 }
+OnHiddenNavigationCompleted(callbackId, hiddenGui, sender, args) {
+    try {
+        if (!args.IsSuccess) {
+            ; Execute the async script
+            MainGui.Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');")
+
+            ; Set the timer to call the nested cleanup function
+            SetTimer(CleanupTask, -500)
+        }
+    } catch {
+        ; Catch errors in the main handler execution
+    }
+
+    CleanupTask() {
+        try {
+            hiddenGui.Destroy()
+
+            ; Best practice: Check if the key exists before deleting to prevent the Map error
+            if (FetchTasks.Has(callbackId)) {
+                FetchTasks.Delete(callbackId)
+            }
+        } catch {
+            ; Catch any remaining GUI destruction or deletion errors
+        }
+    }
+}
 
 AHK_StartSmartFetch(url, actionJs, callbackId) {
     DoSmartFetch() {
@@ -78,8 +104,7 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
 
         hiddenWV.AddScriptToExecuteOnDocumentCreatedAsync(wrapperJs)
 
-        local NavigationCompletedHandler := (sender, args) => (!args.IsSuccess ? (MainGui.Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -500)) : "")
-        hiddenWV.wv.add_NavigationCompleted(NavigationCompletedHandler)
+        hiddenWV.wv.add_NavigationCompleted(OnHiddenNavigationCompleted.Bind(callbackId, hiddenGui))
 
         hiddenWV.Navigate(url)
     }

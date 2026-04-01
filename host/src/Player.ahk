@@ -70,6 +70,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
 
                 PlayerWV.Settings.IsGeneralAutofillEnabled := 0
                 PlayerWV.Settings.IsSwipeNavigationEnabled := 0
+                PlayerWV.Settings.IsBuiltInErrorPageEnabled := 0
+                PlayerWV.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
                 PlayerWV.AddHostObjectToScript("ahk", {
                     UpdateURL: AHK_UpdateURL,
                     GetUserscriptPayload: AHK_GetUserscriptPayload,
@@ -86,6 +88,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     ToggleMedia: AHK_ToggleMedia,
                     ReportPlayerStatus: AHK_ReportPlayerStatus
                 })
+                ;PlayerWV.NavigationCompleted(OnNavigationCompleted)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
