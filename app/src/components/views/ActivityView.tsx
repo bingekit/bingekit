@@ -10,6 +10,7 @@ import { CustomSelect } from '../ui/CustomSelect';
 import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import { ensureAuthForPlugin } from '../../lib/authHelper';
+import { resolvePluginUrl } from '../../lib/urlHelper';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
 export const ActivityView = () => {
@@ -292,11 +293,17 @@ export const ActivityView = () => {
                   const isIdMode = hasUrlPattern && addTrackerState.inputMode === 'id';
                   
                   const getResolvedUrl = () => {
+                      let rawUrl = '';
                       if (isIdMode && activeFlow?.urlPattern) {
                           const val = (addTrackerState.idValue || '').trim();
-                          return val ? activeFlow.urlPattern.replace('{id}', val) : '';
+                          rawUrl = val ? activeFlow.urlPattern.replace('{id}', val) : '';
+                      } else {
+                          rawUrl = (addTrackerState.url || '').trim();
                       }
-                      return (addTrackerState.url || '').trim();
+                      if (rawUrl && activePl?.baseUrl) {
+                          return resolvePluginUrl(activePl.baseUrl, rawUrl);
+                      }
+                      return rawUrl;
                   };
 
                   return (

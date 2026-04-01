@@ -3,19 +3,22 @@ import { Search, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
 import { CustomSelect } from '../ui/CustomSelect';
 import { SearchConfig, CustomFlow } from '../../types';
+import { resolvePluginUrl } from '../../lib/urlHelper';
 
 export const SearchConfigEditor = ({ 
   config, 
   onChange, 
   flows, 
   testSearchQuery, 
-  setTestSearchQuery 
+  setTestSearchQuery,
+  baseUrl = ''
 }: { 
   config: any; // using any to support both SitePlugin.search and SearchConfig
   onChange: (key: string, val: any) => void; 
   flows: CustomFlow[]; 
   testSearchQuery: string;
   setTestSearchQuery: (val: string) => void;
+  baseUrl?: string;
 }) => {
   const [isTestingSearch, setIsTestingSearch] = useState(false);
   const [testSearchResults, setTestSearchResults] = useState<{status: string, nodesCount: number, results: any[]}>({status: 'idle', nodesCount: 0, results: []});
@@ -118,7 +121,7 @@ export const SearchConfigEditor = ({
             <div>
               <label className="block text-xs text-zinc-500 mb-1.5">Search URL Format (use {'{query}'})</label>
               <input
-                type="text" value={config.urlFormat || ''} placeholder="https://site.com/search?q={query}"
+                type="text" value={config.urlFormat || ''} placeholder="https://site.com/search?q={query} OR /search?q={query}"
                 onChange={(e) => onChange('urlFormat', e.target.value)}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
               />
@@ -128,7 +131,7 @@ export const SearchConfigEditor = ({
               <div>
                 <label className="block text-xs text-zinc-500 mb-1.5">Form Page URL (Start URL)</label>
                 <input
-                  type="text" value={config.urlFormat || ''} placeholder="https://site.com/"
+                  type="text" value={config.urlFormat || ''} placeholder="https://site.com/ OR /start"
                   onChange={(e) => onChange('urlFormat', e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
                 />
@@ -307,9 +310,11 @@ export const SearchConfigEditor = ({
                   setIsTestingSearch(true);
                   try {
                     const isFormSearch = !!config.isFormSearch;
-                    const startUrl = isFormSearch 
+                    let rawUrl = isFormSearch 
                       ? config.urlFormat 
                       : (config.urlFormat || '').replace('{query}', encodeURIComponent(testSearchQuery));
+                      
+                    const startUrl = resolvePluginUrl(baseUrl, rawUrl);
                       
                     if (!startUrl || !startUrl.startsWith('http')) {
                       setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Invalid URL Format configured.' }] });

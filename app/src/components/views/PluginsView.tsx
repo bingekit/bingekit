@@ -472,7 +472,7 @@ export const PluginsView = () => {
                       <input
                         type="text"
                         value={editingPlugin.auth.loginUrl}
-                        placeholder="https://site.com/login"
+                        placeholder="https://site.com/login OR /login"
                         onChange={(e) =>
                           updateEditingPlugin(
                             "auth",
@@ -592,6 +592,7 @@ export const PluginsView = () => {
                       flows={flows}
                       testSearchQuery={testSearchQuery}
                       setTestSearchQuery={setTestSearchQuery}
+                      baseUrl={editingPlugin.baseUrl}
                     />
                   </div>
 
@@ -735,6 +736,7 @@ export const PluginsView = () => {
                                 flows={flows}
                                 testSearchQuery={testSearchQuery}
                                 setTestSearchQuery={setTestSearchQuery}
+                                baseUrl={editingPlugin.baseUrl}
                               />
                             </div>
                           </div>
@@ -1189,7 +1191,7 @@ export const PluginsView = () => {
                                  const flows = [...(editingPlugin.trackingFlows || [])];
                                  flows[flowIdx] = { ...flow, urlPattern: e.target.value };
                                  updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" placeholder="e.g. site.com/show/{id}" title="When a user tracks an `{id}`, the `{id}` parameter is cleanly injected into this full URL" />
+                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" placeholder="e.g. site.com/show/{id} OR /show/{id}" title="When a user tracks an `{id}`, the `{id}` parameter is cleanly injected into this full URL" />
                            </div>
                            <div>
                               <div className="flex flex-col mb-1.5">

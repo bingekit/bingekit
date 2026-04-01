@@ -1,16 +1,18 @@
 import { SitePlugin, CredentialItem } from '../types';
+import { resolvePluginUrl } from './urlHelper';
 
 export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: CredentialItem[]) => {
   if (!plugin.auth?.checkAuthJs || !plugin.auth?.loginUrl || !window.SmartFetch) return true;
   
-  const checkTargetUrl = plugin.baseUrl || plugin.auth.loginUrl;
+  const resolvedLoginUrl = resolvePluginUrl(plugin.baseUrl, plugin.auth.loginUrl);
+  const checkTargetUrl = plugin.baseUrl || resolvedLoginUrl;
   const isAuthJs = `return (function() { try { return !!(eval('(function(){' + ${JSON.stringify(plugin.auth.checkAuthJs)} + '})()')); } catch(e){return false;} })();`;
   const isAuth = await window.SmartFetch(checkTargetUrl, isAuthJs).catch(() => false);
   
   if (isAuth) return true; // Already signed in
 
   const cred = credentials.find(c => {
-      try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(plugin.auth.loginUrl).hostname; } catch(e) { return false; }
+      try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
   });
   if (!cred || (!cred.username && !cred.passwordBase64)) return false; // Missing creds, can't auto-login
 
@@ -34,5 +36,5 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
           }, 500);
       });
   `;
-  return await window.SmartFetch(plugin.auth.loginUrl, loginJs).catch(() => false);
+  return await window.SmartFetch(resolvedLoginUrl, loginJs).catch(() => false);
 };

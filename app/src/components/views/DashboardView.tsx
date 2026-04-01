@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
+import { resolvePluginUrl } from '../../lib/urlHelper';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
@@ -66,7 +67,7 @@ export const DashboardView = () => {
                   const navResults = enabledPlugins.map(p => ({
                     id: p.id,
                     title: `Search ${p.name}`,
-                    url: p.search?.urlFormat ? p.search.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery)) : p.baseUrl,
+                    url: p.search?.urlFormat ? resolvePluginUrl(p.baseUrl, p.search.urlFormat).replace('{query}', encodeURIComponent(multiSearchQuery)) : p.baseUrl,
                     pluginName: p.name,
                     type: 'search'
                   }));
@@ -148,7 +149,8 @@ export const DashboardView = () => {
                     }
                   } else if (cfg.urlFormat) {
                     console.log(`[Search] Starting fetch for ${opName}...`);
-                    const searchUrl = cfg.urlFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
+                    const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
+                    const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(multiSearchQuery));
                     try {
                       const isFormSearch = !!cfg.isFormSearch;
                       const encodedExtras = JSON.stringify(cfg.formExtraActions || []);

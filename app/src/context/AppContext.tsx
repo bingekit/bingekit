@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { ahk } from '../lib/ahk';
 import { ensureAuthForPlugin } from '../lib/authHelper';
+import { resolvePluginUrl } from '../lib/urlHelper';
 import {
   BookmarkItem, WatchLaterItem, CredentialItem,
   FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
@@ -1071,7 +1072,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const targetPlugin = plugins.find(p => p.id === targetPluginId);
         if (targetPlugin && targetPlugin.search.urlFormat) {
           const sq = await resolveVars(step.params.query || currentVar);
-          const pUrl = targetPlugin.search.urlFormat.replace('{query}', encodeURIComponent(sq));
+          const resolvedFormat = resolvePluginUrl(targetPlugin.baseUrl, targetPlugin.search.urlFormat);
+          const pUrl = resolvedFormat.replace('{query}', encodeURIComponent(sq));
           setMultiSearchQuery(sq);
           setSearchParamMode('fetch');
           setActiveTab('dashboard');
