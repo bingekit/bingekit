@@ -82,6 +82,12 @@ AHK_TogglePiP() {
     global IsPiPMode, MainGui, PlayerGui, PlayerWV
     global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
     IsPiPMode := !IsPiPMode
+    
+    if (MainGui) {
+        js := "try { window.dispatchEvent(new CustomEvent('pip-mode-change', { detail: { isPip: " (IsPiPMode ? "true" : "false") " } })) } catch(e) {}"
+        MainGui.Control.ExecuteScriptAsync(js)
+    }
+    
     if (IsPiPMode) {
         if (MainGui) {
             MainGui.Hide()

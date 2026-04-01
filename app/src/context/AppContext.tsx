@@ -337,7 +337,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const handlePlayState = (e: any) => {
       if (e.detail && e.detail.isPlaying !== undefined) {
         const now = Date.now();
-        setIsFocusedMode(e.detail.isPlaying); // Update global UI focus context
+        if (!(window as any)._svGlobalPipMode) {
+          setIsFocusedMode(e.detail.isPlaying); // Update global UI focus context
+        }
         if (e.detail.currentTime !== undefined) latestTime = e.detail.currentTime;
         if (e.detail.duration !== undefined) latestDur = e.detail.duration;
 
@@ -351,6 +353,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    const handlePipState = (e: any) => {
+      (window as any)._svGlobalPipMode = e.detail?.isPip === true;
+      if ((window as any)._svGlobalPipMode) {
+        setIsFocusedMode(true);
+      }
+    };
+    window.addEventListener('pip-mode-change', handlePipState);
     window.addEventListener('player-play-state', handlePlayState);
     saveTimer = setInterval(() => {
       if (isCurrentlyPlaying) {
@@ -359,6 +368,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }, 2000); // Commit to history every 2 seconds of playing
 
     return () => {
+      window.removeEventListener('pip-mode-change', handlePipState);
       window.removeEventListener('player-play-state', handlePlayState);
       clearInterval(saveTimer);
       if (isCurrentlyPlaying) {
