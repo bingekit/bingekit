@@ -1,4 +1,44 @@
 global FetchTasks := Map()
+global FetcherGridSlots := Map()
+
+WindowSize := 300
+
+GetNextFetcherSlot() {
+    global FetcherGridSlots
+    slotIndex := 1
+    Loop {
+        if (!FetcherGridSlots.Has(slotIndex) || FetcherGridSlots[slotIndex] == false) {
+            FetcherGridSlots[slotIndex] := true
+            return slotIndex
+        }
+        slotIndex++
+    }
+}
+
+GetFetcherCoords(slotIndex, &outX, &outY) {
+    scrW := SysGet(0)
+    scrH := SysGet(1)
+    cols := Floor(scrW / WindowSize)
+    if (cols < 1)
+        cols := 1
+    index0 := slotIndex - 1
+    col := Mod(index0, cols)
+    row := Floor(index0 / cols)
+    outX := col * WindowSize
+    outY := row * WindowSize
+}
+
+DestroyFetcher(callbackId) {
+    global FetchTasks, FetcherGridSlots
+    if (FetchTasks.Has(callbackId)) {
+        task := FetchTasks[callbackId]
+        if (task.HasOwnProp("slotIndex") && task.slotIndex > 0) {
+            FetcherGridSlots[task.slotIndex] := false
+        }
+        try task.gui.Destroy()
+        FetchTasks.Delete(callbackId)
+    }
+}
 
 AHK_RawFetchHTML(url) {
     try {
@@ -26,12 +66,7 @@ OnHiddenNavigationCompleted(callbackId, hiddenGui, sender, args) {
 
     CleanupTask() {
         try {
-            hiddenGui.Destroy()
-
-            ; Best practice: Check if the key exists before deleting to prevent the Map error
-            if (FetchTasks.Has(callbackId)) {
-                FetchTasks.Delete(callbackId)
-            }
+            DestroyFetcher(callbackId)
         } catch {
             ; Catch any remaining GUI destruction or deletion errors
         }
@@ -47,12 +82,20 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         }
 
         global MainGui, WebViewSettings, WV
-        hiddenGui := Gui("-Caption +ToolWindow +Owner" activeWindow, "SmartFetch Debug Window")
-        hiddenWV := WebViewCtrl(hiddenGui, "w800 h600", WebViewSettings)
-        WinSetTransparent(0, hiddenGui)
+        hiddenGui := Gui("-Caption +ToolWindow -Resize +Owner" activeWindow, "SmartFetch Debug Window")
+        hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
 
-        hiddenGui.Show("w1 h1 x0 y0")
-        ;hiddenGui.Show("w800 h600 x0 y0")
+        global AboutConfig_ShowFetcher
+        slotIndex := 0
+        if (AboutConfig_ShowFetcher) {
+            slotIndex := GetNextFetcherSlot()
+            GetFetcherCoords(slotIndex, &xpos, &ypos)
+            hiddenGui.Show("w" WindowSize " h" WindowSize " x" xpos " y" ypos)
+            hiddenWV.Move(0, 0, WindowSize, WindowSize)
+        } else {
+            WinSetTransparent(0, hiddenGui)
+            hiddenGui.Show("w1 h1 x0 y0")
+        }
 
         if activeWindow {
             WinActivate("ahk_id " activeWindow)
@@ -61,11 +104,11 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         hostObjName := "fetchResult_" StrReplace(callbackId, "-", "")
 
         hostObj := {
-            ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -10)),
-            ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -10))
+            ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => DestroyFetcher(callbackId), -10)),
+            ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => DestroyFetcher(callbackId), -10))
         }
 
-        FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj }
+        FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
 
         hiddenWV.wv.AddHostObjectToScript(hostObjName, hostObj)
         hiddenWV.wv.AddHostObjectToScript("ahk", {
@@ -162,14 +205,24 @@ AHK_StartRawFetchParse(url, actionJs, callbackId) {
             rawHtml := req.ResponseText
 
             hiddenGui := Gui("+Resize +ToolWindow +Owner" MainGui.Hwnd, "RawFetchParse Debug Window")
-            hiddenWV := WebViewCtrl(hiddenGui, "w800 h600", WebViewSettings)
-            hiddenGui.Show("w800 h600")
+            hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
+            global AboutConfig_ShowFetcher
+            slotIndex := 0
+            if (AboutConfig_ShowFetcher) {
+                slotIndex := GetNextFetcherSlot()
+                GetFetcherCoords(slotIndex, &xpos, &ypos)
+                hiddenGui.Show("w" WindowSize " h" WindowSize " x" xpos " y" ypos)
+                hiddenWV.Move(0, 0, WindowSize, WindowSize)
+            } else {
+                WinSetTransparent(0, hiddenGui)
+                hiddenGui.Show("w1 h1 x0 y0")
+            }
 
             hostObj := {
-                ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -10)),
-                ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => (hiddenGui.Destroy(), FetchTasks.Delete(callbackId)), -10))
+                ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => DestroyFetcher(callbackId), -10)),
+                ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => DestroyFetcher(callbackId), -10))
             }
-            FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj }
+            FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
 
             hiddenWV.wv.AddHostObjectToScript(hostObjName, hostObj)
 

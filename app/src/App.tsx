@@ -25,6 +25,7 @@ import { LibraryView } from './components/views/LibraryView';
 import { ExploreView } from './components/views/ExploreView';
 import { ExtensionsView } from './components/views/ExtensionsView';
 import { DownloadsView } from './components/views/DownloadsView';
+import { ConfigView } from './components/views/ConfigView';
 
 const MainLayout = () => {
   const {
@@ -181,7 +182,7 @@ const MainLayout = () => {
                   {navButtons.home && (
                     <div className="flex items-center">
                       <TooltipWrapper text="Home">
-                        <button type="button" onClick={() => { setUrl(homePage || 'https://example.com/stream'); setInputUrl(homePage || 'https://example.com/stream'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
+                        <button type="button" onClick={() => { setUrl(homePage || 'https://fmhy.net/video'); setInputUrl(homePage || 'https://fmhy.net/video'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
                       </TooltipWrapper>
                       {installedInterfaces.length > 0 && (
                         <div className="relative flex items-center">
@@ -410,6 +411,7 @@ const MainLayout = () => {
             {activeTab === 'extensions' && <ExtensionsView />}
             {activeTab === 'downloads' && <DownloadsView />}
             {activeTab === 'settings' && <SettingsView />}
+            {activeTab === 'config' && <ConfigView />}
           </div>
         </div>
       </div>

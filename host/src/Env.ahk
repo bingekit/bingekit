@@ -6,26 +6,49 @@ global WebViewSettings := {}
 InitEnvironment() {
     global SplashGui, MainGui, WV, WebViewSettings
 
-    EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
-        "--edge-webview-no-dpi-workaround " .
+    aboutConf := AHK_GetAboutConfig()
+    disableWebSec := false
+    showFetcher := false
+    allowRightClick := true
+    allowDevtools := false
+    debugMode := false
+    try {
+        parsedConf := JSON.parse(aboutConf)
+        if (parsedConf.Has("DisableWebSecurity"))
+            disableWebSec := parsedConf["DisableWebSecurity"]
+        if (parsedConf.Has("ShowHiddenFetcherWindows"))
+            showFetcher := parsedConf["ShowHiddenFetcherWindows"]
+        if (parsedConf.Has("AllowRightClick"))
+            allowRightClick := parsedConf["AllowRightClick"]
+        if (parsedConf.Has("AllowDevtools"))
+            allowDevtools := parsedConf["AllowDevtools"]
+        if (parsedConf.Has("DebugMode"))
+            debugMode := parsedConf["DebugMode"]
+    } catch {
+    }
+    
+    global AboutConfig_ShowFetcher := showFetcher
+    global AboutConfig_DebugMode := debugMode
+
+    browserArgs := "--edge-webview-no-dpi-workaround " .
         "--disable-gpu " .
-        ;"--edge-webview-is-background " .
         "--msWebView2CodeCache " .
         "--no-first-run " .
         "--msWebView2CancelInitialNavigation " .
-        ;"--disable-web-security " .
-        ;; ^ smart fetch does away with this need, makes browsing that slight bit more secure lol
-        "--disable-features=OverscrollHistoryNavigation"
-        "--autoplay-policy=no-user-gesture-required"
-        "--force-dark-mode"
-        "--disable-features=TranslateUI"
-        ;"--kiosk"
-        ;"--disable-notifications"
-        "--deny-permission-prompts"
-        "--disable-domain-reliability"
-        "--disable-sync"
-        "--IsSwipeNavigationEnabled=0"
-    )
+        "--disable-features=OverscrollHistoryNavigation " .
+        "--autoplay-policy=no-user-gesture-required " .
+        "--force-dark-mode " .
+        "--disable-features=TranslateUI " .
+        "--deny-permission-prompts " .
+        "--disable-domain-reliability " .
+        "--disable-sync " .
+        "--IsSwipeNavigationEnabled=0 "
+
+    if (disableWebSec) {
+        browserArgs .= "--disable-web-security "
+    }
+
+    EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", browserArgs)
 
     if (A_IsCompiled) {
         WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
@@ -66,9 +89,10 @@ InitEnvironment() {
     WV.Settings.IsSwipeNavigationEnabled := 0
     WV.Settings.IsZoomControlEnabled := 0
     WV.Settings.IsPinchZoomEnabled := 0
-    WV.Settings.IsPinchZoomEnabled := 0
     WV.Settings.IsBuiltInErrorPageEnabled := 0
     WV.Settings.IsGeneralAutofillEnabled := 0
+    WV.Settings.AreDefaultContextMenusEnabled := allowRightClick ? 1 : 0
+    WV.Settings.AreDevToolsEnabled := allowDevtools ? 1 : 0
 
     try {
         WV.add_DownloadStarting(AHK_DownloadStarting)

@@ -55,7 +55,7 @@ export const BookmarksView = () => {
           <button
             onClick={() => {
               const newId = Date.now().toString();
-              const newUrl = inputUrl && inputUrl !== 'https://example.com/stream' ? inputUrl : 'https://';
+              const newUrl = inputUrl && inputUrl !== 'https://fmhy.net/video' ? inputUrl : 'https://';
               const urlHostname = (() => { try { return new URL(newUrl).hostname } catch { return 'New Site' } })();
               setBookmarks([{ id: newId, title: urlHostname, url: newUrl, folder: 'General', tags: [urlHostname.split('.')[0]] }, ...bookmarks]);
               setEditingBookmarkId(newId);

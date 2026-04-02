@@ -30,7 +30,7 @@ interface AppContextType {
   editingFlow: CustomFlow | null; setEditingFlow: React.Dispatch<React.SetStateAction<CustomFlow | null>>;
   userscripts: Userscript[]; setUserscripts: React.Dispatch<React.SetStateAction<Userscript[]>>;
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads';
+  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
@@ -81,8 +81,8 @@ export const useAppContext = () => {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [navButtons, setNavButtons] = useState<NavButtonsConfig>({ home: true, back: true, forward: true, reload: true });
   const [installedInterfaces, setInstalledInterfaces] = useState<string[]>([]);
-  const [homePage, setHomePage] = useState('https://example.com/stream');
-  const [url, setUrl] = useState('https://example.com/stream');
+  const [homePage, setHomePage] = useState('https://fmhy.net/video');
+  const [url, setUrl] = useState('https://fmhy.net/video');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
   const [downloadsLoc, setDownloadsLoc] = useState('');
@@ -130,7 +130,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [editingFlow, setEditingFlow] = useState<CustomFlow | null>(null);
   const [userscripts, setUserscripts] = useState<Userscript[]>([]);
   const [editingUserscriptId, setEditingUserscriptId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config'>('dashboard');
   const [multiSearchQuery, setMultiSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -537,7 +537,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedSearchEngine) { setDefaultSearchEngine(savedSearchEngine); }
 
     const savedThreadLimit = ahk.call('LoadData', 'search_thread_limit.txt');
-    if (savedThreadLimit) { try { setSearchThreadLimit(parseInt(savedThreadLimit) || 5); } catch(e) {} }
+    if (savedThreadLimit) { try { setSearchThreadLimit(parseInt(savedThreadLimit) || 5); } catch (e) { } }
 
     const savedHomePage = ahk.call('LoadData', 'home_page.txt');
     if (savedHomePage) {
@@ -998,6 +998,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
     let finalUrl = inputUrl.trim();
+    if (finalUrl === 'about:config') {
+      setActiveTab('config');
+      return;
+    }
     if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('interface:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
       // Leave as is
     } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {

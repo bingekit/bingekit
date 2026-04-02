@@ -108,6 +108,21 @@ AHK_LoadData(filename) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
+AHK_GetAboutConfig(*) {
+    global WorkspaceDir
+    filepath := WorkspaceDir "\about_config.json"
+    return FileExist(filepath) ? FileRead(filepath, "UTF-8") : "{}"
+}
+
+AHK_SetAboutConfig(jsonStr) {
+    global WorkspaceDir
+    filepath := WorkspaceDir "\about_config.json"
+    if FileExist(filepath)
+        FileDelete(filepath)
+    FileAppend(jsonStr, filepath, "UTF-8")
+    return true
+}
+
 AHK_CacheSet(key, data) {
     global WorkspaceDir
     if !DirExist(WorkspaceDir "\cache")

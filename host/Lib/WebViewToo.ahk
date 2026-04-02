@@ -471,7 +471,7 @@ class WebViewCtrl extends Gui.Custom {
         if (Url) {
             this.Navigate(Url)
         } else {
-            this.NavigateToString(Format(WebViewCtrl.Template.Framework, Html, Css, JavaScript))
+            ;this.NavigateToString(Format(WebViewCtrl.Template.Framework, Html, Css, JavaScript))
         }
         return this
     }

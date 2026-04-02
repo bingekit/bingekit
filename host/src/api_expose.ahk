@@ -20,6 +20,8 @@ WV.AddHostObjectToScript("ahk", {
     DeleteSite: AHK_DeleteSite,
     RawFetchHTML: AHK_RawFetchHTML,
     ExecuteSearch: AHK_ExecuteSearch,
+    GetAboutConfig: AHK_GetAboutConfig,
+    SetAboutConfig: AHK_SetAboutConfig,
     RevealPath: AHK_RevealPath,
     PromptSelectFolder: AHK_PromptSelectFolder,
     DownloadActiveVideo: AHK_DownloadActiveVideo,
