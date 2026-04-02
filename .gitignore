@@ -19,6 +19,6 @@ error*
 *.py
 *tmp*
 *- Copy*
-#.vscode/*
-#.vscode/
-#settings.json
+.vscode/*
+.vscode/
+.vscode/settings.json

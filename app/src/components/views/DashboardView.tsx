@@ -137,8 +137,10 @@ export const DashboardView = () => {
                   }
                 }
 
-                for (const op of searchOperations) {
+                let hasDeepMatch = false;
+                const searchPromises = searchOperations.map(async (op) => {
                   const { plugin, name: opName, cfg } = op;
+                  if (hasDeepMatch) return;
                   if (cfg.delegateFlowId) {
                     console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
                     const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
@@ -441,6 +443,7 @@ export const DashboardView = () => {
                               const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
                               if (Array.isArray(deepResults) && deepResults.length > 0) {
                                 matchedDeep = true;
+                                hasDeepMatch = true;
                                 results.length = 0; // Clear other concurrent results
 
                                 results.push({
@@ -460,7 +463,7 @@ export const DashboardView = () => {
                                   });
                                 });
 
-                                setSearchResults(results);
+                                setSearchResults([...results]);
                                 setIsSearching(false);
                                 return; // Break out immediately!
                               }
@@ -504,10 +507,15 @@ export const DashboardView = () => {
                       results.push({ id: plugin.id + '_error_' + Math.random().toString(36).substring(7), title: 'Error executing script', url: searchUrl, pluginName: opName, type: 'empty' });
                     }
                   }
+                });
+
+                await Promise.all(searchPromises);
+
+                if (!hasDeepMatch) {
+                  console.log(`[Search] Completed multi-search. Generated ${results.length} total card blocks.`);
+                  setSearchResults([...results]);
+                  setIsSearching(false);
                 }
-                console.log(`[Search] Completed multi-search. Generated ${results.length} total card blocks.`);
-                setSearchResults(results);
-                setIsSearching(false);
               }
             }}
           />
