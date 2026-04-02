@@ -182,7 +182,7 @@ const MainLayout = () => {
                   {navButtons.home && (
                     <div className="flex items-center">
                       <TooltipWrapper text="Home">
-                        <button type="button" onClick={() => { setUrl(homePage || 'https://fmhy.net/video'); setInputUrl(homePage || 'https://fmhy.net/video'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
+                        <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/start/'); setInputUrl(homePage || 'https://bingekit.app/start/'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
                       </TooltipWrapper>
                       {installedInterfaces.length > 0 && (
                         <div className="relative flex items-center">

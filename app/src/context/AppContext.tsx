@@ -81,8 +81,8 @@ export const useAppContext = () => {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [navButtons, setNavButtons] = useState<NavButtonsConfig>({ home: true, back: true, forward: true, reload: true });
   const [installedInterfaces, setInstalledInterfaces] = useState<string[]>([]);
-  const [homePage, setHomePage] = useState('https://fmhy.net/video');
-  const [url, setUrl] = useState('https://fmhy.net/video');
+  const [homePage, setHomePage] = useState('https://bingekit.app/start/');
+  const [url, setUrl] = useState('https://bingekit.app/start/');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
   const [downloadsLoc, setDownloadsLoc] = useState('');
