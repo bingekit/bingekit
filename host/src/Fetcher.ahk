@@ -49,10 +49,10 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         global MainGui, WebViewSettings, WV
         hiddenGui := Gui("-Caption +ToolWindow +Owner" activeWindow, "SmartFetch Debug Window")
         hiddenWV := WebViewCtrl(hiddenGui, "w800 h600", WebViewSettings)
-        ;WinSetTransparent(0, hiddenGui)
+        WinSetTransparent(0, hiddenGui)
 
-        ;hiddenGui.Show("w10 h10 x0 y0")
-        hiddenGui.Show("w800 h600 x0 y0")
+        hiddenGui.Show("w1 h1 x0 y0")
+        ;hiddenGui.Show("w800 h600 x0 y0")
 
         if activeWindow {
             WinActivate("ahk_id " activeWindow)

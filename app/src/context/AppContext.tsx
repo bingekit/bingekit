@@ -42,6 +42,7 @@ interface AppContextType {
   editingBookmarkId: string | null; setEditingBookmarkId: React.Dispatch<React.SetStateAction<string | null>>;
   showCredModal: boolean; setShowCredModal: React.Dispatch<React.SetStateAction<boolean>>;
   searchParamMode: 'fetch' | 'navigate'; setSearchParamMode: React.Dispatch<React.SetStateAction<'fetch' | 'navigate'>>;
+  searchThreadLimit: number; setSearchThreadLimit: React.Dispatch<React.SetStateAction<number>>;
   isQuickOptionsHidden: boolean; setIsQuickOptionsHidden: React.Dispatch<React.SetStateAction<boolean>>;
   defaultSearchEngine: string; setDefaultSearchEngine: React.Dispatch<React.SetStateAction<string>>;
   homePage: string; setHomePage: React.Dispatch<React.SetStateAction<string>>;
@@ -140,6 +141,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
   const [showCredModal, setShowCredModal] = useState(false);
   const [searchParamMode, setSearchParamMode] = useState<'fetch' | 'navigate'>('fetch');
+  const [searchThreadLimit, setSearchThreadLimit] = useState(5);
   const [isQuickOptionsHidden, setIsQuickOptionsHidden] = useState(true);
   const [defaultSearchEngine, setDefaultSearchEngine] = useState('https://duckduckgo.com/?q=');
   const playerRef = useRef<HTMLDivElement>(null);
@@ -534,6 +536,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedSearchEngine = ahk.call('LoadData', 'search_engine.txt');
     if (savedSearchEngine) { setDefaultSearchEngine(savedSearchEngine); }
 
+    const savedThreadLimit = ahk.call('LoadData', 'search_thread_limit.txt');
+    if (savedThreadLimit) { try { setSearchThreadLimit(parseInt(savedThreadLimit) || 5); } catch(e) {} }
+
     const savedHomePage = ahk.call('LoadData', 'home_page.txt');
     if (savedHomePage) {
       setHomePage(savedHomePage);
@@ -624,6 +629,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false');
   }, [isHistoryEnabled]);
   useEffect(() => { ahk.call('SaveData', 'search_engine.txt', defaultSearchEngine); }, [defaultSearchEngine]);
+  useEffect(() => { ahk.call('SaveData', 'search_thread_limit.txt', searchThreadLimit.toString()); }, [searchThreadLimit]);
   useEffect(() => {
     if (isInitialHomePageMount.current) { isInitialHomePageMount.current = false; return; }
     const saveTimer = setTimeout(() => {
@@ -1235,7 +1241,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle,
-    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads
+    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads,
+    searchThreadLimit, setSearchThreadLimit
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

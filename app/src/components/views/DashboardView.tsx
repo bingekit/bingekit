@@ -22,11 +22,13 @@ export const DashboardView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine,
+    searchThreadLimit,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
   } = useAppContext();
 
   const [activeSearchTags, setActiveSearchTags] = useState<string[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
+  const [searchProgress, setSearchProgress] = useState({ current: 0, total: 0, startTime: 0, isActive: false });
   const allSearchTags = Array.from(new Set(plugins.filter(p => p.enabled !== false).flatMap(p => {
     const defaultTag = p.tags || [];
     const addlTags = (p.additionalSearches || []).flatMap(s => s.tags || []);
@@ -138,9 +140,15 @@ export const DashboardView = () => {
                 }
 
                 let hasDeepMatch = false;
-                const searchPromises = searchOperations.map(async (op) => {
-                  const { plugin, name: opName, cfg } = op;
-                  if (hasDeepMatch) return;
+                let opsDone = 0;
+                setSearchProgress({ current: 0, total: searchOperations.length, startTime: Date.now(), isActive: true });
+                const searchOperationsQueue = [...searchOperations];
+
+                const searchPromises = Array.from({ length: Math.min(searchThreadLimit, searchOperations.length) }).map(async () => {
+                  while (searchOperationsQueue.length > 0 && !hasDeepMatch) {
+                    const op = searchOperationsQueue.shift();
+                    if (!op) break;
+                    const { plugin, name: opName, cfg } = op;
                   if (cfg.delegateFlowId) {
                     console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
                     const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
@@ -465,6 +473,7 @@ export const DashboardView = () => {
 
                                 setSearchResults([...results]);
                                 setIsSearching(false);
+                                setSearchProgress(prev => ({ ...prev, isActive: false }));
                                 return; // Break out immediately!
                               }
                             } catch (e) {
@@ -507,10 +516,14 @@ export const DashboardView = () => {
                       results.push({ id: plugin.id + '_error_' + Math.random().toString(36).substring(7), title: 'Error executing script', url: searchUrl, pluginName: opName, type: 'empty' });
                     }
                   }
+                    opsDone++;
+                    setSearchProgress(prev => ({ ...prev, current: opsDone }));
+                  }
                 });
 
                 await Promise.all(searchPromises);
 
+                setSearchProgress(prev => ({ ...prev, isActive: false }));
                 if (!hasDeepMatch) {
                   console.log(`[Search] Completed multi-search. Generated ${results.length} total card blocks.`);
                   setSearchResults([...results]);
@@ -531,12 +544,51 @@ export const DashboardView = () => {
               <X size={18} />
             </button>
           )}
-          {isSearching && (
+          {isSearching && !searchProgress.isActive && (
             <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-zinc-900/80 p-1">
               <RefreshCw size={18} className="text-indigo-500 animate-spin" />
             </div>
           )}
         </div>
+
+        {searchProgress.isActive && (
+          <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 overflow-hidden relative shadow-xl">
+            <div className="absolute top-0 left-0 h-1 bg-indigo-500/20 w-full" />
+            <div 
+              className="absolute top-0 left-0 h-1 bg-indigo-500 transition-all duration-300" 
+              style={{ 
+                width: `${Math.max(1, (searchProgress.current / Math.max(1, searchProgress.total)) * 100)}%`,
+                boxShadow: '0 0 10px color-mix(in srgb, var(--theme-accent) 50%, transparent)'
+              }} 
+            />
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center flex-shrink-0 relative">
+                <RefreshCw size={20} className="text-indigo-400 animate-spin absolute" />
+                <div className="w-8 h-8 rounded-full border border-indigo-500/30 animate-ping absolute" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-zinc-200">Searching across plugins...</h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Searched {searchProgress.current} of {searchProgress.total} sites
+                </p>
+              </div>
+              <div className="text-right flex flex-col items-end">
+                <div className="text-2xl font-light text-indigo-400">
+                  {Math.round((searchProgress.current / Math.max(1, searchProgress.total)) * 100)}<span className="text-base text-zinc-500">%</span>
+                </div>
+                <div className="text-[10px] text-zinc-500 mt-0.5">
+                  {(() => {
+                    const elapsedMs = Date.now() - searchProgress.startTime;
+                    if (searchProgress.current === 0) return 'Estimating...';
+                    const avgTimePerOp = elapsedMs / searchProgress.current;
+                    const remMs = avgTimePerOp * (searchProgress.total - searchProgress.current);
+                    return `${Math.ceil(remMs / 1000)}s remaining`;
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Mode & Tags Toggle */}
         <div className="flex flex-col items-center gap-3 mt-2">
@@ -581,15 +633,13 @@ export const DashboardView = () => {
             </div>
 
             {searchParamMode === 'fetch' && (
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50">
-                <input
-                  type="checkbox"
-                  checked={isDeepSearch}
-                  onChange={(e) => setIsDeepSearch(e.target.checked)}
-                  className="rounded bg-zinc-800 border-zinc-700 text-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:ring-offset-0 focus:ring-offset-transparent cursor-pointer"
-                />
+              <div 
+                onClick={() => setIsDeepSearch(!isDeepSearch)} 
+                className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50"
+              >
+                <CustomCheckbox checked={isDeepSearch} onChange={setIsDeepSearch} />
                 Deep Scan Match
-              </label>
+              </div>
             )}
           </div>
         </div>

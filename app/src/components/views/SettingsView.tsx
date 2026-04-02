@@ -22,7 +22,8 @@ export const SettingsView = () => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
-    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts
+    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
+    searchThreadLimit, setSearchThreadLimit
   } = useAppContext();
 
   React.useEffect(() => {
@@ -356,6 +357,25 @@ export const SettingsView = () => {
                   { value: 'https://www.bing.com/search?q=', label: 'Bing' }
                 ]}
               />
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-zinc-800/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-zinc-200">Max Simultaneous Searches</h3>
+                <p className="text-xs text-zinc-500 mt-1">Chunk site searches in batches rather than querying all at once.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="30" 
+                  value={searchThreadLimit} 
+                  onChange={(e) => setSearchThreadLimit(Number(e.target.value))} 
+                  className="w-32 accent-indigo-500 cursor-pointer"
+                />
+                <span className="text-sm font-medium text-indigo-400 w-6 text-right whitespace-nowrap">{searchThreadLimit}</span>
+              </div>
             </div>
           </div>
           <div className="mt-6 pt-6 border-t border-zinc-800/50">
