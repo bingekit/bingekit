@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
+import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
@@ -23,8 +23,12 @@ export const PlayerView = () => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     discoveryItems, setDiscoveryItems, history,
-    isFocusedMode, setIsFocusedMode, authStatus, playerStatus
+    isFocusedMode, setIsFocusedMode, authStatus, playerStatus, pageTitle
   } = useAppContext();
+
+  const [activeMediaUrl, setActiveMediaUrl] = React.useState<string | null>(null);
+  const [activeMediaQualities, setActiveMediaQualities] = React.useState<any[]>([]);
+  const [activeSubtitleUrl, setActiveSubtitleUrl] = React.useState<string | null>(null);
 
   const lastResumeUrl = React.useRef('');
 
@@ -162,6 +166,52 @@ export const PlayerView = () => {
     }
   }, [url, activeTab, playerStatus, history]);
 
+  React.useEffect(() => {
+    let lastUrl = '';
+    const handleMediaDetect = (e: any) => {
+      if (e.detail.type === 'video') {
+        const url = e.detail.url;
+        if (url !== lastUrl) {
+           lastUrl = url;
+           setActiveMediaUrl(url);
+        }
+      }
+    };
+    window.addEventListener('sv-media-detected', handleMediaDetect);
+
+    const intv = setInterval(() => {
+      try {
+        const m = ahk.call('GetActiveMedia');
+        if (m && typeof m === 'string' && m.length > 5 && m !== activeMediaUrl) {
+            lastUrl = m;
+            setActiveMediaUrl(m);
+        } else if (!m && activeMediaUrl) {
+            lastUrl = '';
+            setActiveMediaUrl(null);
+        }
+        
+        try {
+            const qStr = ahk.call('GetActiveMediaQualities');
+            if (qStr && typeof qStr === 'string' && qStr.length > 5) {
+                const qParsed = JSON.parse(qStr);
+                if (JSON.stringify(qParsed) !== JSON.stringify(activeMediaQualities)) setActiveMediaQualities(qParsed);
+            } else if (!qStr && activeMediaQualities.length > 0) setActiveMediaQualities([]);
+        } catch(e) {}
+        
+        try {
+            const sub = ahk.call('GetActiveSubtitle');
+            if (sub && sub !== activeSubtitleUrl) setActiveSubtitleUrl(sub);
+            else if (!sub && activeSubtitleUrl) setActiveSubtitleUrl(null);
+        } catch(e) {}
+      } catch (e) {}
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('sv-media-detected', handleMediaDetect);
+      clearInterval(intv);
+    };
+  }, [activeMediaUrl, activeMediaQualities, activeSubtitleUrl]);
+
   return (
 
     <div className="w-full h-full bg-zinc-950 flex flex-col relative">
@@ -258,6 +308,56 @@ export const PlayerView = () => {
               );
             })()}
           </div>
+          {activeMediaUrl && (
+            <>
+              <div className="w-px h-4 bg-zinc-800 mx-2" />
+              {activeMediaQualities && activeMediaQualities.length > 0 ? (
+                <div className="relative group flex items-center">
+                  <Download size={14} className="text-emerald-400 absolute left-2 pointer-events-none" />
+                  <select
+                    className="text-xs font-medium text-emerald-400 animate-pulse appearance-none bg-emerald-500/10 hover:bg-emerald-500/20 py-1 pl-7 pr-6 rounded outline-none border-none cursor-pointer"
+                    onChange={(e) => {
+                      if (e.target.value === "") return;
+                      let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
+                      ahk.call('DownloadActiveVideo', e.target.value, dName, activeSubtitleUrl || "");
+                      e.target.value = "";
+                    }}
+                    value=""
+                  >
+                    <option value="" disabled>Rip ({activeMediaQualities.length})</option>
+                    {activeMediaQualities.map(q => (
+                      <option key={q.label} value={q.url} className="bg-zinc-900 text-zinc-300">
+                        ★ {q.label} Match
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-1.5 pointer-events-none opacity-50"><ChevronDown size={14} className="text-emerald-400" /></div>
+                </div>
+              ) : (
+                  <button
+                    onClick={() => {
+                      let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
+                      ahk.call('DownloadActiveVideo', activeMediaUrl, dName, activeSubtitleUrl || "");
+                    }}
+                    className="text-xs font-medium text-emerald-400 animate-pulse hover:text-emerald-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 py-1 rounded"
+                  >
+                    <Download size={14} /> Rip Stream
+                  </button>
+              )}
+            </>
+          )}
+          {activeSubtitleUrl && (
+            <button
+               onClick={() => {
+                 let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.vtt') : `sub_${Date.now()}.vtt`;
+                 ahk.call('DownloadSubtitle', activeSubtitleUrl, dName);
+               }}
+               className="ml-2 text-xs font-medium text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-amber-500/10 hover:bg-amber-500/20 py-1 rounded"
+            >
+               <span className="font-bold border border-amber-400/50 rounded-sm px-1 leading-none text-[8px] uppercase tracking-wider">CC</span>
+               Download Sub
+            </button>
+          )}
           <div className="flex-1" />
           {playerStatus === 'found' && (
             <button

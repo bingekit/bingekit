@@ -399,6 +399,18 @@ export const PluginsView = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5">
+                      Site-Specific Blocked Download Extensions
+                    </label>
+                    <p className="text-[10px] text-zinc-600 mb-2">Block unwanted downloads specifically from this site. (e.g. .exe, .msi, .bat)</p>
+                    <TagsInput
+                      tags={editingPlugin.blockedExts || []}
+                      onChange={(newTags) =>
+                        updateEditingPlugin("root", "blockedExts", newTags)
+                      }
+                    />
+                  </div>
+                  <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="block text-xs text-zinc-500">
                         Custom CSS

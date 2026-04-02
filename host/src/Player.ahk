@@ -32,6 +32,8 @@ AHK_UpdateURL(url) {
 }
 
 AHK_UpdatePlayerUrl(url) {
+    global ActiveMediaStream := ""
+    global ActiveMediaSubtitles := []
     DoUpdateUrl() {
         global PlayerWV, PlayerCurrentUrl, PendingPlayerUrl
         if (!PlayerWV) {
@@ -86,13 +88,19 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     ResizeEdge: AHK_ResizeEdge,
                     ReportPlayState: AHK_ReportPlayState,
                     ToggleMedia: AHK_ToggleMedia,
-                    ReportPlayerStatus: AHK_ReportPlayerStatus
+                    ReportPlayerStatus: AHK_ReportPlayerStatus,
+                    SetMediaStream: AHK_SetMediaStream,
+                    SetSubtitleStream: AHK_SetSubtitleStream
                 })
                 ;PlayerWV.NavigationCompleted(OnNavigationCompleted)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
                 PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
                 PlayerWV.wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
+                try {
+                    PlayerWV.wv.add_DownloadStarting(AHK_DownloadStarting)
+                } catch {
+                }
                 try {
                     PlayerWV.wv.AddWebResourceRequestedFilter("*", 0)
                     PlayerWV.wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
@@ -220,13 +228,40 @@ AHK_UpdateAdblockStatus(status) {
     NetworkAdblockEnabled := (status = "true")
 }
 
+global ActiveMediaStream := ""
+global ActiveMediaSubtitles := []
+
+AHK_GetActiveMedia() {
+    global ActiveMediaStream
+    return ActiveMediaStream
+}
+
 AHK_PlayerResourceRequested(sender, args) {
-    global NetworkFilters, NetworkAdblockEnabled
+    global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStream, ActiveMediaSubtitles, MainGui
+    if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
+        ; Still do media checking
+    }
+
+    uri := args.Request.Uri
+    
+    if (RegExMatch(uri, "i)(\.m3u8?|\.mp4|\.flv|\.webm|/playlist|/manifest|type=video|/master(\.txt|\.json|/)|/hls/(index|master))")) {
+        ActiveMediaStream := uri
+        if (MainGui) {
+            js := "try { window.dispatchEvent(new CustomEvent('sv-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            MainGui.Control.ExecuteScriptAsync(js)
+        }
+    } else if (InStr(uri, ".vtt") || InStr(uri, ".srt") || InStr(uri, ".ass")) {
+        ActiveMediaSubtitles.Push(uri)
+        if (MainGui) {
+            js := "try { window.dispatchEvent(new CustomEvent('sv-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            MainGui.Control.ExecuteScriptAsync(js)
+        }
+    }
+
     if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
         return
     }
 
-    uri := args.Request.Uri
     isBlocked := false
     for term, _ in NetworkFilters {
         if (InStr(uri, term)) {

@@ -21,14 +21,39 @@ export const SettingsView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
-    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons
+    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
+    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts
   } = useAppContext();
+
+  React.useEffect(() => {
+    const handleFolderSelected = (e: any) => {
+      if (e.detail.id === 'downloadsLoc') {
+        setDownloadsLoc(e.detail.dir);
+        ahk.call('SaveData', 'downloads_loc.txt', e.detail.dir);
+      } else if (e.detail.id === 'downloadsTemp') {
+        setDownloadsTemp(e.detail.dir);
+        ahk.call('SaveData', 'downloads_temp.txt', e.detail.dir);
+      }
+    };
+    window.addEventListener('sv-folder-selected', handleFolderSelected);
+    return () => window.removeEventListener('sv-folder-selected', handleFolderSelected);
+  }, []);
+
+  // Sync back blockedExts when they change
+  React.useEffect(() => {
+    ahk.call('SaveData', 'blocked_exts.json', JSON.stringify(blockedExts));
+  }, [blockedExts]);
 
   const [workspaces, setWorkspaces] = useState<string[]>([]);
   const [currentWs, setCurrentWs] = useState<string>('default');
   const [showWsModal, setShowWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
+  
+  const [ffmpegStatus, setFfmpegStatus] = useState<string>('checking...');
+  const checkFfmpeg = () => {
+    try { setFfmpegStatus(ahk.call('CheckFFmpegStatus')); } catch (e) { setFfmpegStatus('missing'); }
+  };
+  useEffect(() => { checkFfmpeg(); }, []);
 
 const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -220,6 +245,39 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
               <p className="text-xs text-zinc-500 mt-1">Select which buttons show up on the URL bar.</p>
             </div>
             <NavButtonsSelect navButtons={navButtons} setNavButtons={setNavButtons} />
+          </div>
+        </div>
+
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
+          <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Download size={16} className="text-indigo-400" /> Downloads & Media Stream Ripping</h3>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-medium text-zinc-300">Downloads Folder</h4>
+              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch(e){} }}>{downloadsLoc || 'Not Set'}</p>
+            </div>
+            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
+          </div>
+          
+          <div className="flex items-center justify-between pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
+            <div>
+              <h4 className="text-sm font-medium text-zinc-300">Temporary Segments Folder</h4>
+              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch(e){} }}>{downloadsTemp || 'Not Set'}</p>
+            </div>
+            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
+          </div>
+
+          <div className="flex items-center justify-between pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
+            <div>
+              <h4 className="text-sm font-medium text-zinc-300">FFmpeg Stream Engine</h4>
+              <div className="flex items-center gap-2 mt-1">
+                 <div className={`w-2 h-2 rounded-full ${ffmpegStatus === 'installed' ? 'bg-green-500' : (ffmpegStatus === 'missing' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse')}`} />
+                 <p className="text-xs text-zinc-500">{ffmpegStatus === 'installed' ? 'Installed and ready' : (ffmpegStatus === 'missing' ? 'Not installed' : 'Checking...')}</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setFfmpegStatus('installing...'); try { ahk.call('EnsureFFmpeg', true); setTimeout(checkFfmpeg, 3000); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">
+               {ffmpegStatus === 'installed' ? 'Reinstall' : 'Install FFmpeg'}
+            </button>
           </div>
         </div>
 
@@ -455,6 +513,42 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
             </div>
           </div>
         </Modal>
+
+        {/* Downloads Manager */}
+        <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Download size={16} className="text-indigo-400" /> Downloads Manager</h3>
+              <p className="text-xs text-zinc-500 mt-1">Configure paths for saved media and block unwanted file types.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+              <div className="flex items-center gap-4">
+               <div className="flex-1">
+                 <label className="block text-xs text-zinc-500 mb-1.5">Download Location</label>
+                 <div className="flex gap-2">
+                   <input type="text" value={downloadsLoc} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
+                   <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsLoc')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
+                 </div>
+               </div>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="flex-1">
+                 <label className="block text-xs text-zinc-500 mb-1.5">Temporary Muxing Location</label>
+                 <div className="flex gap-2">
+                   <input type="text" value={downloadsTemp} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
+                   <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsTemp')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
+                 </div>
+               </div>
+            </div>
+            <div className="pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
+                 <label className="block text-xs text-zinc-500 mb-1.5">Global Blocked Extensions</label>
+                 <p className="text-[10px] text-zinc-600 mb-2">These extensions will be blocked regardless of site. (e.g. .exe, .msi, .bat)</p>
+                 <TagsInput tags={blockedExts} onChange={setBlockedExts} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* System Cache Map */}

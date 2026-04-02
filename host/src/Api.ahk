@@ -37,6 +37,28 @@ AHK_ExecuteSearch(query, engine) {
     Run(engine . query)
 }
 
+AHK_RevealPath(path) {
+    if FileExist(path)
+        Run('explorer.exe /select,"' path '"')
+}
+
+AHK_PromptSelectFolder(id) {
+    global MainGui
+    cb := () => DoSelectFolder(id)
+    SetTimer(cb, -10)
+}
+
+DoSelectFolder(id) {
+    global MainGui, WorkspaceDir
+    dir := DirSelect("*" WorkspaceDir, 3, "Select Folder")
+    if (dir != "") {
+        if (MainGui) {
+            js := "try { window.dispatchEvent(new CustomEvent('sv-folder-selected', { detail: { id: '" id "', dir: '" StrReplace(dir, "\", "\\") "' } })) } catch(e){}"
+            MainGui.Control.ExecuteScriptAsync(js)
+        }
+    }
+}
+
 AHK_InjectJS(js) {
     global WV, PlayerWV, PlayerGui
     WV.ExecuteScriptAsync(js)
@@ -294,12 +316,44 @@ AHK_ResizeEdge(dir) {
     }
 }
 
-AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0) {
-    global MainGui
+AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0, activeSrc := "") {
+    global MainGui, ActiveMediaStream
+    if (activeSrc != "") {
+        ActiveMediaStream := activeSrc
+    }
     if (MainGui) {
         js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") ", currentTime: " currentTime ", duration: " duration " } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
+}
+
+global ActiveSubtitleStream := ""
+global ActiveMediaStreamQualities := ""
+global ActiveMediaAuth := ""
+
+AHK_SetMediaStream(url, qualities := "", auth := "") {
+    global ActiveMediaStream, ActiveMediaStreamQualities, ActiveMediaAuth
+    ActiveMediaStream := url
+    ActiveMediaStreamQualities := qualities
+    if (auth != "")
+        ActiveMediaAuth := auth
+}
+
+AHK_SetSubtitleStream(url, auth := "") {
+    global ActiveSubtitleStream, ActiveMediaAuth
+    ActiveSubtitleStream := url
+    if (auth != "")
+        ActiveMediaAuth := auth
+}
+
+AHK_GetActiveMediaQualities() {
+    global ActiveMediaStreamQualities
+    return ActiveMediaStreamQualities
+}
+
+AHK_GetActiveSubtitle() {
+    global ActiveSubtitleStream
+    return ActiveSubtitleStream
 }
 
 AHK_ToggleMedia() {

@@ -91,11 +91,15 @@ AHK_RestartWorkspace(name) {
 }
 
 AHK_SaveData(filename, data) {
-    global WorkspaceDir
+    global WorkspaceDir, MainGui
     filepath := WorkspaceDir "\" filename
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
+    
+    if (filename == "downloads_loc.txt" && MainGui && DirExist(data)) {
+        try MainGui.Control.BrowseFolder(data, "downloads.localhost")
+    }
 }
 
 AHK_LoadData(filename) {

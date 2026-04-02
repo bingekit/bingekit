@@ -11,7 +11,7 @@ import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-javascript';
 
 import {
-  Film, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap, Home
+  Film, ChevronLeft, ChevronRight, ChevronDown, RotateCw, Search, Bookmark, Clock, EyeOff, Eye, Minus, Square, X, Compass, MonitorPlay, Activity, Puzzle, ListTree, Code, Settings, Zap, Home, Download
 } from 'lucide-react';
 
 // UI Wrappers
@@ -24,6 +24,7 @@ import { SettingsView } from './components/views/SettingsView';
 import { LibraryView } from './components/views/LibraryView';
 import { ExploreView } from './components/views/ExploreView';
 import { ExtensionsView } from './components/views/ExtensionsView';
+import { DownloadsView } from './components/views/DownloadsView';
 
 const MainLayout = () => {
   const {
@@ -31,11 +32,13 @@ const MainLayout = () => {
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
     isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage,
-    navButtons, installedInterfaces
+    navButtons, installedInterfaces, activeDownloads
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [showInterfaces, setShowInterfaces] = React.useState(false);
+  
+  const activeDownloadsCount = Object.values(activeDownloads || {}).filter((dl: any) => dl.state !== 2).length;
 
   React.useEffect(() => {
     const handlePlayState = (e: any) => {
@@ -366,6 +369,19 @@ const MainLayout = () => {
 
           <div className="flex-1" />
 
+          <TooltipWrapper text="Downloads">
+            <button
+              onClick={() => setActiveTab('downloads')}
+              className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'downloads' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+            >
+              <Download size={20} strokeWidth={1.5} />
+              {activeDownloadsCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-indigo-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-[0_0_8px_rgba(99,102,241,0.8)]">
+                  {activeDownloadsCount}
+                </span>
+              )}
+            </button>
+          </TooltipWrapper>
           <TooltipWrapper text="Extensions">
             <button
               onClick={() => setActiveTab('extensions')}
@@ -392,6 +408,7 @@ const MainLayout = () => {
             {activeTab === 'explore' && <ExploreView />}
             {activeTab === 'library' && <LibraryView />}
             {activeTab === 'extensions' && <ExtensionsView />}
+            {activeTab === 'downloads' && <DownloadsView />}
             {activeTab === 'settings' && <SettingsView />}
           </div>
         </div>

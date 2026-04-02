@@ -4,7 +4,7 @@ import { ensureAuthForPlugin } from '../lib/authHelper';
 import { resolvePluginUrl } from '../lib/urlHelper';
 import {
   BookmarkItem, WatchLaterItem, CredentialItem,
-  FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem
+  FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem, ActiveDownload
 } from '../types';
 export type NavButtonsConfig = { home: boolean; back: boolean; forward: boolean; reload: boolean };
 
@@ -30,7 +30,7 @@ interface AppContextType {
   editingFlow: CustomFlow | null; setEditingFlow: React.Dispatch<React.SetStateAction<CustomFlow | null>>;
   userscripts: Userscript[]; setUserscripts: React.Dispatch<React.SetStateAction<Userscript[]>>;
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces';
+  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
@@ -63,6 +63,10 @@ interface AppContextType {
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
   loadPlugins: () => void;
+  downloadsLoc: string; setDownloadsLoc: React.Dispatch<React.SetStateAction<string>>;
+  downloadsTemp: string; setDownloadsTemp: React.Dispatch<React.SetStateAction<string>>;
+  blockedExts: string[]; setBlockedExts: React.Dispatch<React.SetStateAction<string[]>>;
+  activeDownloads: Record<string, ActiveDownload>; setActiveDownloads: React.Dispatch<React.SetStateAction<Record<string, ActiveDownload>>>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -80,6 +84,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [url, setUrl] = useState('https://example.com/stream');
   const [inputUrl, setInputUrl] = useState(url);
   const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
+  const [downloadsLoc, setDownloadsLoc] = useState('');
+  const [downloadsTemp, setDownloadsTemp] = useState('');
+  const [blockedExts, setBlockedExts] = useState<string[]>(['.exe', '.msi', '.bat', '.cmd', '.scr', '.vbs']);
+  const [activeDownloads, setActiveDownloads] = useState<Record<string, ActiveDownload>>({});
   const [networkFilters, setNetworkFilters] = useState<Record<string, boolean>>({});
   const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
   const isInitialThemeMount = useRef(true);
@@ -542,7 +550,61 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setInstalledInterfaces(interfacesStr.split('|').filter(Boolean));
     }
 
+    const savedDlLoc = ahk.call('LoadData', 'downloads_loc.txt');
+    if (savedDlLoc) setDownloadsLoc(savedDlLoc);
+
+    const savedDlTemp = ahk.call('LoadData', 'downloads_temp.txt');
+    if (savedDlTemp) setDownloadsTemp(savedDlTemp);
+
+    const savedBlockedExts = ahk.call('LoadData', 'blocked_exts.json');
+    if (savedBlockedExts) {
+      try { setBlockedExts(JSON.parse(savedBlockedExts)); } catch (e) { }
+    }
+
     setTimeout(() => ahk.call('HideSplash'), 500);
+
+    const handleSVDlStarted = (e: any) => {
+      setActiveDownloads(prev => ({
+        ...prev,
+        [e.detail.path]: { file: e.detail.file, path: e.detail.path, total: 0, rcv: 0, state: 0, isFFmpeg: !!e.detail.isFFmpeg }
+      }));
+    };
+    const handleSVDlProgress = (e: any) => {
+      setActiveDownloads(prev => {
+        if (!prev[e.detail.path]) return prev;
+        return { 
+          ...prev, 
+          [e.detail.path]: { 
+            ...prev[e.detail.path], 
+            total: e.detail.total, 
+            rcv: e.detail.rcv,
+            speed: e.detail.speed !== undefined ? e.detail.speed : prev[e.detail.path].speed,
+            ffmpegTime: e.detail.ffmpegTime !== undefined ? e.detail.ffmpegTime : prev[e.detail.path].ffmpegTime
+          } 
+        };
+      });
+    };
+    const handleSVDlState = (e: any) => {
+      setActiveDownloads(prev => {
+        if (!prev[e.detail.path]) return prev;
+        return { ...prev, [e.detail.path]: { ...prev[e.detail.path], state: e.detail.state } };
+      });
+    };
+    const handleSVBlocked = (e: any) => {
+      try { ahk.call('ShowTooltip', `Blocked download: ${e.detail.file}`); setTimeout(() => ahk.call('HideTooltip'), 3000); } catch(e) {}
+    }
+
+    window.addEventListener('sv-download-started', handleSVDlStarted);
+    window.addEventListener('sv-download-progress', handleSVDlProgress);
+    window.addEventListener('sv-download-state', handleSVDlState);
+    window.addEventListener('sv-download-blocked', handleSVBlocked);
+
+    return () => {
+      window.removeEventListener('sv-download-started', handleSVDlStarted);
+      window.removeEventListener('sv-download-progress', handleSVDlProgress);
+      window.removeEventListener('sv-download-state', handleSVDlState);
+      window.removeEventListener('sv-download-blocked', handleSVBlocked);
+    };
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
@@ -580,6 +642,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     try { ahk.call('UpdateAdblockStatus', isAdblockEnabled ? 'true' : 'false'); } catch (e) { }
   }, [isAdblockEnabled]);
+
+  const isInitialDlLocMount = useRef(true);
+  useEffect(() => {
+    if (isInitialDlLocMount.current) { isInitialDlLocMount.current = false; return; }
+    ahk.call('SaveData', 'downloads_loc.txt', downloadsLoc);
+  }, [downloadsLoc]);
+
+  const isInitialDlTempMount = useRef(true);
+  useEffect(() => {
+    if (isInitialDlTempMount.current) { isInitialDlTempMount.current = false; return; }
+    ahk.call('SaveData', 'downloads_temp.txt', downloadsTemp);
+  }, [downloadsTemp]);
+
+  const isInitialBlockedExtsMount = useRef(true);
+  useEffect(() => {
+    if (isInitialBlockedExtsMount.current) { isInitialBlockedExtsMount.current = false; return; }
+    ahk.call('SaveData', 'blocked_exts.json', JSON.stringify(blockedExts));
+  }, [blockedExts]);
 
   useEffect(() => {
     if (isInitialThemeMount.current) { isInitialThemeMount.current = false; return; }
@@ -1154,7 +1234,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
-    networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle
+    networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle,
+    downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

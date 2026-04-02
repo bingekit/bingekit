@@ -67,6 +67,17 @@ export interface HistoryItem {
   duration?: number;
 }
 
+export interface ActiveDownload {
+  path: string;
+  file: string;
+  total: number;
+  rcv: number;
+  state: number; // 0=InProgress, 1=Interrupted, 2=Completed
+  speed?: string;
+  ffmpegTime?: string;
+  isFFmpeg?: boolean;
+}
+
 export interface DiscoveryItem {
   id: string;
   url: string;
@@ -205,6 +216,7 @@ export interface SitePlugin extends BaseMetadata {
   customJs?: string;
   tracking?: TrackingConfig; // Legacy fallback single tracking object
   trackingFlows?: TrackingConfig[]; // Multiple tracking flows for specific URLs
+  blockedExts?: string[];
 }
 
 export const DEFAULT_PLUGIN: SitePlugin = {
@@ -231,5 +243,6 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   customCss: '',
   customJs: '',
   tracking: { listSel: '', itemSel: '', idExtractJs: '', titleExtractJs: '', urlExtractJs: '', statusExtractJs: '' },
-  trackingFlows: []
+  trackingFlows: [],
+  blockedExts: []
 };

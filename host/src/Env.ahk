@@ -65,10 +65,27 @@ InitEnvironment() {
     WV.Settings.IsSwipeNavigationEnabled := 0
     WV.Settings.IsZoomControlEnabled := 0
     WV.Settings.IsPinchZoomEnabled := 0
+    WV.Settings.IsPinchZoomEnabled := 0
     WV.Settings.IsBuiltInErrorPageEnabled := 0
     WV.Settings.IsGeneralAutofillEnabled := 0
+    
+    try {
+        WV.add_DownloadStarting(AHK_DownloadStarting)
+    } catch {
+    }
 
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
     MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
+    
+    downloadsLoc := AHK_LoadData("downloads_loc.txt")
+    if (downloadsLoc == "") {
+        downloadsLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        if !DirExist(downloadsLoc) {
+            try DirCreate(downloadsLoc)
+        }
+    }
+    if DirExist(downloadsLoc) {
+        try MainGui.Control.BrowseFolder(downloadsLoc, "downloads.localhost")
+    }
 }
