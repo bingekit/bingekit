@@ -257,7 +257,7 @@ export const DownloadsView = () => {
       </div>
 
       {/* Embedded Player */}
-      <div className="flex-1 bg-black flex flex-col relative items-center justify-center p-8 group/player">
+      <div className="flex-1 bg-zinc-950 flex flex-col relative items-center justify-center p-8 group/player">
         {playingFile ? (() => {
           const { vid, vtt } = getMediaUrls(playingFile);
           return (

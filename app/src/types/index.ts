@@ -246,3 +246,29 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   trackingFlows: [],
   blockedExts: []
 };
+
+export interface RepoPlugin {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  tags?: string[];
+  icon?: string;
+  zipUrl: string;
+}
+
+export interface RepoPack {
+  id: string;
+  name: string;
+  description: string;
+  plugins: string[];
+}
+
+export interface RepoManifest {
+  name: string;
+  description: string;
+  version: string;
+  plugins: RepoPlugin[];
+  packs: RepoPack[];
+}

@@ -33,7 +33,7 @@ const MainLayout = () => {
     inputUrl, setInputUrl, url, setUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, followedItems, fetchTitleForUrl, handleNavigate,
     isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage,
-    navButtons, installedInterfaces, activeDownloads
+    navButtons, installedInterfaces, activeDownloads, pluginUpdateCount
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -67,13 +67,15 @@ const MainLayout = () => {
           --theme-titlebar-accent: ${theme.titlebarAccent || theme.accent || '#6366f1'};
           --theme-titlebar-alt: ${theme.titlebarAlt || '#18181b'};
           --theme-titlebar-alt2: ${theme.titlebarAlt2 || '#27272a'};
+          --theme-sidebar-text: ${theme.sidebarText || theme.textSec || '#a1a1aa'};
+          --theme-urlbarBg: ${theme.urlbarBg || 'color-mix(in srgb, var(--theme-text-main) 4%, transparent)'};
           --theme-surface: var(--theme-main);
         }
 
 
         /* Essential Layout Backgrounds mapped to IDs */
-        #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: var(--theme-border) !important; }
-        #sidebar-region { background-color: var(--theme-sidebar) !important; border-color: var(--theme-border) !important; }
+        #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: color-mix(in srgb, var(--theme-border) 60%, var(--theme-titlebar)) !important; }
+        #sidebar-region { background-color: var(--theme-sidebar) !important; border-color: color-mix(in srgb, var(--theme-border) 60%, var(--theme-sidebar)) !important; }
         #main-region, #main-region > div { background-color: var(--theme-main) !important; }
 
         /* General Borders / Overrides */
@@ -121,7 +123,8 @@ const MainLayout = () => {
         input.bg-transparent, textarea.bg-transparent { background-color: transparent !important; }
 
         /* Hard Toolbar Fix */
-        form#toolbar-form { display: flex !important; }
+        form#toolbar-form { display: flex !important; background-color: var(--theme-urlbarBg) !important; }
+        form#toolbar-form:focus-within { background-color: color-mix(in srgb, var(--theme-urlbarBg) 80%, var(--theme-titlebar-alt2)) !important; }
 
         /* Global Selection */
         
@@ -138,6 +141,10 @@ const MainLayout = () => {
         #titlebar-region input.text-xs { color: var(--theme-titlebar-text-hover) !important; }
         #titlebar-region input::placeholder { color: color-mix(in srgb, var(--theme-titlebar-text) 50%, transparent) !important; }
         
+        #sidebar-region { color: var(--theme-sidebar-text) !important; }
+        #sidebar-region button.text-zinc-500 { color: var(--theme-sidebar-text) !important; }
+        #sidebar-region button.hover\\:text-zinc-200:hover { color: color-mix(in srgb, var(--theme-sidebar-text) 50%, var(--theme-text-main)) !important; }
+
         #titlebar-region .text-indigo-400, #titlebar-region .text-indigo-500 { color: var(--theme-titlebar-accent) !important; }
         #titlebar-region .fill-indigo-400 { fill: var(--theme-titlebar-accent) !important; }
         #titlebar-region .border-indigo-500\\/50 { border-color: var(--theme-titlebar-accent) !important; }
@@ -178,7 +185,7 @@ const MainLayout = () => {
                 })()}
               </div>
             ) : (
-              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag bg-zinc-900/80 backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 focus-within:bg-zinc-900 h-7 w-full max-w-lg">
+              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 h-7 w-full max-w-lg">
                 <div className="flex items-center px-2 gap-1 text-zinc-500 relative">
                   {navButtons.home && (
                     <div className="flex items-center">
@@ -290,14 +297,14 @@ const MainLayout = () => {
         {/* Window Controls */}
         <div className="flex items-center no-drag ml-auto">
           {isPlaying && (
-            <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="p-5 px-5 transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+            <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
               </svg>
             </button>
           )}
           {activeTab === 'player' && (
-            <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="p-5 px-5 transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+            <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
             </button>
           )}
@@ -305,24 +312,24 @@ const MainLayout = () => {
             <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
               <button
                 onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
-                className={`p-5 px-5 transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}
+                className={`px-5 h-[39px] transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}
               >
                 <Zap size={14} />
               </button>
             </TooltipWrapper>
           )}
           <TooltipWrapper text="Minimize">
-            <button onClick={() => ahk.call('Minimize')} className="p-5 px-5 text-zinc-500 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => ahk.call('Minimize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
               <Minus size={14} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Maximize">
-            <button onClick={() => ahk.call('Maximize')} className="p-5 px-5 text-zinc-500 hover:bg-zinc-800 transition-colors">
+            <button onClick={() => ahk.call('Maximize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
               <Square size={12} />
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Close">
-            <button onClick={() => ahk.call('Close')} className="p-5 px-5 text-zinc-500 hover:text-white hover:bg-red-500/90 transition-colors">
+            <button onClick={() => ahk.call('Close')} className="px-5 h-[39px] text-zinc-500 hover:text-white hover:bg-red-500/90 transition-colors">
               <X size={14} />
             </button>
           </TooltipWrapper>
@@ -387,9 +394,14 @@ const MainLayout = () => {
           <TooltipWrapper text="Extensions">
             <button
               onClick={() => setActiveTab('extensions')}
-              className={`p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'extensions' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+              className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'extensions' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
             >
               <Puzzle size={20} strokeWidth={1.5} />
+              {pluginUpdateCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                  {pluginUpdateCount}
+                </span>
+              )}
             </button>
           </TooltipWrapper>
           <TooltipWrapper text="Settings">

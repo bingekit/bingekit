@@ -379,3 +379,50 @@ AHK_DownloadSubtitle(url, targetFilename) {
     }
     SetTimer(dlSub, -1)
 }
+
+AHK_InstallExtensionZip(url, targetFolder := "sites") {
+    global WorkspaceBaseDir
+    if (url == "" || WorkspaceBaseDir == "")
+        return false
+
+    validFolders := Map("sites", 1, "flows", 1, "scripts", 1)
+    if (!validFolders.Has(targetFolder))
+        targetFolder := "sites"
+
+    destDir := WorkspaceBaseDir "\" targetFolder
+    if !DirExist(destDir)
+        try DirCreate(destDir)
+
+    tmpZip := A_Temp "\bk_ext_" A_TickCount ".zip"
+    try {
+        AHK_NativeDownloadWinHttp(url, tmpZip)
+    } catch {
+        return false
+    }
+
+    tmpExtract := A_Temp "\bk_ext_extract_" A_TickCount
+    if !DirExist(tmpExtract)
+        try DirCreate(tmpExtract)
+
+    success := false
+    try {
+        shell := ComObject("Shell.Application")
+        zipFile := shell.NameSpace(tmpZip)
+        destination := shell.NameSpace(tmpExtract)
+        destination.CopyHere(zipFile.Items(), 4 | 16)
+        
+        ; Move JSON artifacts to the corresponding folder
+        Loop Files, tmpExtract "\*.json", "R"
+        {
+            try FileMove(A_LoopFileFullPath, destDir "\" A_LoopFileName, 1)
+            success := true
+        }
+    } catch {
+        success := false
+    }
+    
+    try FileDelete(tmpZip)
+    try DirDelete(tmpExtract, 1)
+
+    return success ? "true" : "false"
+}

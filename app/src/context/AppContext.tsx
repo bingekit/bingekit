@@ -71,6 +71,11 @@ interface AppContextType {
   isCompiledApp: boolean;
   isPortableApp: boolean;
   ffmpegStatusApp: string; setFfmpegStatusApp: React.Dispatch<React.SetStateAction<string>>;
+  pluginRepoUrl: string; setPluginRepoUrl: React.Dispatch<React.SetStateAction<string>>;
+  pluginUpdateCount: number; setPluginUpdateCount: React.Dispatch<React.SetStateAction<number>>;
+  autoCheckPluginUpdates: boolean; setAutoCheckPluginUpdates: React.Dispatch<React.SetStateAction<boolean>>;
+  autoUpdatePlugins: boolean; setAutoUpdatePlugins: React.Dispatch<React.SetStateAction<boolean>>;
+  checkPluginUpdates: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -97,6 +102,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isCompiledApp, setIsCompiledApp] = useState(true);
   const [isPortableApp, setIsPortableApp] = useState(false);
   const [ffmpegStatusApp, setFfmpegStatusApp] = useState('checking...');
+  const [pluginRepoUrl, setPluginRepoUrl] = useState('https://raw.githubusercontent.com/owhs/bingekit/main/repo_example/repo.json');
+  const [pluginUpdateCount, setPluginUpdateCount] = useState(0);
+  const [autoCheckPluginUpdates, setAutoCheckPluginUpdates] = useState(true);
+  const [autoUpdatePlugins, setAutoUpdatePlugins] = useState(false);
   const isInitialThemeMount = useRef(true);
   const isInitialHistoryMount = useRef(true);
   const isInitialDiscoveryMount = useRef(true);
@@ -115,7 +124,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     titlebarTextHover: '#fafafa',
     titlebarAccent: '#6366f1',
     titlebarAlt: '#18181b',
-    titlebarAlt2: '#27272a'
+    titlebarAlt2: '#27272a',
+    sidebarText: '#a1a1aa',
+    urlbarBg: ''
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -534,7 +545,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           titlebarTextHover: parsed.titlebarTextHover || parsed.textMain || '#fafafa',
           titlebarAccent: parsed.titlebarAccent || parsed.accent || '#6366f1',
           titlebarAlt: parsed.titlebarAlt || '#18181b',
-          titlebarAlt2: parsed.titlebarAlt2 || '#27272a'
+          titlebarAlt2: parsed.titlebarAlt2 || '#27272a',
+          sidebarText: parsed.sidebarText || parsed.textSec || '#a1a1aa',
+          urlbarBg: parsed.urlbarBg || ''
         });
       } catch (e) { }
     }
@@ -578,6 +591,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const comp = ahk.call('IsCompiled');
       setIsCompiledApp(comp === '1' || comp === 1 || comp === true);
       setFfmpegStatusApp(ahk.call('CheckFFmpegStatus') || 'missing');
+
+      const configStr = ahk.call('GetAboutConfig');
+      if (configStr) {
+        const parsed = JSON.parse(configStr);
+        if (parsed.PluginRepoUrl !== undefined) setPluginRepoUrl(parsed.PluginRepoUrl);
+        if (parsed.AutoCheckPluginUpdates !== undefined) setAutoCheckPluginUpdates(parsed.AutoCheckPluginUpdates);
+        if (parsed.AutoUpdatePlugins !== undefined) setAutoUpdatePlugins(parsed.AutoUpdatePlugins);
+      }
     } catch (e) { }
 
     setTimeout(() => ahk.call('HideSplash'), 500);
@@ -1009,6 +1030,40 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setIsCheckingUpdates(false);
   };
 
+  const checkPluginUpdates = async () => {
+    if (!pluginRepoUrl) return;
+    try {
+      const result = ahk.call("RawFetchHTML", pluginRepoUrl);
+      if (result) {
+        const repoData = JSON.parse(result);
+        const updates: {id: string, zipUrl: string}[] = [];
+        
+        repoData.plugins?.forEach((rp: any) => {
+          const local = plugins.find(lp => lp.id === rp.id);
+          if (local && local.version && rp.version && local.version !== rp.version && rp.zipUrl) {
+            updates.push({ id: rp.id, zipUrl: rp.zipUrl });
+          }
+        });
+
+        setPluginUpdateCount(updates.length);
+
+        if (updates.length > 0 && autoUpdatePlugins) {
+          setTimeout(() => {
+            let installedAny = false;
+            updates.forEach(u => {
+              const success = ahk.call("InstallExtensionZip", u.zipUrl, "sites");
+              if (success === "true" || success === true || success === 1) installedAny = true;
+            });
+            if (installedAny) {
+               loadPlugins();
+               setPluginUpdateCount(0);
+            }
+          }, 100);
+        }
+      }
+    } catch (e) {}
+  };
+
   const handleNavigate = (e: React.FormEvent) => {
     e.preventDefault();
     let finalUrl = inputUrl.trim();
@@ -1247,6 +1302,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return currentVar;
   };
 
+  const isInitialPluginCheck = useRef(false);
+  useEffect(() => {
+    if (autoCheckPluginUpdates && plugins.length > 0 && !isInitialPluginCheck.current) {
+        isInitialPluginCheck.current = true;
+        checkPluginUpdates();
+    }
+  }, [plugins.length, autoCheckPluginUpdates, pluginRepoUrl]);
+
   const value = {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, history, setHistory, isHistoryEnabled, setIsHistoryEnabled, discoveryItems, setDiscoveryItems,
@@ -1260,7 +1323,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads,
-    searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp
+    searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp, pluginRepoUrl, setPluginRepoUrl,
+    pluginUpdateCount, setPluginUpdateCount, autoCheckPluginUpdates, setAutoCheckPluginUpdates, autoUpdatePlugins, setAutoUpdatePlugins, checkPluginUpdates
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
