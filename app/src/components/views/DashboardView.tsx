@@ -150,47 +150,47 @@ export const DashboardView = () => {
                     const op = searchOperationsQueue.shift();
                     if (!op) break;
                     const { plugin, name: opName, cfg } = op;
-                  if (cfg.delegateFlowId) {
-                    console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
-                    const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
-                    if (tFlow) {
-                      try {
-                        const flowRes = await runFlow(tFlow, multiSearchQuery, cfg.delegateFlowInputs || {});
-                        let parsed: any[] = [];
-                        if (typeof flowRes === 'string') {
-                          try { parsed = JSON.parse(flowRes); } catch (e) { }
-                        } else if (Array.isArray(flowRes)) {
-                          parsed = flowRes;
-                        }
-                        parsed.forEach((item: any) => {
-                          if (!item.title) return;
-                          results.push({
-                            id: `${plugin.id}-${Date.now()}-${Math.random()}`,
-                            title: item.title,
-                            url: item.href || item.url,
-                            pluginName: opName,
-                            type: 'search'
+                    if (cfg.delegateFlowId) {
+                      console.log(`[Search] Delegating fetch for ${opName} to custom flow...`);
+                      const tFlow = flows.find(f => f.id === cfg.delegateFlowId);
+                      if (tFlow) {
+                        try {
+                          const flowRes = await runFlow(tFlow, multiSearchQuery, cfg.delegateFlowInputs || {});
+                          let parsed: any[] = [];
+                          if (typeof flowRes === 'string') {
+                            try { parsed = JSON.parse(flowRes); } catch (e) { }
+                          } else if (Array.isArray(flowRes)) {
+                            parsed = flowRes;
+                          }
+                          parsed.forEach((item: any) => {
+                            if (!item.title) return;
+                            results.push({
+                              id: `${plugin.id}-${Date.now()}-${Math.random()}`,
+                              title: item.title,
+                              url: item.href || item.url,
+                              pluginName: opName,
+                              type: 'search'
+                            });
                           });
-                        });
-                      } catch (e) {
-                        console.error('Flow delegation error:', e);
+                        } catch (e) {
+                          console.error('Flow delegation error:', e);
+                        }
                       }
-                    }
-                  } else if (cfg.urlFormat) {
-                    console.log(`[Search] Starting fetch for ${opName}...`);
-                    const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
-                    const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(baseQuery));
-                    try {
-                      const isFormSearch = !!cfg.isFormSearch;
-                      const encodedExtras = JSON.stringify(cfg.formExtraActions || []);
+                    } else if (cfg.urlFormat) {
+                      console.log(`[Search] Starting fetch for ${opName}...`);
+                      const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
+                      const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(baseQuery));
+                      try {
+                        const isFormSearch = !!cfg.isFormSearch;
+                        const encodedExtras = JSON.stringify(cfg.formExtraActions || []);
 
-                      const pluginConfigString = JSON.stringify({
-                        itemSel: cfg.itemSel || '',
-                        titleSel: cfg.titleSel || '',
-                        linkSel: cfg.linkSel || ''
-                      });
+                        const pluginConfigString = JSON.stringify({
+                          itemSel: cfg.itemSel || '',
+                          titleSel: cfg.titleSel || '',
+                          linkSel: cfg.linkSel || ''
+                        });
 
-                      const jsQuery = `
+                        const jsQuery = `
                                   if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
                                   if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
                                   if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
@@ -292,8 +292,8 @@ export const DashboardView = () => {
                                       const query = "${baseQuery.replace(/"/g, '\\"')}";
                                       const extras = ${encodedExtras};
                                       
-                                      if (sessionStorage.getItem('sv_search_phase')) {
-                                        sessionStorage.removeItem('sv_search_phase');
+                                      if (sessionStorage.getItem('bk_search_phase')) {
+                                        sessionStorage.removeItem('bk_search_phase');
                                         setTimeout(() => resolve(scrapeItems()), 1000);
                                         return;
                                       }
@@ -329,12 +329,12 @@ export const DashboardView = () => {
                                           }, ${cfg.formSubmitDelay || 2000});
                                         } else {
                                           console.log('[SmartFetch Debug] Navigation Mode: Setting session marker and clicking submit');
-                                          sessionStorage.setItem('sv_search_phase', '1');
+                                          sessionStorage.setItem('bk_search_phase', '1');
                                           submit.click();
                                           // Fallback: If navigation doesn't happen within 8 seconds, resolve to avoid hanging
                                           setTimeout(() => {
                                             console.log('[SmartFetch Debug] Navigation timeout (8s) hit! Resolving empty to prevent hang.');
-                                            sessionStorage.removeItem('sv_search_phase');
+                                            sessionStorage.removeItem('bk_search_phase');
                                             resolve([]);
                                           }, 8000);
                                         }
@@ -349,33 +349,33 @@ export const DashboardView = () => {
                                   }
                                 `;
 
-                      const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);
-                      console.log(`[Search] ${opName} returned from SmartFetch:`, fetchResults);
+                        const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);
+                        console.log(`[Search] ${opName} returned from SmartFetch:`, fetchResults);
 
-                      if (Array.isArray(fetchResults) && fetchResults.length > 0) {
-                        const validResults = fetchResults.filter(r => r.title && r.href);
-                        const totalValidCount = validResults.length;
+                        if (Array.isArray(fetchResults) && fetchResults.length > 0) {
+                          const validResults = fetchResults.filter(r => r.title && r.href);
+                          const totalValidCount = validResults.length;
 
-                        for (let i = 0; i < validResults.length; i++) {
-                          const res = validResults[i];
-                          const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
-                          const isExactMatch = cleanStr(res.title) === cleanStr(baseQuery) || cleanStr(res.title) === cleanStr(multiSearchQuery);
-                          let matchedDeep = false;
+                          for (let i = 0; i < validResults.length; i++) {
+                            const res = validResults[i];
+                            const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+                            const isExactMatch = cleanStr(res.title) === cleanStr(baseQuery) || cleanStr(res.title) === cleanStr(multiSearchQuery);
+                            let matchedDeep = false;
 
-                          if (isDeepSearch && (isExactMatch || totalValidCount === 1)) {
-                            console.log(`[Search] Deep Scan match found for ${res.title}. Executing target script!`);
+                            if (isDeepSearch && (isExactMatch || totalValidCount === 1)) {
+                              console.log(`[Search] Deep Scan match found for ${res.title}. Executing target script!`);
 
-                            const epSelEscaped = (plugin.media?.epSel || '').replace(/'/g, "\\'");
-                            const seasonSelEscaped = (plugin.media?.seasonSel || '').replace(/'/g, "\\'");
-                            const customJs = plugin.media?.deepJs || '';
+                              const epSelEscaped = (plugin.media?.epSel || '').replace(/'/g, "\\'");
+                              const seasonSelEscaped = (plugin.media?.seasonSel || '').replace(/'/g, "\\'");
+                              const customJs = plugin.media?.deepJs || '';
 
-                            let deepJsQuery = '';
-                            if (customJs) {
-                              deepJsQuery = `
-                                   window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
-                                   window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
-                                   window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
-                                   window.SV_BASE_QUERY = ${JSON.stringify(baseQuery)};
+                              let deepJsQuery = '';
+                              if (customJs) {
+                                deepJsQuery = `
+                                   window.BK_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
+                                   window.BK_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
+                                   window.BK_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
+                                   window.BK_BASE_QUERY = ${JSON.stringify(baseQuery)};
                                    return new Promise(async (resolve) => {
                                      try {
                                        const res = await (async () => {
@@ -387,17 +387,17 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                            } else {
-                              const tvConfigString = JSON.stringify({
-                                epSel: plugin.media.epSel || '',
-                                seasonSel: plugin.media.seasonSel || ''
-                              });
+                              } else {
+                                const tvConfigString = JSON.stringify({
+                                  epSel: plugin.media.epSel || '',
+                                  seasonSel: plugin.media.seasonSel || ''
+                                });
 
-                              deepJsQuery = `
-                                   window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
-                                   window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
-                                   window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
-                                   window.SV_BASE_QUERY = ${JSON.stringify(baseQuery)};
+                                deepJsQuery = `
+                                   window.BK_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
+                                   window.BK_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
+                                   window.BK_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
+                                   window.BK_BASE_QUERY = ${JSON.stringify(baseQuery)};
                                    
                                    if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
                                    if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
@@ -446,54 +446,64 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                            }
+                              }
 
-                            try {
-                              const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
-                              if (Array.isArray(deepResults) && deepResults.length > 0) {
-                                matchedDeep = true;
-                                hasDeepMatch = true;
-                                results.length = 0; // Clear other concurrent results
+                              try {
+                                const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                                if (Array.isArray(deepResults) && deepResults.length > 0) {
+                                  matchedDeep = true;
+                                  hasDeepMatch = true;
+                                  results.length = 0; // Clear other concurrent results
 
-                                results.push({
-                                  id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
-                                  title: res.title,
-                                  url: res.href,
-                                  pluginName: opName,
-                                  type: 'result'
-                                });
-                                deepResults.forEach((dep: any) => {
                                   results.push({
-                                    id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
-                                    title: '↳ ' + dep.title,
-                                    url: dep.href,
+                                    id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
+                                    title: res.title,
+                                    url: res.href,
                                     pluginName: opName,
                                     type: 'result'
                                   });
-                                });
+                                  deepResults.forEach((dep: any) => {
+                                    results.push({
+                                      id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
+                                      title: '↳ ' + dep.title,
+                                      url: dep.href,
+                                      pluginName: opName,
+                                      type: 'result'
+                                    });
+                                  });
 
-                                setSearchResults([...results]);
-                                setIsSearching(false);
-                                setSearchProgress(prev => ({ ...prev, isActive: false }));
-                                return; // Break out immediately!
+                                  setSearchResults([...results]);
+                                  setIsSearching(false);
+                                  setSearchProgress(prev => ({ ...prev, isActive: false }));
+                                  return; // Break out immediately!
+                                }
+                              } catch (e) {
+                                console.error('[Search] Deep Search failed', e);
                               }
-                            } catch (e) {
-                              console.error('[Search] Deep Search failed', e);
+                            }
+
+                            if (!matchedDeep) {
+                              results.push({
+                                id: plugin.id + '_' + Math.random().toString(36).substring(7),
+                                title: res.title,
+                                url: res.href,
+                                pluginName: opName,
+                                type: 'result'
+                              });
                             }
                           }
-
-                          if (!matchedDeep) {
+                          if (totalValidCount === 0) {
+                            console.log(`[Search] ${opName} found 0 valid results.`);
                             results.push({
-                              id: plugin.id + '_' + Math.random().toString(36).substring(7),
-                              title: res.title,
-                              url: res.href,
+                              id: plugin.id + '_empty_' + Math.random().toString(36).substring(7),
+                              title: 'No matches found',
+                              url: searchUrl,
                               pluginName: opName,
-                              type: 'result'
+                              type: 'empty'
                             });
                           }
-                        }
-                        if (totalValidCount === 0) {
-                          console.log(`[Search] ${opName} found 0 valid results.`);
+                        } else {
+                          console.log(`[Search] ${opName} found 0 results.`);
                           results.push({
                             id: plugin.id + '_empty_' + Math.random().toString(36).substring(7),
                             title: 'No matches found',
@@ -502,21 +512,11 @@ export const DashboardView = () => {
                             type: 'empty'
                           });
                         }
-                      } else {
-                        console.log(`[Search] ${opName} found 0 results.`);
-                        results.push({
-                          id: plugin.id + '_empty_' + Math.random().toString(36).substring(7),
-                          title: 'No matches found',
-                          url: searchUrl,
-                          pluginName: opName,
-                          type: 'empty'
-                        });
+                      } catch (e) {
+                        console.error(`[Search] Error evaluating ${opName} SmartFetch:`, e);
+                        results.push({ id: plugin.id + '_error_' + Math.random().toString(36).substring(7), title: 'Error executing script', url: searchUrl, pluginName: opName, type: 'empty' });
                       }
-                    } catch (e) {
-                      console.error(`[Search] Error evaluating ${opName} SmartFetch:`, e);
-                      results.push({ id: plugin.id + '_error_' + Math.random().toString(36).substring(7), title: 'Error executing script', url: searchUrl, pluginName: opName, type: 'empty' });
                     }
-                  }
                     opsDone++;
                     setSearchProgress(prev => ({ ...prev, current: opsDone }));
                   }
@@ -555,12 +555,12 @@ export const DashboardView = () => {
         {searchProgress.isActive && (
           <div className="w-full bg-zinc-900/50 border border-zinc-800/80 rounded-2xl p-4 overflow-hidden relative shadow-xl">
             <div className="absolute top-0 left-0 h-1 bg-indigo-500/20 w-full" />
-            <div 
-              className="absolute top-0 left-0 h-1 bg-indigo-500 transition-all duration-300" 
-              style={{ 
+            <div
+              className="absolute top-0 left-0 h-1 bg-indigo-500 transition-all duration-300"
+              style={{
                 width: `${Math.max(1, (searchProgress.current / Math.max(1, searchProgress.total)) * 100)}%`,
                 boxShadow: '0 0 10px color-mix(in srgb, var(--theme-accent) 50%, transparent)'
-              }} 
+              }}
             />
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center flex-shrink-0 relative">
@@ -634,8 +634,8 @@ export const DashboardView = () => {
             </div>
 
             {searchParamMode === 'fetch' && (
-              <div 
-                onClick={() => setIsDeepSearch(!isDeepSearch)} 
+              <div
+                onClick={() => setIsDeepSearch(!isDeepSearch)}
                 className="flex items-center gap-2 cursor-pointer text-xs text-zinc-400 hover:text-indigo-400 transition-colors bg-zinc-900/50 px-3 py-1.5 rounded-xl border border-zinc-800/50"
               >
                 <CustomCheckbox checked={isDeepSearch} onChange={setIsDeepSearch} />

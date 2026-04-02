@@ -207,7 +207,7 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
         }
     }
 
-    logFile := A_Temp "\sv_ffmpeg_" A_TickCount ".log"
+    logFile := A_Temp "\bk_ffmpeg_" A_TickCount ".log"
     cmd := 'cmd.exe /c ""' ffmpegPath '" -y ' authOpts '-i "' url '" -map 0:v? -map 0:a? -c copy -bsf:a aac_adtstoasc "' finalPath '" 2> "' logFile '""'
 
     Run(cmd, downloadLoc, "Hide", &pid)

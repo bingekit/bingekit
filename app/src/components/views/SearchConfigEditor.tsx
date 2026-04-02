@@ -5,23 +5,23 @@ import { CustomSelect } from '../ui/CustomSelect';
 import { SearchConfig, CustomFlow } from '../../types';
 import { resolvePluginUrl } from '../../lib/urlHelper';
 
-export const SearchConfigEditor = ({ 
-  config, 
-  onChange, 
-  flows, 
-  testSearchQuery, 
+export const SearchConfigEditor = ({
+  config,
+  onChange,
+  flows,
+  testSearchQuery,
   setTestSearchQuery,
   baseUrl = ''
-}: { 
+}: {
   config: any; // using any to support both SitePlugin.search and SearchConfig
-  onChange: (key: string, val: any) => void; 
-  flows: CustomFlow[]; 
+  onChange: (key: string, val: any) => void;
+  flows: CustomFlow[];
   testSearchQuery: string;
   setTestSearchQuery: (val: string) => void;
   baseUrl?: string;
 }) => {
   const [isTestingSearch, setIsTestingSearch] = useState(false);
-  const [testSearchResults, setTestSearchResults] = useState<{status: string, nodesCount: number, results: any[]}>({status: 'idle', nodesCount: 0, results: []});
+  const [testSearchResults, setTestSearchResults] = useState<{ status: string, nodesCount: number, results: any[] }>({ status: 'idle', nodesCount: 0, results: [] });
 
   return (
     <div className="space-y-4">
@@ -52,7 +52,7 @@ export const SearchConfigEditor = ({
               onChange={(val) => onChange('delegateFlowId', val)}
             />
           </div>
-          
+
           {(() => {
             const selectedFlow = flows.find(f => f.id === config.delegateFlowId);
             if (!selectedFlow || !selectedFlow.variables || selectedFlow.variables.length === 0) {
@@ -72,7 +72,7 @@ export const SearchConfigEditor = ({
                     <div key={v} className="flex gap-2 items-start">
                       <span className="text-xs text-zinc-400 w-1/4 truncate font-mono mt-2">{v}</span>
                       <div className="flex-1 flex flex-col gap-2">
-                        <select 
+                        <select
                           className="w-full bg-zinc-900 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 outline-none hover:border-zinc-700 transition-colors"
                           value={type}
                           onChange={(e) => {
@@ -315,12 +315,12 @@ export const SearchConfigEditor = ({
                   setIsTestingSearch(true);
                   try {
                     const isFormSearch = !!config.isFormSearch;
-                    let rawUrl = isFormSearch 
-                      ? config.urlFormat 
+                    let rawUrl = isFormSearch
+                      ? config.urlFormat
                       : (config.urlFormat || '').replace('{query}', encodeURIComponent(testSearchQuery));
-                      
+
                     const startUrl = resolvePluginUrl(baseUrl, rawUrl);
-                      
+
                     if (!startUrl || !startUrl.startsWith('http')) {
                       setTestSearchResults({ status: 'error', nodesCount: 0, results: [{ error: 'Invalid URL Format configured.' }] });
                       setIsTestingSearch(false);
@@ -439,8 +439,8 @@ export const SearchConfigEditor = ({
                           const query = "${testSearchQuery.replace(/"/g, '\\"')}";
                           const extras = ${encodedExtras};
                           
-                          if (sessionStorage.getItem('sv_test_phase')) {
-                            sessionStorage.removeItem('sv_test_phase');
+                          if (sessionStorage.getItem('bk_test_phase')) {
+                            sessionStorage.removeItem('bk_test_phase');
                             setTimeout(() => resolve(scrapeItems()), 1000);
                             return;
                           }
@@ -476,12 +476,12 @@ export const SearchConfigEditor = ({
                               }, ${config.formSubmitDelay || 2000});
                             } else {
                               console.log('[SmartFetch Debug] Navigation Mode: Setting session marker and clicking submit');
-                              sessionStorage.setItem('sv_test_phase', '1');
+                              sessionStorage.setItem('bk_test_phase', '1');
                               submit.click();
                               // Fallback: If navigation doesn't happen within 8 seconds, resolve to avoid hanging
                               setTimeout(() => {
                                 console.log('[SmartFetch Debug] Navigation timeout (8s) hit! Resolving to prevent hang.');
-                                sessionStorage.removeItem('sv_test_phase');
+                                sessionStorage.removeItem('bk_test_phase');
                                 resolve({ count: 0, items: [{ error: 'Navigation timeout - page did not reload' }] });
                               }, 8000);
                             }

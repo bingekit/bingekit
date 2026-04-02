@@ -118,7 +118,7 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         })
 
         wrapperJs := "if (!window._svXhrHooked) { window._svXhrHooked = true; window._svXhrLog = []; window._svXhrPromises = [];"
-        wrapperJs .= " window.SV_WAIT_XHR = function(pattern, timeout = 15000) { "
+        wrapperJs .= " window.BK_WAIT_XHR = function(pattern, timeout = 15000) { "
         wrapperJs .= "  var rx = new RegExp(pattern); var ex = window._svXhrLog.find(function(x){return x.url.match(rx);}); "
         wrapperJs .= "  if(ex) return Promise.resolve(ex.text); "
         wrapperJs .= "  return new Promise(function(resolve, reject) { "

@@ -2,48 +2,70 @@
 
 BingeKit operates on a specialized hybrid architecture built on top of AutoHotkey v2 (AHK2) and the Microsoft Edge WebView2 runtime. It functions not just as a typical wrapper, but as a customized, highly-privileged browser controller and frontend host.
 
-The framework is designed to empower the traditionally restricted WebView2 environment, achieving Puppeteer-like control semantics without relying on massive Node.js dependencies, external command-line automation tools, or strictly polling-based CDP APIs.
+## 1. Storage & Configuration Paths (Power User)
 
-## Technology Stack
+BingeKit is fully portable but stores its working context natively on the disk. This allows power users to externally edit configurations, bulk load JSON profiles, or script external data mutations without running the application.
 
-The project operates across three distinct contextual layers:
+All data is stored inside Windows Local AppData:
+`%LOCALAPPDATA%\BingeKit`
 
-1. **Frontend (App):** A modern SPA built with React, TypeScript, and Vite. It serves as the primary un-restricted graphical interface.
-2. **Host (AHK2):** The core AutoHotkey v2 engine. It manages the native Windows GUI, raw WebView2 DOM bindings, IPC bridging, background window management, native system APIs (e.g., WinHTTP downloads), and asynchronous event loops.
-3. **Web Context (Extensions/Injections):** Dynamic layers of custom JavaScript, userscripts, and observer scripts injected directly into specific site domains at the WebView level.
+### Default Storage Layout
+- `\config.json` - Global layout and application-level settings.
+- `\workspaces\` - The container for independent application profiles.
+  - `\Default\` (Or your active workspace name)
+    - `network_filters.json` - Global adblock/domain interception strings.
+    - `plugins\` - Directory containing individual `.json` Site Plugin configurations.
+    - `flows\` - Directory of custom `.json` automated Macro Flows.
+    - `scripts\` - Directory of custom Userscript injections.
 
-## Core Technical Achievements
+## 2. IPC Messaging: The React / AHK Bridge
 
-### 1. The WebView2 Controller ("Puppeteer-Lite")
+While the [API Reference](api.md) shows synchronous methods (e.g. `ahk.Minimize()`), heavy tasks (like processing large JSON Payloads from hidden scrapers or tracking native file downloads) must be asynchronous.
+
+### Native -> React (Asynchronous PostMessage)
+The AHK host dispatches stringified payloads directly to the React window via `ICoreWebView2::PostWebMessageAsJson()`.
+
+As a power user developing inside the React Frontend, you must listen for them on the global `window` object:
+```javascript
+// React useEffect or Global Initialization
+window.addEventListener('message', (event) => {
+    // Only accept payloads originating from the trusted Host bridge
+    if (event.origin !== "http://localhost" && event.origin !== "file://") {
+        try {
+            const payload = JSON.parse(event.data);
+            
+            switch (payload.type) {
+                case "SF_RESULT":
+                    console.log(`SmartFetch Callback #${payload.callbackId} returned:`, payload.data);
+                    break;
+                case "DL_PROGRESS":
+                    console.log(`Download progress for ${payload.path}: ${payload.percent}%`);
+                    break;
+                case "NAV_STATE":
+                    // Updates about the PlayerVW navigation state
+                    break;
+            }
+        } catch (e) {
+            // Un-parseable message
+        }
+    }
+});
+```
+
+To see exact JSON shapes expected, refer to [SmartFetch](smartfetch.md) and [Flows](flows.md).
+
+## 3. The WebView2 Controller ("Puppeteer-Lite")
+
 Rather than simply rendering a web page, BingeKit heavily instruments the WebView2 instance:
-*   **Hidden Off-Screen Controller:** BingeKit utilizes background/hidden WebView2 instances to silently parse, extract, evaluate JS, and manipulate resources without disrupting the main user UI.
+*   **Hidden Off-Screen Controller:** BingeKit utilizes background/hidden WebView2 instances (SmartFetchers) to silently parse, extract, evaluate JS, and manipulate resources without disrupting the main user UI.
 *   **Deep Navigation & DOM Control:** Relying on precise COM interfaces and execution contexts, the host can dynamically bypass standard browser safeguards (like enforcing injection on `about:blank` proxies or tightly bound custom protocols) to ensure execution persistence.
 
-### 2. Multi-Tiered Ad & Tracking Blocker
+## 4. Multi-Tiered Ad & Tracking Blocker
+
 The ad-blocking pipeline acts across multiple scopes to ensure sites remain pristine, regardless of how aggressively they obfuscate their ad payloads:
 *   **Network-Level Blocking:** Hooks into the native `WebResourceRequested` event to catch and cancel HTTP requests to ad, telemetry, and tracking networks at the host level before network I/O occurs.
 *   **Inline Resource Sanitization:** Capable of sniffing and blocking malicious or intrusive inline `<script>` tags dynamically.
-*   **Cosmetic JS Blocking:** Injects early-execution scripts that set up robust `MutationObserver` listeners. Undesirable DOM nodes (popups, overlays, anti-adblock modals) are instantly caught and removed or hidden (`display: none`) the moment they enter the DOM.
+*   **Cosmetic JS Blocking:** Injects early-execution scripts that set up robust `MutationObserver` listeners. Undesirable DOM nodes (popups, overlays, anti-adblock modals) are instantly caught and removed (`display: none`) the moment they enter the DOM.
 
-### 3. Dynamic Userscript Engine
-A resilient userscript execution pipeline that behaves similarly to extensions like Tampermonkey/Greasemonkey:
-*   Scripts are evaluated and injected across defined domain patterns.
-*   It bypasses limitations on secure execution environments by forcing execution at strategic navigation milestones (`NavigationStarting`, `DOMContentLoaded`), ensuring the payload is ready to process the page before the site's own scripts can interfere.
-
-### 4. Site Plugins Architecture
-BingeKit abstracts site-specific logic into highly modular **Plugins**:
-*   A Plugin defines configuration structures for domains containing targeted userscripts, ad-block allow/block rules, generic element selectors, and video tracking metadata.
-*   Instead of hardcoding logic in the engine, integrating a new media source is as simple as defining a single JSON/JS configuration object with its localized userscripts.
-
-### 5. Automated Data Flows
-**Flows** provide an automated abstraction meant to script complex, user-like behaviors directly through the active or hidden WebView instances:
-*   They string together navigation, searching, pagination, and DOM clicking in a structured format.
-*   Flows transform fragmented web data sources into an internal API, efficiently turning messy HTML into parsable JSON natively fetched by the background process.
-
-### 6. Native Interfaces & IPC Bridging
-*   **Two-Way Asynchronous API:** A robust `window.chrome.webview.postMessage` bridge interfaces the React frontend with the AHK2 host.
-*   **Native Empowerments:** The interface can orchestrate heavy native tasks—such as invoking COM-based binary downloading pipelines (`WinHttpRequest`), triggering ffmpeg media conversions natively, and controlling window behavior—without blocking the main thread or relying on bloated standard libraries.
-*   **Persistent UI Contexts:** Sub-interfaces logically wrap themselves over standard application tabs, retaining user histories, scroll positions, and state independently.
-
-## Adaptation & Open Source
+## 5. Adaptation & Open Source
 While BingeKit was initially focused on organizing and controlling media streams seamlessly, the foundation is completely agnostic. The heavy lifting—bridging AHK2 with WebView2, network interception, automated hidden flows, userscript injection, and IPC logic—has effectively created a framework for building highly capable desktop utilities, scrapers, and local-first software. This architecture can easily be adapted into entirely different projects needing granular web automation and a native desktop experience.
