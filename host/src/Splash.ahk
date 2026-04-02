@@ -24,7 +24,50 @@ CheckSplashTimeout() {
 }
 SetTimer(CheckSplashTimeout, -10000)
 
+FileMD5(filePath) {
+    if !FileExist(filePath)
+        return ""
 
-WV.Navigate(AppStartupUrl)
+    ; Define a temporary file to capture output
+    tempFile := A_Temp "\ahk_md5_capture.txt"
+
+    ; RunWait with the "Hide" parameter ensures no console window flashes
+    RunWait(A_ComSpec ' /c certutil -hashfile "' filePath '" MD5 > "' tempFile '"', , "Hide")
+
+    if !FileExist(tempFile)
+        return ""
+
+    text := FileRead(tempFile)
+    FileDelete(tempFile)
+
+    loop parse text, "`n", "`r"
+    {
+        line := StrReplace(Trim(A_LoopField), " ", "")
+        if (RegExMatch(line, "^[a-fA-F0-9]{32}$"))
+            return StrLower(line)
+    }
+    return ""
+}
+
+if (AppHash != "" && InStr(AppStartupUrl, "gui.localhost")) {
+    global guiPath := StrReplace(AppStartupUrl, "http://gui.localhost", A_ScriptDir "\gui")
+    guiPath := StrReplace(guiPath, "/", "\")
+    SplashStatus.Text := "VERIFYING APPLICATION INTEGRITY"
+    calculatedHash := FileMD5(guiPath)
+    if (calculatedHash != AppHash) {
+        if (SplashGui) {
+            SplashGui.Destroy()
+            SplashGui := ""
+        }
+        MsgBox("Critical Error:`nCore application files have been modified or corrupted.`n`nPlease reinstall or rebuild the application.", "BingeKit Security Error", 16)
+        ExitApp()
+    }
+}
+
+SplashStatus.Text := "LOADING USER INTERFACE"
+global guiPath
+appSrc := FileRead(guiPath)
+WV.NavigateToString(appSrc)
+;WV.Navigate(AppStartupUrl)
 MainGui.Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
 WinSetTransparent(0, MainGui.Hwnd)

@@ -1,4 +1,4 @@
-global AppStartupUrl := "http://localhost:3000"
+global AppStartupUrl := "http://gui.localhost/index.html"
 global CurrentWorkspace := "default"
 global WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
 global WorkspaceDir := WorkspaceBaseDir "\" CurrentWorkspace
@@ -7,7 +7,7 @@ LoadAppConfig() {
     global AppStartupUrl
     iniPath := A_ScriptDir "\config.ini"
     if FileExist(iniPath) {
-        url := IniRead(iniPath, "Navigation", "StartupUrl", "http://localhost:3000")
+        url := IniRead(iniPath, "Navigation", "StartupUrl", "http://gui.localhost/index.html")
         AppStartupUrl := StrReplace(url, "${A_ScriptDir}", A_ScriptDir)
     }
 }

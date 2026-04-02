@@ -6,6 +6,7 @@
 
 ; 1. Settings Loading/Saving/Parsing
 #Include src\Config.ahk
+#Include src\appHash.ahk
 LoadAppConfig()
 InitWorkspaces()
 
@@ -30,3 +31,5 @@ InitEnvironment()
 #Include src\Splash.ahk
 
 #Include src\Hotkeys.ahk
+
+#Include src\build_exe.ahk

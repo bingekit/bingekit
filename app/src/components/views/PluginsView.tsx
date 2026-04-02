@@ -46,7 +46,8 @@ import { CustomSelect } from "../ui/CustomSelect";
 import { SearchConfigEditor } from "./SearchConfigEditor";
 import { TagsInput } from "../ui/TagsInput";
 import { Modal } from "../ui/Modal";
-import Editor from "react-simple-code-editor";
+import _Editor from 'react-simple-code-editor';
+const Editor = (_Editor as any).default || _Editor;
 import Prism from "prismjs";
 import {
   DEFAULT_PLUGIN,

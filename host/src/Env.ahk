@@ -41,7 +41,7 @@ InitEnvironment() {
     SplashGui.SetFont("s32 c818cf8 bold", "Segoe UI")
     SplashGui.Add("Text", "x0 y55 w400 center BackgroundTrans", "BingeKit")
     SplashGui.SetFont("s9 ca1a1aa norm", "Segoe UI")
-    SplashGui.Add("Text", "x0 y120 w400 center BackgroundTrans", "INITIALIZING ENGINE COMPONENTS")
+    global SplashStatus := SplashGui.Add("Text", "x0 y120 w400 center BackgroundTrans", "INITIALIZING ENGINE COMPONENTS")
     SplashGui.Add("Progress", "x0 y195 w400 h5 c818cf8 Background27272a", 100)
     SplashGui.Show("w400 h200 Center NoActivate")
     Try {
@@ -78,6 +78,7 @@ InitEnvironment() {
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
     MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
+    MainGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
 
     downloadsLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadsLoc == "") {

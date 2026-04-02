@@ -6,7 +6,8 @@ import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
 import { TagsInput } from '../ui/TagsInput';
 import { Modal } from '../ui/Modal';
-import Editor from 'react-simple-code-editor';
+import _Editor from 'react-simple-code-editor';
+const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
