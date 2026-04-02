@@ -7,6 +7,10 @@ AHK_GetAppVersion() {
 
 AHK_CheckForUpdates() {
     global UpdateObj
+    if (!A_IsCompiled) {
+        UpdateObj := JSON.Dump(Map("error", true, "unsupported", true))
+        return UpdateObj
+    }
     updateUrl := "https://api.github.com/repos/owhs/bingekit/releases/latest"
     try {
         configStr := AHK_GetAboutConfig()
@@ -77,13 +81,24 @@ AHK_InstallUpdate(downloadUrl) {
                 FileDelete(batFile)
             }
             
-            ; Create a batch script to wait for the app to close, replace it, and start the new one
+            ; Create a batch script to wait for the app to close, replace it
             currentExe := A_ScriptFullPath
+            global WorkspaceBaseDir
+            fallbackExe := WorkspaceBaseDir "\BingeKit.exe"
+            
             batContent := ""
             batContent .= "@echo off`n"
             batContent .= "ping 127.0.0.1 -n 3 > nul`n" ; Wait ~2 seconds
-            batContent .= "copy /y `"" tempExe "`" `"" currentExe "`"`n"
-            batContent .= "start `"`" `"" currentExe "`"`n"
+            
+            ; Try standard overwrite
+            batContent .= "copy /y `"" tempExe "`" `"" currentExe "`" > nul 2>&1`n"
+            batContent .= "if %ERRORLEVEL% EQU 0 (`n"
+            batContent .= "    start `"`" `"" currentExe "`"`n"
+            batContent .= ") else (`n"
+            ; Fallback to InstalledDataPath wrapper execution
+            batContent .= "    copy /y `"" tempExe "`" `"" fallbackExe "`" > nul 2>&1`n"
+            batContent .= "    start `"`" `"" fallbackExe "`"`n"
+            batContent .= ")`n"
             batContent .= "del `"%~f0`"`n" ; Delete self
             
             FileAppend(batContent, batFile)

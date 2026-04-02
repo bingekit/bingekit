@@ -5,7 +5,7 @@
         window.chrome.webview.hostObjects.sync.ahk.UpdateURL("err://");
         window.addEventListener("DOMContentLoaded", () => {
             var style = document.createElement('style');
-            style.textContent = `body{background:var(--theme-main);color:var(--theme-textMain);font-family:sans-serif}::selection{background:var(--theme-accent)}`;
+            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{background:var(--theme-accent)}`;
             document.head.appendChild(style);
             document.body.innerHTML =
                 `<div style='display:flex;text-align:center;flex-direction:column;color:var(--theme-accent);justify-content:center;align-items:center;height:100%;font-size:2rem;'>

@@ -52,10 +52,20 @@ export const SettingsView = () => {
   const [newWsName, setNewWsName] = useState('');
 
   const [ffmpegStatus, setFfmpegStatus] = useState<string>('checking...');
+  const [isPortableMode, setIsPortableMode] = useState<boolean>(false);
+  const [showPortableModal, setShowPortableModal] = useState<boolean>(false);
+  const [pendingPortableMode, setPendingPortableMode] = useState<boolean>(false);
+
   const checkFfmpeg = () => {
     try { setFfmpegStatus(ahk.call('CheckFFmpegStatus')); } catch (e) { setFfmpegStatus('missing'); }
   };
-  useEffect(() => { checkFfmpeg(); }, []);
+  useEffect(() => { 
+    checkFfmpeg(); 
+    try {
+      const pMode = ahk.call('GetStorageMode');
+      setIsPortableMode(pMode === "1" || pMode === 1 || pMode === true);
+    } catch(e) {}
+  }, []);
 
   const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -163,7 +173,8 @@ export const SettingsView = () => {
           
           {updateObj && (
             <div className={`mt-3 text-xs ${updateObj.error ? 'text-red-400' : updateObj.upToDate ? 'text-emerald-400' : 'text-indigo-400'}`}>
-              {updateObj.error && "Failed to check for updates. Check your connection or rate limits."}
+              {updateObj.unsupported && <span className="text-zinc-500">Auto-updater requires a compiled executable.</span>}
+              {updateObj.error && !updateObj.unsupported && "Failed to check for updates. Check your connection or rate limits."}
               {updateObj.upToDate && "You are on the latest version."}
               {updateObj.version && (
                 <div className="flex flex-col gap-2">
@@ -182,7 +193,12 @@ export const SettingsView = () => {
         </div>
         
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          {!updateObj?.version ? (
+          {updateObj?.unsupported ? (
+             <button disabled className="px-4 py-2 bg-zinc-800/50 text-zinc-600 rounded-lg text-sm font-medium transition-colors ml-auto flex items-center gap-2 cursor-not-allowed border border-zinc-800">
+               <RefreshCw size={14} />
+               Disabled (Uncompiled)
+             </button>
+          ) : !updateObj?.version ? (
             <button 
               onClick={checkAppUpdates} 
               disabled={isCheckingAppUpdates}
@@ -200,6 +216,30 @@ export const SettingsView = () => {
               Update and Restart
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="mb-6 p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+            <Globe size={16} className="text-indigo-400" />
+            Global Storage Mode (Portable vs Installed)
+          </h3>
+          <p className="text-xs text-zinc-500 mt-1 max-w-xl">
+            Portable Mode isolates all your plugins, scripts, and logs right next to the executable. Installed mode moves it into your Windows `%LOCALAPPDATA%` tree. Toggling this triggers a data-migration sequence.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className="text-xs font-mono text-zinc-500 uppercase">{isPortableMode ? 'Portable' : 'Installed'}</span>
+          <button
+            onClick={() => {
+              setPendingPortableMode(!isPortableMode);
+              setShowPortableModal(true);
+            }}
+            className={`w-12 h-6 rounded-full transition-colors relative ${isPortableMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}
+          >
+            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isPortableMode ? 'left-7' : 'left-1'}`} />
+          </button>
         </div>
       </div>
 
@@ -755,6 +795,41 @@ export const SettingsView = () => {
           </div>
         </div>
       </div>
+
+      <Modal
+        isOpen={showPortableModal}
+        onClose={() => setShowPortableModal(false)}
+        title="Migrate Data Source?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-300">
+            You've requested to change the global storage mode to:<br/>
+            <span className="font-mono text-xs text-indigo-400 font-bold uppercase">{pendingPortableMode ? 'Portable' : 'Installed'} Mode</span>
+          </p>
+          <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+            For this change to seamlessly copy over your existing workspace data (plugins, logs, configs) into the new directory structure and avoid data-loss visually, BingeKit must immediately restart and native directory movement must occur.
+          </p>
+          <div className="flex gap-3 justify-end pt-4 border-t border-zinc-800/50 mt-4">
+            <button
+              onClick={() => {
+                setShowPortableModal(false);
+              }}
+              className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                setShowPortableModal(false);
+                ahk.call('MigrateStorage', pendingPortableMode ? 1 : 0, ahk.call('GetStoragePath') || '');
+              }}
+              className="px-4 py-2 text-sm font-medium bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 border border-red-500/20 transition-colors"
+            >
+              Migrate & Restart
+            </button>
+          </div>
+        </div>
+      </Modal>
 
     </div>
 

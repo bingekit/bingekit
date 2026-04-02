@@ -5,7 +5,9 @@ import { useAppContext } from '../../context/AppContext';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { CustomCheckbox } from '../ui/CustomCheckbox';
 
-type ConfigType = 'string' | 'boolean' | 'number';
+import { Modal } from '../ui/Modal';
+
+type ConfigType = 'string' | 'boolean' | 'number' | 'folder';
 
 interface ConfigItem {
   id: string;
@@ -16,6 +18,7 @@ interface ConfigItem {
   value: any;
   warning?: string;
   requiresRestart?: boolean;
+  disabled?: boolean;
 }
 
 const DEFAULT_CONFIG: ConfigItem[] = [
@@ -68,6 +71,7 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     description: 'Make headless SmartFetch and RawParse invisible windows visible for debugging.',
     default: false,
     value: false,
+    requiresRestart: true,
   },
   {
     id: 'DisableWebSecurity',
@@ -78,6 +82,15 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     value: false,
     warning: 'DANGER: Disabling web security exposes your system to severe vulnerabilities. Use only in isolated, trusted environments.',
     requiresRestart: true,
+  },
+  {
+    id: 'InstalledDataPath',
+    name: 'Workspace Storage Directory',
+    type: 'folder',
+    description: 'Custom path for installed-mode workspaces. Will be ignored if Portable Mode is active.',
+    default: '',
+    value: '',
+    requiresRestart: true,
   }
 ];
 
@@ -85,31 +98,85 @@ export const ConfigView = () => {
   const [config, setConfig] = useState<ConfigItem[]>(DEFAULT_CONFIG);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isPortableMode, setIsPortableMode] = useState(false);
+  const [showMigrateModal, setShowMigrateModal] = useState(false);
+  const [pendingMigratePath, setPendingMigratePath] = useState('');
+  const [configToSaveHold, setConfigToSaveHold] = useState<Record<string, any>>({});
+
   const { theme } = useAppContext();
+
+  useEffect(() => {
+    const handleFolderSelected = (e: any) => {
+      if (e.detail.id === 'InstalledDataPath') {
+        updateValue('InstalledDataPath', e.detail.dir);
+      }
+    };
+    window.addEventListener('bk-folder-selected', handleFolderSelected);
+    return () => window.removeEventListener('bk-folder-selected', handleFolderSelected);
+  }, []);
 
   useEffect(() => {
     const loadConfig = async () => {
       const dataStr = ahk.call('GetAboutConfig');
+      const portableModeResult = ahk.call('GetStorageMode');
+      const isPortable = portableModeResult === "1" || portableModeResult === 1 || portableModeResult === true;
+      setIsPortableMode(isPortable);
+
+      const installedPath = ahk.call('GetStoragePath') || '';
+
       if (dataStr) {
         try {
           const parsed = JSON.parse(dataStr);
-          setConfig(prev => prev.map(item => ({
-            ...item,
-            value: parsed[item.id] !== undefined ? parsed[item.id] : item.default
-          })));
+          setConfig(prev => prev.map(item => {
+            if (item.id === 'InstalledDataPath') {
+              return { ...item, value: installedPath, disabled: isPortable };
+            }
+            return {
+              ...item,
+              value: parsed[item.id] !== undefined ? parsed[item.id] : item.default
+            };
+          }));
         } catch (e) {
           console.error("Failed to parse about_config.json");
         }
+      } else {
+        setConfig(prev => prev.map(item => item.id === 'InstalledDataPath' ? { ...item, value: installedPath, disabled: isPortable } : item));
       }
     };
     loadConfig();
   }, []);
 
+  const executeSave = (customPathStr: string | null) => {
+    ahk.call('SetAboutConfig', JSON.stringify(configToSaveHold, null, 2));
+    setHasUnsavedChanges(false);
+
+    if (customPathStr !== null) {
+      ahk.call('MigrateStorage', isPortableMode ? 1 : 0, customPathStr);
+    }
+  };
+
   const handleSave = () => {
     const configToSave: Record<string, any> = {};
+    let storagePathVal: string | null = null;
+
     config.forEach(item => {
-      configToSave[item.id] = item.value;
+      if (item.id === 'InstalledDataPath') {
+        storagePathVal = item.value;
+      } else {
+        configToSave[item.id] = item.value;
+      }
     });
+
+    setConfigToSaveHold(configToSave);
+
+    const origPath = ahk.call('GetStoragePath') || '';
+    if (storagePathVal !== null && storagePathVal !== origPath && !isPortableMode) {
+      setPendingMigratePath(storagePathVal);
+      setShowMigrateModal(true);
+      return;
+    }
+
+    // Normal save, no path changes
     ahk.call('SetAboutConfig', JSON.stringify(configToSave, null, 2));
     setHasUnsavedChanges(false);
   };
@@ -125,8 +192,8 @@ export const ConfigView = () => {
     setHasUnsavedChanges(true);
   };
 
-  const filteredConfig = config.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredConfig = config.filter(item =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -144,7 +211,7 @@ export const ConfigView = () => {
         <div className="flex items-center gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
-            <input 
+            <input
               type="text"
               placeholder="Search preferences..."
               value={searchQuery}
@@ -222,6 +289,25 @@ export const ConfigView = () => {
                         onChange={(e) => updateValue(item.id, parseFloat(e.target.value))}
                         className="w-32 bg-zinc-900 border border-zinc-700/50 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-zinc-200 transition-colors"
                       />
+                    ) : item.type === 'folder' ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={item.value}
+                          readOnly
+                          placeholder="Default LocalAppData..."
+                          className={`flex-1 bg-zinc-900 border border-zinc-700/50 rounded-md px-3 py-1.5 text-sm text-zinc-200 focus:outline-none transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        />
+                        <button
+                          disabled={item.disabled}
+                          onClick={() => {
+                            if (!item.disabled) ahk.call('PromptSelectFolder', item.id);
+                          }}
+                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Browse
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-sm text-zinc-500">Unsupported type</span>
                     )}
@@ -239,6 +325,43 @@ export const ConfigView = () => {
           </table>
         </div>
       </div>
+
+      <Modal
+        isOpen={showMigrateModal}
+        onClose={() => setShowMigrateModal(false)}
+        title="Migrate Data Source?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-zinc-300">
+            You've requested to change the workspace directory to:<br />
+            <span className="font-mono text-xs text-indigo-400 break-all">{pendingMigratePath}</span>
+          </p>
+          <p className="text-xs text-zinc-400 leading-relaxed bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+            For this change to seamlessly copy over your existing workspace data (plugins, logs, configs) into the new directory and avoid data-loss visually, BingeKit must immediately restart and native directory movement must occur.
+          </p>
+          <div className="flex gap-3 justify-end pt-4 border-t border-zinc-800/50 mt-4">
+            <button
+              onClick={() => {
+                setShowMigrateModal(false);
+                setConfig(prev => prev.map(i => i.id === 'InstalledDataPath' ? { ...i, value: ahk.call('GetStoragePath') || '' } : i));
+                setHasUnsavedChanges(true); // they can try again or reject the path completely
+              }}
+              className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              Cancel Path Change
+            </button>
+            <button
+              onClick={() => {
+                setShowMigrateModal(false);
+                executeSave(pendingMigratePath);
+              }}
+              className="px-4 py-2 text-sm font-medium bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 border border-red-500/20 transition-colors"
+            >
+              Migrate & Restart
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

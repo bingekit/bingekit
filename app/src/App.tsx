@@ -56,6 +56,7 @@ const MainLayout = () => {
           --theme-titlebar: ${theme.titlebarBg};
           --theme-sidebar: ${theme.sidebarBg};
           --theme-main: ${theme.mainBg};
+          --theme-mainBg: ${theme.mainBg};
           --theme-border: ${theme.border};
           --theme-accent: ${theme.accent};
           --theme-text-main: ${theme.textMain};

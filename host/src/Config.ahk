@@ -1,7 +1,7 @@
 global AppStartupUrl := "http://gui.localhost/index.html"
 global CurrentWorkspace := "default"
-global WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
-global WorkspaceDir := WorkspaceBaseDir "\" CurrentWorkspace
+global WorkspaceBaseDir := ""
+global WorkspaceDir := ""
 
 LoadAppConfig() {
     global AppStartupUrl
@@ -15,6 +15,44 @@ LoadAppConfig() {
 InitWorkspaces() {
     global CurrentWorkspace, WorkspaceBaseDir, WorkspaceDir
     
+    iniPath := A_ScriptDir "\config.ini"
+    isPortable := 1
+    customPath := ""
+    if FileExist(iniPath) {
+        try isPortable := IniRead(iniPath, "Storage", "PortableMode", 1)
+        try customPath := IniRead(iniPath, "Storage", "InstalledDataPath", "")
+    }
+
+    if (isPortable) {
+        if (!DirExist(A_ScriptDir "\settings")) {
+            try {
+                DirCreate(A_ScriptDir "\settings")
+            } catch {
+                isPortable := 0
+                IniWrite(0, iniPath, "Storage", "PortableMode")
+            }
+        } else {
+            testFile := A_ScriptDir "\settings\.test_write"
+            try {
+                FileAppend("", testFile, "UTF-8")
+                FileDelete(testFile)
+            } catch {
+                isPortable := 0
+                IniWrite(0, iniPath, "Storage", "PortableMode")
+            }
+        }
+    }
+    
+    if (isPortable) {
+        WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
+    } else {
+        if (customPath != "") {
+            WorkspaceBaseDir := customPath
+        } else {
+            WorkspaceBaseDir := EnvGet("LOCALAPPDATA") "\BingeKit\workspaces"
+        }
+    }
+
     Loop A_Args.Length {
         if (A_Args[A_Index] = "--workspace" && A_Index < A_Args.Length) {
             CurrentWorkspace := A_Args[A_Index + 1]
@@ -45,6 +83,24 @@ InitWorkspaces() {
     }
     if (!DirExist(WorkspaceDir))
         DirCreate(WorkspaceDir)
+
+    ; Boot Shim Logic: Intercept elevated environments by forwarding execution if a newer fallback exists
+    fallbackExe := WorkspaceBaseDir "\BingeKit.exe"
+    if (FileExist(fallbackExe) && fallbackExe != A_ScriptFullPath) {
+        try {
+            fallbackVer := FileGetVersion(fallbackExe)
+            currentVer := FileGetVersion(A_ScriptFullPath)
+            
+            if (VerCompare(fallbackVer, currentVer) > 0) {
+                cmdLine := "`"" fallbackExe "`""
+                Loop A_Args.Length {
+                    cmdLine .= " " A_Args[A_Index]
+                }
+                Run(cmdLine)
+                ExitApp()
+            }
+        }
+    }
 }
 
 AHK_GetCurrentWorkspace(*) {
@@ -261,4 +317,69 @@ AHK_DeleteFlow(filename) {
     if FileExist(filepath)
         FileDelete(filepath)
     return true
+}
+
+AHK_GetStorageMode(*) {
+    iniPath := A_ScriptDir "\config.ini"
+    if FileExist(iniPath) {
+        try return IniRead(iniPath, "Storage", "PortableMode", 1)
+    }
+    return 1
+}
+
+AHK_SetStorageMode(isPortable) {
+    global CurrentWorkspace
+    iniPath := A_ScriptDir "\config.ini"
+    IniWrite(isPortable ? 1 : 0, iniPath, "Storage", "PortableMode")
+    Run(A_ScriptFullPath " --workspace " CurrentWorkspace)
+    ExitApp()
+}
+
+AHK_GetStoragePath(*) {
+    iniPath := A_ScriptDir "\config.ini"
+    if FileExist(iniPath) {
+        try return IniRead(iniPath, "Storage", "InstalledDataPath", "")
+    }
+    return ""
+}
+
+AHK_SetStoragePath(path) {
+    iniPath := A_ScriptDir "\config.ini"
+    IniWrite(path, iniPath, "Storage", "InstalledDataPath")
+    return true
+}
+
+AHK_MigrateStorage(newPortableMode, newLocationPath) {
+    global CurrentWorkspace, WorkspaceBaseDir
+    iniPath := A_ScriptDir "\config.ini"
+    
+    oldBaseDir := WorkspaceBaseDir
+    newBaseDir := ""
+    
+    newPortableMode := (newPortableMode == 1 || newPortableMode == "1" || newPortableMode == true)
+    
+    if (newPortableMode) {
+        newBaseDir := A_ScriptDir "\settings\workspaces"
+    } else {
+        newBaseDir := newLocationPath != "" ? newLocationPath : EnvGet("LOCALAPPDATA") "\BingeKit\workspaces"
+    }
+    
+    if (oldBaseDir != newBaseDir && DirExist(oldBaseDir)) {
+        if (!DirExist(newBaseDir)) {
+            try DirCreate(newBaseDir)
+        }
+        try {
+            DirMove(oldBaseDir, newBaseDir, 2)
+        } catch {
+            try {
+                DirCopy(oldBaseDir, newBaseDir, 1)
+                DirDelete(oldBaseDir, 1)
+            }
+        }
+    }
+    
+    IniWrite(newPortableMode ? 1 : 0, iniPath, "Storage", "PortableMode")
+    IniWrite(newLocationPath, iniPath, "Storage", "InstalledDataPath")
+    Run(A_ScriptFullPath " --workspace " CurrentWorkspace)
+    ExitApp()
 }
