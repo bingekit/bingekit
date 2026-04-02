@@ -118,7 +118,7 @@ const DEFAULT_CONFIG: ConfigItem[] = [
   }
 ];
 
-export const ConfigView = () => {
+export const ConfigView = ({ embedded = false }: { embedded?: boolean } = {}) => {
   const [config, setConfig] = useState<ConfigItem[]>(DEFAULT_CONFIG);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -223,50 +223,85 @@ export const ConfigView = () => {
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-zinc-950 text-zinc-200">
-      <div className="flex items-center justify-between px-8 py-6 border-b border-zinc-800/50 bg-zinc-900/30">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-zinc-100">
-            <Settings className="text-indigo-500" size={24} />
-            Advanced Preferences
-          </h1>
-          <p className="text-zinc-500 text-sm mt-1">Caution: Modifying these advanced settings can disrupt application behavior.</p>
+    <div className={`flex flex-col h-full w-full ${!embedded ? 'bg-zinc-950 text-zinc-200' : ''}`}>
+      {!embedded && (
+        <div className="flex items-center justify-between px-8 py-6 border-b border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] bg-zinc-900/30">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2 text-zinc-100">
+              <Settings className="text-indigo-500" size={24} />
+              Advanced Preferences
+            </h1>
+            <p className="text-zinc-500 text-sm mt-1">Caution: Modifying these advanced settings can disrupt application behavior.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+              <input
+                type="text"
+                placeholder="Search preferences..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm w-64 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              />
+            </div>
+            {hasUnsavedChanges && (
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[color-mix(in_srgb,var(--theme-accent)_80%,white)] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            )}
+            <button
+              onClick={handleRestart}
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <RefreshCcw size={16} />
+              Restart Workspace
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
+      )}
+
+      {embedded && (
+        <div className="flex items-center justify-between mb-6">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--theme-text-sec)]" size={16} />
             <input
               type="text"
-              placeholder="Search preferences..."
+              placeholder="Search advanced..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm w-64 focus:outline-none focus:border-indigo-500/50 transition-colors"
+              className="pl-9 pr-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)] rounded-lg text-sm w-64 focus:outline-none focus:border-[var(--theme-accent)] transition-colors text-[var(--theme-text-main)] placeholder:text-[var(--theme-text-sec)]"
             />
           </div>
-          {hasUnsavedChanges && (
+          <div className="flex items-center gap-4">
+            {hasUnsavedChanges && (
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-accent)] hover:bg-[color-mix(in_srgb,var(--theme-accent)_80%,white)] text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                <Save size={16} />
+                Save Changes
+              </button>
+            )}
             <button
-              onClick={handleSave}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors"
+              onClick={handleRestart}
+              className="flex items-center gap-2 px-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)] text-[var(--theme-text-main)] rounded-lg text-sm font-medium transition-colors"
             >
-              <Save size={16} />
-              Save Changes
+              <RefreshCcw size={16} />
+              Restart Workspace
             </button>
-          )}
-          <button
-            onClick={handleRestart}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <RefreshCcw size={16} />
-            Restart Workspace
-          </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-        <div className="max-w-5xl mx-auto border border-zinc-800/80 rounded-xl overflow-hidden bg-zinc-900/20 backdrop-blur-sm">
+      <div className={`flex-1 overflow-y-auto custom-scrollbar ${!embedded ? 'p-8' : ''}`}>
+        <div className={`max-w-5xl mx-auto border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl overflow-hidden ${!embedded ? 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] backdrop-blur-sm' : ''}`}>
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-900/50 border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500 font-medium">
+              <tr className="bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] border-b border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] text-xs uppercase tracking-wider text-[var(--theme-text-sec)] font-medium">
                 <th className="px-6 py-4 w-1/3">Preference Name</th>
                 <th className="px-6 py-4 w-1/3">Description</th>
                 <th className="px-6 py-4 w-1/3">Value</th>
@@ -274,18 +309,18 @@ export const ConfigView = () => {
             </thead>
             <tbody>
               {filteredConfig.map((item, idx) => (
-                <tr key={item.id} className={`border-b border-zinc-800/50 hover:bg-zinc-800/20 transition-colors ${idx === filteredConfig.length - 1 ? 'border-b-0' : ''}`}>
+                <tr key={item.id} className={`border-b border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] transition-colors ${idx === filteredConfig.length - 1 ? 'border-b-0' : ''}`}>
                   <td className="px-6 py-4 align-top">
-                    <div className="font-medium text-zinc-200">{item.name}</div>
-                    <div className="text-xs text-zinc-500 font-mono mt-1">{item.id}</div>
+                    <div className="font-medium text-[var(--theme-text-main)]">{item.name}</div>
+                    <div className="text-xs text-[var(--theme-text-sec)] font-mono mt-1">{item.id}</div>
                     {item.requiresRestart && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 mt-2">
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[color-mix(in_srgb,var(--theme-accent)_15%,transparent)] text-[var(--theme-accent)] mt-2`}>
                         Requires Restart
                       </span>
                     )}
                   </td>
                   <td className="px-6 py-4 align-top">
-                    <div className="text-sm text-zinc-400 leading-relaxed">{item.description}</div>
+                    <div className="text-sm text-[var(--theme-text-sec)] leading-relaxed">{item.description}</div>
                     {item.warning && (
                       <div className="flex items-start gap-1.5 mt-2 text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
                         <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
@@ -304,14 +339,14 @@ export const ConfigView = () => {
                         type="text"
                         value={item.value}
                         onChange={(e) => updateValue(item.id, e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700/50 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-zinc-200 transition-colors"
+                        className="w-full bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--theme-accent)] text-[var(--theme-text-main)] transition-colors"
                       />
                     ) : item.type === 'number' ? (
                       <input
                         type="number"
                         value={item.value}
                         onChange={(e) => updateValue(item.id, parseFloat(e.target.value))}
-                        className="w-32 bg-zinc-900 border border-zinc-700/50 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-500/50 text-zinc-200 transition-colors"
+                        className="w-32 bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-md px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--theme-accent)] text-[var(--theme-text-main)] transition-colors"
                       />
                     ) : item.type === 'folder' ? (
                       <div className="flex gap-2">
@@ -320,14 +355,14 @@ export const ConfigView = () => {
                           value={item.value}
                           readOnly
                           placeholder="Default LocalAppData..."
-                          className={`flex-1 bg-zinc-900 border border-zinc-700/50 rounded-md px-3 py-1.5 text-sm text-zinc-200 focus:outline-none transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`flex-1 bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-md px-3 py-1.5 text-sm text-[var(--theme-text-main)] focus:outline-none transition-colors ${item.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                         />
                         <button
                           disabled={item.disabled}
                           onClick={() => {
                             if (!item.disabled) ahk.call('PromptSelectFolder', item.id);
                           }}
-                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)] text-[var(--theme-text-main)] rounded text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Browse
                         </button>

@@ -360,7 +360,7 @@ export const ActivityView = () => {
                         <input
                           value={addTrackerState.url}
                           onChange={e => setAddTrackerState({ ...addTrackerState, url: e.target.value })}
-                          className="w-full bg-black/40 border border-zinc-800 text-sm p-2 rounded text-zinc-200 outline-none focus:border-emerald-500/50 transition-colors"
+                          className="w-full bg-zinc-950/50 border border-zinc-800 text-sm p-2 rounded text-[var(--theme-text-main)] outline-none focus:border-[color-mix(in_srgb,var(--theme-accent)_50%,transparent)] transition-colors"
                           placeholder="https://..."
                         />
                       </div>
@@ -370,7 +370,7 @@ export const ActivityView = () => {
                         <input
                           value={addTrackerState.idValue}
                           onChange={e => setAddTrackerState({ ...addTrackerState, idValue: e.target.value })}
-                          className="w-full bg-black/40 border border-zinc-800 text-sm p-2 rounded text-zinc-200 outline-none focus:border-emerald-500/50 transition-colors"
+                          className="w-full bg-zinc-950/50 border border-zinc-800 text-sm p-2 rounded text-[var(--theme-text-main)] outline-none focus:border-[color-mix(in_srgb,var(--theme-accent)_50%,transparent)] transition-colors"
                           placeholder="e.g. arcane-2"
                         />
                         {addTrackerState.idValue && getResolvedUrl() && (
@@ -432,7 +432,7 @@ export const ActivityView = () => {
                     </div>
                     {addTrackerState.testerItems === "loading" && <p className="text-xs text-zinc-500">Executing background extractor...</p>}
                     {Array.isArray(addTrackerState.testerItems) && (
-                      <pre className="text-[10px] text-zinc-400 mt-2 bg-black/40 p-2 rounded custom-scrollbar max-h-32 overflow-y-auto">
+                      <pre className="text-[10px] text-[var(--theme-text-sec)] mt-2 bg-zinc-950/50 p-2 rounded custom-scrollbar max-h-32 overflow-y-auto">
                         {JSON.stringify(addTrackerState.testerItems, null, 2)}
                       </pre>
                     )}

@@ -74,13 +74,13 @@ const MainLayout = () => {
 
 
         /* Essential Layout Backgrounds mapped to IDs */
-        #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: color-mix(in srgb, var(--theme-border) 60%, var(--theme-titlebar)) !important; }
-        #sidebar-region { background-color: var(--theme-sidebar) !important; border-color: color-mix(in srgb, var(--theme-border) 60%, var(--theme-sidebar)) !important; }
+        #titlebar-region { background-color: var(--theme-titlebar) !important; border-color: color-mix(in srgb, var(--theme-border) 50%, var(--theme-titlebar)) !important; }
+        #sidebar-region { background-color: var(--theme-sidebar) !important; border-color: color-mix(in srgb, var(--theme-border) 50%, var(--theme-sidebar)) !important; }
         #main-region, #main-region > div { background-color: var(--theme-main) !important; }
 
         /* General Borders / Overrides */
         .border-zinc-900, .border-zinc-800, .border-zinc-800\\/50, .border-zinc-800\\/60, .border-zinc-800\\/80, .border-zinc-700 { 
-          border-color: var(--theme-border) !important; 
+          border-color: color-mix(in srgb, var(--theme-border) 50%, transparent) !important; 
         }
 
         /* Dynamic Component Backgrounds using Transparent Tinting */
@@ -424,7 +424,7 @@ const MainLayout = () => {
             {activeTab === 'extensions' && <ExtensionsView />}
             {activeTab === 'downloads' && <DownloadsView />}
             {activeTab === 'settings' && <SettingsView />}
-            {activeTab === 'config' && <ConfigView />}
+            {activeTab === 'config' && <SettingsView />}
           </div>
         </div>
       </div>

@@ -32,6 +32,8 @@ interface AppContextType {
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
   activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
+  activeSettingsTab: 'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced';
+  setActiveSettingsTab: React.Dispatch<React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced'>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
   isSearching: boolean; setIsSearching: React.Dispatch<React.SetStateAction<boolean>>;
@@ -148,6 +150,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [userscripts, setUserscripts] = useState<Userscript[]>([]);
   const [editingUserscriptId, setEditingUserscriptId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config'>('dashboard');
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced'>('general');
   const [multiSearchQuery, setMultiSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -1313,7 +1316,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const value = {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks, history, setHistory, isHistoryEnabled, setIsHistoryEnabled, discoveryItems, setDiscoveryItems,
-    followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
+    followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins, activeSettingsTab, setActiveSettingsTab,
     editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
