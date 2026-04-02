@@ -49,25 +49,31 @@ FileMD5(filePath) {
     return ""
 }
 
-if (AppHash != "" && InStr(AppStartupUrl, "gui.localhost")) {
-    global guiPath := StrReplace(AppStartupUrl, "http://gui.localhost", A_ScriptDir "\gui")
+global guiPath := ""
+if (InStr(AppStartupUrl, "gui.localhost")) {
+    guiPath := StrReplace(AppStartupUrl, "http://gui.localhost", A_IsCompiled ? WebViewCtrl.TempDir "\gui" : A_ScriptDir "\gui")
     guiPath := StrReplace(guiPath, "/", "\")
-    SplashStatus.Text := "VERIFYING APPLICATION INTEGRITY"
-    calculatedHash := FileMD5(guiPath)
-    if (calculatedHash != AppHash) {
-        if (SplashGui) {
-            SplashGui.Destroy()
-            SplashGui := ""
+    
+    if (AppHash != "") {
+        SplashStatus.Text := "VERIFYING APPLICATION INTEGRITY"
+        calculatedHash := FileMD5(guiPath)
+        if (calculatedHash != AppHash) {
+            if (SplashGui) {
+                SplashGui.Destroy()
+                SplashGui := ""
+            }
+            MsgBox("Critical Error:`nCore application files have been modified or corrupted.`n`nPlease reinstall or rebuild the application.", "BingeKit Security Error", 16)
+            ExitApp()
         }
-        MsgBox("Critical Error:`nCore application files have been modified or corrupted.`n`nPlease reinstall or rebuild the application.", "BingeKit Security Error", 16)
-        ExitApp()
     }
 }
 
 SplashStatus.Text := "LOADING USER INTERFACE"
-global guiPath
-appSrc := FileRead(guiPath)
-WV.NavigateToString(appSrc)
-;WV.Navigate(AppStartupUrl)
+if (guiPath != "") {
+    appSrc := FileRead(guiPath)
+    WV.NavigateToString(appSrc)
+} else {
+    WV.Navigate(AppStartupUrl)
+}
 MainGui.Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
 WinSetTransparent(0, MainGui.Hwnd)

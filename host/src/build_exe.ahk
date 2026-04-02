@@ -4,8 +4,8 @@ BINGEKIT_Version := "0.1.0.A"
 ;@Ahk2Exe-%U_V%        %A_PriorLine~U)^(.+")(.*)".*$~$2%
 
 ;! WEBVIEW RESOURCES
-;@Ahk2Exe-AddResource Lib\wv2.32.dll, wv2.32.dll
-;@Ahk2Exe-AddResource Lib\wv2.64.dll, wv2.64.dll
+;@Ahk2Exe-AddResource Lib\32bit\WebView2Loader.dll, 32bit\WebView2Loader.dll
+;@Ahk2Exe-AddResource Lib\64bit\WebView2Loader.dll, 64bit\WebView2Loader.dll
 ;;@Ahk2Exe-SetMainIcon favicon.ico
 
 ;! RESOURCES

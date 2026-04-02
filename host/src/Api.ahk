@@ -1,5 +1,38 @@
-global GlobalScript := FileRead("js/global.js", "UTF-8")
-global AdblockScript := FileRead("js/adblock.js", "UTF-8")
+global GlobalScript := ""
+global AdblockScript := ""
+
+if (A_IsCompiled) {
+    WebViewCtrl.CreateFileFromResource("js\global.js", WebViewCtrl.TempDir)
+    WebViewCtrl.CreateFileFromResource("js\adblock.js", WebViewCtrl.TempDir)
+    
+    if (IsSet(GlobalHash) && GlobalHash != "") {
+        if (SplashStatus)
+            SplashStatus.Text := "VERIFYING GLOBAL SCRIPT"
+        if (FileMD5(WebViewCtrl.TempDir "\js\global.js") != GlobalHash) {
+            if (SplashGui)
+                SplashGui.Destroy()
+            MsgBox("Critical Error:`nCore script 'global.js' has been modified or corrupted.", "BingeKit Security Error", 16)
+            ExitApp()
+        }
+    }
+    
+    if (IsSet(AdblockHash) && AdblockHash != "") {
+        if (SplashStatus)
+            SplashStatus.Text := "VERIFYING ADBLOCK SCRIPT"
+        if (FileMD5(WebViewCtrl.TempDir "\js\adblock.js") != AdblockHash) {
+            if (SplashGui)
+                SplashGui.Destroy()
+            MsgBox("Critical Error:`nCore script 'adblock.js' has been modified or corrupted.", "BingeKit Security Error", 16)
+            ExitApp()
+        }
+    }
+
+    GlobalScript := FileRead(WebViewCtrl.TempDir "\js\global.js", "UTF-8")
+    AdblockScript := FileRead(WebViewCtrl.TempDir "\js\adblock.js", "UTF-8")
+} else {
+    GlobalScript := FileRead("js\global.js", "UTF-8")
+    AdblockScript := FileRead("js/adblock.js", "UTF-8")
+}
 global UserscriptsScript := ""
 
 ; Initialize PlayerRect defaults to satisfy the editor linter (assigned actual values in Player.ahk)

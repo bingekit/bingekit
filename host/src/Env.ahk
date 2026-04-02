@@ -78,7 +78,13 @@ InitEnvironment() {
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
     MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
-    MainGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
+    
+    if (A_IsCompiled) {
+        WebViewCtrl.CreateFileFromResource("gui\index.html", WebViewCtrl.TempDir)
+        MainGui.Control.BrowseFolder(WebViewCtrl.TempDir "\gui", "gui.localhost")
+    } else {
+        MainGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
+    }
 
     downloadsLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadsLoc == "") {

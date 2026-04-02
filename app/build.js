@@ -37,11 +37,27 @@ htmlContent = await minify(htmlContent, {
 
 // Calculate MD5 hash
 const hash = crypto.createHash('md5').update(htmlContent).digest('hex');
-console.log('Calculated MD5 Hash:', hash);
+console.log('Calculated App MD5 Hash:', hash);
+
+let globalHash = '';
+const globalPath = path.join(__dirname, '..', 'host', 'js', 'global.js');
+if (fs.existsSync(globalPath)) {
+  const globalContent = fs.readFileSync(globalPath);
+  globalHash = crypto.createHash('md5').update(globalContent).digest('hex');
+  console.log('Calculated Global JS Hash:', globalHash);
+}
+
+let adblockHash = '';
+const adblockPath = path.join(__dirname, '..', 'host', 'js', 'adblock.js');
+if (fs.existsSync(adblockPath)) {
+  const adblockContent = fs.readFileSync(adblockPath);
+  adblockHash = crypto.createHash('md5').update(adblockContent).digest('hex');
+  console.log('Calculated Adblock JS Hash:', adblockHash);
+}
 
 // Modify AHK appHash.ahk
 const hashAhkPath = path.join(__dirname, '..', 'host', 'src', 'appHash.ahk');
-fs.writeFileSync(hashAhkPath, `AppHash := "${hash}"\n`);
+fs.writeFileSync(hashAhkPath, `global AppHash := "${hash}"\nglobal GlobalHash := "${globalHash}"\nglobal AdblockHash := "${adblockHash}"\n`);
 console.log('Updated appHash.ahk');
 
 // Copy file to host/gui
