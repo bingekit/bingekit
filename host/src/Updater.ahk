@@ -5,10 +5,14 @@ AHK_GetAppVersion() {
     return BINGEKIT_Version
 }
 
+AHK_IsCompiled(*) {
+    return A_IsCompiled ? 1 : 0
+}
+
 AHK_CheckForUpdates() {
     global UpdateObj
     if (!A_IsCompiled) {
-        UpdateObj := JSON.Dump(Map("error", true, "unsupported", true))
+        UpdateObj := "{ `"error`": true, `"unsupported`": true }"
         return UpdateObj
     }
     updateUrl := "https://api.github.com/repos/owhs/bingekit/releases/latest"

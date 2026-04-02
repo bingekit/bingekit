@@ -68,6 +68,9 @@ interface AppContextType {
   downloadsTemp: string; setDownloadsTemp: React.Dispatch<React.SetStateAction<string>>;
   blockedExts: string[]; setBlockedExts: React.Dispatch<React.SetStateAction<string[]>>;
   activeDownloads: Record<string, ActiveDownload>; setActiveDownloads: React.Dispatch<React.SetStateAction<Record<string, ActiveDownload>>>;
+  isCompiledApp: boolean;
+  isPortableApp: boolean;
+  ffmpegStatusApp: string; setFfmpegStatusApp: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -91,6 +94,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [activeDownloads, setActiveDownloads] = useState<Record<string, ActiveDownload>>({});
   const [networkFilters, setNetworkFilters] = useState<Record<string, boolean>>({});
   const [urlBarMode, setUrlBarMode] = useState<'full' | 'title' | 'hidden'>('full');
+  const [isCompiledApp, setIsCompiledApp] = useState(true);
+  const [isPortableApp, setIsPortableApp] = useState(false);
+  const [ffmpegStatusApp, setFfmpegStatusApp] = useState('checking...');
   const isInitialThemeMount = useRef(true);
   const isInitialHistoryMount = useRef(true);
   const isInitialDiscoveryMount = useRef(true);
@@ -565,6 +571,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedBlockedExts) {
       try { setBlockedExts(JSON.parse(savedBlockedExts)); } catch (e) { }
     }
+
+    try {
+      const mode = ahk.call('GetStorageMode');
+      setIsPortableApp(mode === '1' || mode === 1 || mode === true);
+      const comp = ahk.call('IsCompiled');
+      setIsCompiledApp(comp === '1' || comp === 1 || comp === true);
+      setFfmpegStatusApp(ahk.call('CheckFFmpegStatus') || 'missing');
+    } catch (e) { }
 
     setTimeout(() => ahk.call('HideSplash'), 500);
 
@@ -1246,7 +1260,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads,
-    searchThreadLimit, setSearchThreadLimit
+    searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

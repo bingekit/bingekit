@@ -24,7 +24,7 @@ export const SettingsView = () => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
-    searchThreadLimit, setSearchThreadLimit
+    searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp
   } = useAppContext();
 
   React.useEffect(() => {
@@ -51,21 +51,8 @@ export const SettingsView = () => {
   const [showWsModal, setShowWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
 
-  const [ffmpegStatus, setFfmpegStatus] = useState<string>('checking...');
-  const [isPortableMode, setIsPortableMode] = useState<boolean>(false);
   const [showPortableModal, setShowPortableModal] = useState<boolean>(false);
   const [pendingPortableMode, setPendingPortableMode] = useState<boolean>(false);
-
-  const checkFfmpeg = () => {
-    try { setFfmpegStatus(ahk.call('CheckFFmpegStatus')); } catch (e) { setFfmpegStatus('missing'); }
-  };
-  useEffect(() => { 
-    checkFfmpeg(); 
-    try {
-      const pMode = ahk.call('GetStorageMode');
-      setIsPortableMode(pMode === "1" || pMode === 1 || pMode === true);
-    } catch(e) {}
-  }, []);
 
   const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -193,7 +180,12 @@ export const SettingsView = () => {
         </div>
         
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          {updateObj?.unsupported ? (
+          {!isCompiledApp ? (
+             <button disabled className="px-4 py-2 bg-zinc-800/50 text-zinc-600 rounded-lg text-sm font-medium transition-colors ml-auto flex items-center gap-2 cursor-not-allowed border border-zinc-800">
+               <RefreshCw size={14} />
+               Disabled (Uncompiled)
+             </button>
+          ) : updateObj?.unsupported ? (
              <button disabled className="px-4 py-2 bg-zinc-800/50 text-zinc-600 rounded-lg text-sm font-medium transition-colors ml-auto flex items-center gap-2 cursor-not-allowed border border-zinc-800">
                <RefreshCw size={14} />
                Disabled (Uncompiled)
@@ -230,15 +222,15 @@ export const SettingsView = () => {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
-          <span className="text-xs font-mono text-zinc-500 uppercase">{isPortableMode ? 'Portable' : 'Installed'}</span>
+          <span className="text-xs font-mono text-zinc-500 uppercase">{isPortableApp ? 'Portable' : 'Installed'}</span>
           <button
             onClick={() => {
-              setPendingPortableMode(!isPortableMode);
+              setPendingPortableMode(!isPortableApp);
               setShowPortableModal(true);
             }}
-            className={`w-12 h-6 rounded-full transition-colors relative ${isPortableMode ? 'bg-indigo-500' : 'bg-zinc-700'}`}
+            className={`w-12 h-6 rounded-full transition-colors relative ${isPortableApp ? 'bg-indigo-500' : 'bg-zinc-700'}`}
           >
-            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isPortableMode ? 'left-7' : 'left-1'}`} />
+            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isPortableApp ? 'left-7' : 'left-1'}`} />
           </button>
         </div>
       </div>
@@ -394,12 +386,12 @@ export const SettingsView = () => {
             <div>
               <h4 className="text-sm font-medium text-zinc-300">FFmpeg Stream Engine</h4>
               <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${ffmpegStatus === 'installed' ? 'bg-green-500' : (ffmpegStatus === 'missing' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse')}`} />
-                <p className="text-xs text-zinc-500">{ffmpegStatus === 'installed' ? 'Installed and ready' : (ffmpegStatus === 'missing' ? 'Not installed' : 'Checking...')}</p>
+                <div className={`w-2 h-2 rounded-full ${ffmpegStatusApp === 'installed' ? 'bg-green-500' : (ffmpegStatusApp === 'missing' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse')}`} />
+                <p className="text-xs text-zinc-500">{ffmpegStatusApp === 'installed' ? 'Installed and ready' : (ffmpegStatusApp === 'missing' ? 'Not installed' : 'Checking...')}</p>
               </div>
             </div>
-            <button type="button" onClick={() => { setFfmpegStatus('installing...'); try { ahk.call('EnsureFFmpeg', true); setTimeout(checkFfmpeg, 3000); } catch (e) { } }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">
-              {ffmpegStatus === 'installed' ? 'Reinstall' : 'Install FFmpeg'}
+            <button type="button" onClick={() => { try { ahk.call('EnsureFFmpeg', true); setTimeout(() => setFfmpegStatusApp(ahk.call('CheckFFmpegStatus') || 'missing'), 3000); } catch (e) { } }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">
+              {ffmpegStatusApp === 'installed' ? 'Reinstall' : 'Install FFmpeg'}
             </button>
           </div>
         </div>
