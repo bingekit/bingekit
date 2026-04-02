@@ -9,7 +9,7 @@ InitEnvironment() {
     EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
         "--edge-webview-no-dpi-workaround " .
         "--disable-gpu " .
-        "--edge-webview-is-background " .
+        ;"--edge-webview-is-background " .
         "--msWebView2CodeCache " .
         "--no-first-run " .
         "--msWebView2CancelInitialNavigation " .
@@ -19,7 +19,7 @@ InitEnvironment() {
         "--autoplay-policy=no-user-gesture-required"
         "--force-dark-mode"
         "--disable-features=TranslateUI"
-        "--kiosk"
+        ;"--kiosk"
         ;"--disable-notifications"
         "--deny-permission-prompts"
         "--disable-domain-reliability"
@@ -78,7 +78,7 @@ InitEnvironment() {
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
     MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
-    
+
     if (A_IsCompiled) {
         WebViewCtrl.CreateFileFromResource("gui\index.html", WebViewCtrl.TempDir)
         MainGui.Control.BrowseFolder(WebViewCtrl.TempDir "\gui", "gui.localhost")
