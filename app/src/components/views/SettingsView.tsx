@@ -117,10 +117,91 @@ export const SettingsView = () => {
       setWorkspaces(['default']);
     }
   }, []);
+
+  const [appVersion, setAppVersion] = useState<string>('0.0.0');
+  const [updateObj, setUpdateObj] = useState<any>(null);
+  const [isCheckingAppUpdates, setIsCheckingAppUpdates] = useState(false);
+
+  useEffect(() => {
+    try {
+      const ver = ahk.call('GetAppVersion');
+      if (ver) setAppVersion(ver);
+    } catch(e) {}
+  }, []);
+
+  const checkAppUpdates = async () => {
+    setIsCheckingAppUpdates(true);
+    try {
+      const res = await ahk.call('CheckForUpdates');
+      if (res) {
+        const parsed = JSON.parse(res);
+        setUpdateObj(parsed);
+      } else {
+        setUpdateObj({ upToDate: true });
+      }
+    } catch(e) {
+      setUpdateObj({ error: true });
+    }
+    setIsCheckingAppUpdates(false);
+  };
+
+  const installUpdate = () => {
+    if (updateObj && updateObj.url) {
+      ahk.call('InstallUpdate', updateObj.url);
+    }
+  };
+
   return (
 
     <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
       <h2 className="text-2xl font-light tracking-tight text-zinc-100 mb-8">Settings</h2>
+
+      <div className="mb-6 p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-medium text-zinc-200">System Updates & Version</h3>
+          <p className="text-xs text-zinc-500 mt-1">Current Version: <span className="font-mono text-zinc-300">v{appVersion}</span></p>
+          
+          {updateObj && (
+            <div className={`mt-3 text-xs ${updateObj.error ? 'text-red-400' : updateObj.upToDate ? 'text-emerald-400' : 'text-indigo-400'}`}>
+              {updateObj.error && "Failed to check for updates. Check your connection or rate limits."}
+              {updateObj.upToDate && "You are on the latest version."}
+              {updateObj.version && (
+                <div className="flex flex-col gap-2">
+                  <span className="font-medium">Version v{updateObj.version} is available!</span>
+                  {updateObj.body && (
+                    <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800/50 max-h-32 overflow-y-auto text-zinc-400">
+                      {updateObj.body.split('\n').map((line: string, i: number) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          {!updateObj?.version ? (
+            <button 
+              onClick={checkAppUpdates} 
+              disabled={isCheckingAppUpdates}
+              className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm font-medium transition-colors ml-auto flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isCheckingAppUpdates ? "animate-spin" : ""} />
+              {isCheckingAppUpdates ? "Checking..." : "Check for Updates"}
+            </button>
+          ) : (
+            <button 
+              onClick={installUpdate} 
+              className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center gap-2 transition-colors ml-auto"
+            >
+              <Download size={14} />
+              Update and Restart
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="space-y-6">
         {/* Theme Configuration */}

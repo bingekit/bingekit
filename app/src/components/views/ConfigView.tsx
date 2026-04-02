@@ -28,6 +28,14 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     value: 'http://gui.localhost/index.html',
   },
   {
+    id: 'UpdateUrl',
+    name: 'Update API Endpoint',
+    type: 'string',
+    description: 'The API endpoint to poll for new releases (GitHub Releases API format).',
+    default: 'https://api.github.com/repos/owhs/bingekit/releases/latest',
+    value: 'https://api.github.com/repos/owhs/bingekit/releases/latest',
+  },
+  {
     id: 'AllowRightClick',
     name: 'Allow Context Menus',
     type: 'boolean',

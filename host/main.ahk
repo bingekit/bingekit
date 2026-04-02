@@ -21,6 +21,7 @@ InitEnvironment()
 #Include src\Fetcher.ahk
 #Include src\Player.ahk
 #Include src\Downloads.ahk
+#Include src\Updater.ahk
 
 ; Enable Window Message hooks for custom titlebar dragging & PiP
 #Include src\Hooks.ahk

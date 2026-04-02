@@ -22,3 +22,4 @@ error*
 .vscode/*
 .vscode/
 .vscode/settings.json
+host/gui/*
