@@ -1,5 +1,5 @@
 // -----------------------------------------------------------------------------
-// StreamView Minimal - Adblock & Preload Script
+// BingeKit Minimal - Adblock & Preload Script
 // -----------------------------------------------------------------------------
 // This script is injected via AHK2 WebView2 AddScriptToExecuteOnDocumentCreated
 // It runs before the page loads to block ads and inject custom behaviors.
@@ -48,15 +48,15 @@
 
     // 1. Block Popups immediately
     window.open = function () {
-        console.log("StreamView AdBlock: Prevented window.open popup.");
+        console.log("BingeKit AdBlock: Prevented window.open popup.");
         return null;
     };
     window.debugger = function () {
-        console.log("StreamView AdBlock: Prevented debugger call.");
+        console.log("BingeKit AdBlock: Prevented debugger call.");
         return null;
     };
     window.console.clear = function () {
-        console.log("StreamView AdBlock: Prevented console.clear call.");
+        console.log("BingeKit AdBlock: Prevented console.clear call.");
         return null;
     };
 
@@ -69,7 +69,7 @@
             const originalSetAttribute = script.setAttribute;
             script.setAttribute = function (name, value) {
                 if (name === 'src' && isAdScript(value)) {
-                    console.log("StreamView AdBlock: Blocked script injection via setAttribute.");
+                    console.log("BingeKit AdBlock: Blocked script injection via setAttribute.");
                     return;
                 }
                 originalSetAttribute.call(script, name, value);
@@ -83,7 +83,7 @@
     const originalAppendChild = Node.prototype.appendChild;
     Node.prototype.appendChild = function (node) {
         if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent)))) {
-            console.log("StreamView AdBlock: Blocked script via appendChild");
+            console.log("BingeKit AdBlock: Blocked script via appendChild");
             return node; // Return node to prevent breaking calling scripts
         }
         return originalAppendChild.call(this, node);
@@ -92,7 +92,7 @@
     const originalInsertBefore = Node.prototype.insertBefore;
     Node.prototype.insertBefore = function (node, referenceNode) {
         if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent)))) {
-            console.log("StreamView AdBlock: Blocked script via insertBefore");
+            console.log("BingeKit AdBlock: Blocked script via insertBefore");
             return node;
         }
         return originalInsertBefore.call(this, node, referenceNode);
@@ -103,7 +103,7 @@
         Object.defineProperty(Element.prototype, 'innerHTML', {
             set: function (value) {
                 if (typeof value === 'string' && isBadInlineScript(value)) {
-                    console.log("StreamView AdBlock: Blocked innerHTML injection");
+                    console.log("BingeKit AdBlock: Blocked innerHTML injection");
                     return; // Drop the entire assignment
                 }
                 originalInnerHTML.set.call(this, value);
@@ -115,7 +115,7 @@
     const originalWrite = document.write;
     document.write = function (content) {
         if (typeof content === 'string' && isBadInlineScript(content)) {
-            console.log("StreamView AdBlock: Blocked document.write injection");
+            console.log("BingeKit AdBlock: Blocked document.write injection");
             return;
         }
         originalWrite.call(document, content);
@@ -124,7 +124,7 @@
     const originalWriteln = document.writeln;
     document.writeln = function (content) {
         if (typeof content === 'string' && isBadInlineScript(content)) {
-            console.log("StreamView AdBlock: Blocked document.writeln injection");
+            console.log("BingeKit AdBlock: Blocked document.writeln injection");
             return;
         }
         originalWriteln.call(document, content);
@@ -138,13 +138,13 @@
                     if (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent))) {
                         node.type = 'javascript/blocked';
                         node.remove();
-                        console.log("StreamView AdBlock: Removed script via MutationObserver:", node.src || "[Inline Script]");
+                        console.log("BingeKit AdBlock: Removed script via MutationObserver:", node.src || "[Inline Script]");
                     }
                 }
                 else if (node.tagName === 'META' && node.httpEquiv && node.httpEquiv.toLowerCase() === 'refresh') {
                     if (isBadRedirect(node.content)) {
                         node.remove();
-                        console.log("StreamView AdBlock: Removed meta refresh redirect:", node.content);
+                        console.log("BingeKit AdBlock: Removed meta refresh redirect:", node.content);
                     }
                 }
                 else if (node.nodeType === Node.ELEMENT_NODE) {
@@ -153,7 +153,7 @@
                         if (isAdScript(script.src) || (!script.src && isBadInlineScript(script.textContent))) {
                             script.type = 'javascript/blocked';
                             script.remove();
-                            console.log("StreamView AdBlock: Removed nested script via MutationObserver:", script.src || "[Inline Script]");
+                            console.log("BingeKit AdBlock: Removed nested script via MutationObserver:", script.src || "[Inline Script]");
                         }
                     }
                 }
@@ -168,8 +168,8 @@
     window.fetch = async function (...args) {
         const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
         if (url && (isAdScript(url) || isBadRedirect(url))) {
-            console.log("StreamView AdBlock: Blocked fetch request to", url);
-            return new Response('Blocked by StreamView', { status: 200, statusText: 'Blocked' });
+            console.log("BingeKit AdBlock: Blocked fetch request to", url);
+            return new Response('Blocked by BingeKit', { status: 200, statusText: 'Blocked' });
         }
         return originalFetch.apply(this, args);
     };
@@ -178,7 +178,7 @@
     const originalAssign = window.location.assign;
     window.location.assign = function (url) {
         if (isBadRedirect(url)) {
-            console.log("StreamView AdBlock: Blocked location.assign redirect to:", url);
+            console.log("BingeKit AdBlock: Blocked location.assign redirect to:", url);
             return;
         }
         return originalAssign.call(window.location, url);
@@ -187,7 +187,7 @@
     const originalReplace = window.location.replace;
     window.location.replace = function (url) {
         if (isBadRedirect(url)) {
-            console.log("StreamView AdBlock: Blocked location.replace redirect to:", url);
+            console.log("BingeKit AdBlock: Blocked location.replace redirect to:", url);
             return;
         }
         return originalReplace.call(window.location, url);
@@ -197,7 +197,7 @@
     const originalDispatchEvent = window.dispatchEvent;
     window.dispatchEvent = function (event) {
         if (event && event.type === 'dState') {
-            console.log("StreamView AdBlock: Blocked anti-debugger custom event.");
+            console.log("BingeKit AdBlock: Blocked anti-debugger custom event.");
             return false;
         }
         return originalDispatchEvent.call(window, event);

@@ -35,8 +35,8 @@ export const SettingsView = () => {
         ahk.call('SaveData', 'downloads_temp.txt', e.detail.dir);
       }
     };
-    window.addEventListener('sv-folder-selected', handleFolderSelected);
-    return () => window.removeEventListener('sv-folder-selected', handleFolderSelected);
+    window.addEventListener('bk-folder-selected', handleFolderSelected);
+    return () => window.removeEventListener('bk-folder-selected', handleFolderSelected);
   }, []);
 
   // Sync back blockedExts when they change
@@ -48,56 +48,56 @@ export const SettingsView = () => {
   const [currentWs, setCurrentWs] = useState<string>('default');
   const [showWsModal, setShowWsModal] = useState(false);
   const [newWsName, setNewWsName] = useState('');
-  
+
   const [ffmpegStatus, setFfmpegStatus] = useState<string>('checking...');
   const checkFfmpeg = () => {
     try { setFfmpegStatus(ahk.call('CheckFFmpegStatus')); } catch (e) { setFfmpegStatus('missing'); }
   };
   useEffect(() => { checkFfmpeg(); }, []);
 
-const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const ref = React.useRef<HTMLDivElement>(null);
+  const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const ref = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    useEffect(() => {
+      const handleClickOutside = (e: MouseEvent) => {
+        if (ref.current && !ref.current.contains(e.target as Node)) {
+          setIsOpen(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-  return (
-    <div ref={ref} className="relative w-48">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none transition-colors hover:border-zinc-700 h-[38px] cursor-pointer"
-      >
-        <span className="truncate">{Object.values(navButtons).filter(Boolean).length} Active Buttons</span>
-        <ChevronDown size={14} className={`text-[color-mix(in_srgb,var(--theme-text)_50%,transparent)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
+    return (
+      <div ref={ref} className="relative w-48">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 outline-none transition-colors hover:border-zinc-700 h-[38px] cursor-pointer"
+        >
+          <span className="truncate">{Object.values(navButtons).filter(Boolean).length} Active Buttons</span>
+          <ChevronDown size={14} className={`text-[color-mix(in_srgb,var(--theme-text)_50%,transparent)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
 
-      {isOpen && (
-        <div style={{ backgroundColor: 'var(--theme-sidebar)' }} className="absolute z-10 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40 py-1">
-          {Object.entries({ home: 'Home', back: 'Back', forward: 'Forward', reload: 'Reload' }).map(([key, label]) => (
-            <label key={key} className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-300">
-              <input
-                type="checkbox"
-                checked={navButtons[key as keyof typeof navButtons]}
-                onChange={(e) => setNavButtons({ ...navButtons, [key]: e.target.checked })}
-                className="rounded bg-black/20 border-white/10"
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+        {isOpen && (
+          <div style={{ backgroundColor: 'var(--theme-sidebar)' }} className="absolute z-10 w-full mt-1 border border-zinc-800 rounded-lg shadow-xl overflow-hidden shadow-black/40 py-1">
+            {Object.entries({ home: 'Home', back: 'Back', forward: 'Forward', reload: 'Reload' }).map(([key, label]) => (
+              <label key={key} className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 hover:bg-zinc-800 transition-colors cursor-pointer text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={navButtons[key as keyof typeof navButtons]}
+                  onChange={(e) => setNavButtons({ ...navButtons, [key]: e.target.checked })}
+                  className="rounded bg-black/20 border-white/10"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   useEffect(() => {
     try {
@@ -250,42 +250,42 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
 
         <div className="p-5 bg-zinc-900/50 border border-zinc-800/50 rounded-2xl space-y-4">
           <h3 className="text-sm font-medium text-zinc-200 flex items-center gap-2"><Download size={16} className="text-indigo-400" /> Downloads & Media Stream Ripping</h3>
-          
+
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-medium text-zinc-300">Downloads Folder</h4>
-              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch(e){} }}>{downloadsLoc || 'Not Set'}</p>
+              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch (e) { } }}>{downloadsLoc || 'Not Set'}</p>
             </div>
-            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
+            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch (e) { } }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
           </div>
-          
+
           <div className="flex items-center justify-between pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
             <div>
               <h4 className="text-sm font-medium text-zinc-300">Temporary Segments Folder</h4>
-              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch(e){} }}>{downloadsTemp || 'Not Set'}</p>
+              <p className="text-xs text-zinc-500 mt-1 cursor-pointer hover:text-indigo-400 transition-colors" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch (e) { } }}>{downloadsTemp || 'Not Set'}</p>
             </div>
-            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
+            <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch (e) { } }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">Change</button>
           </div>
 
           <div className="flex items-center justify-between pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
             <div>
               <h4 className="text-sm font-medium text-zinc-300">FFmpeg Stream Engine</h4>
               <div className="flex items-center gap-2 mt-1">
-                 <div className={`w-2 h-2 rounded-full ${ffmpegStatus === 'installed' ? 'bg-green-500' : (ffmpegStatus === 'missing' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse')}`} />
-                 <p className="text-xs text-zinc-500">{ffmpegStatus === 'installed' ? 'Installed and ready' : (ffmpegStatus === 'missing' ? 'Not installed' : 'Checking...')}</p>
+                <div className={`w-2 h-2 rounded-full ${ffmpegStatus === 'installed' ? 'bg-green-500' : (ffmpegStatus === 'missing' ? 'bg-red-500' : 'bg-yellow-500 animate-pulse')}`} />
+                <p className="text-xs text-zinc-500">{ffmpegStatus === 'installed' ? 'Installed and ready' : (ffmpegStatus === 'missing' ? 'Not installed' : 'Checking...')}</p>
               </div>
             </div>
-            <button type="button" onClick={() => { setFfmpegStatus('installing...'); try { ahk.call('EnsureFFmpeg', true); setTimeout(checkFfmpeg, 3000); } catch(e){} }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">
-               {ffmpegStatus === 'installed' ? 'Reinstall' : 'Install FFmpeg'}
+            <button type="button" onClick={() => { setFfmpegStatus('installing...'); try { ahk.call('EnsureFFmpeg', true); setTimeout(checkFfmpeg, 3000); } catch (e) { } }} className="px-3 py-1.5 bg-zinc-800 text-zinc-300 rounded text-xs hover:bg-zinc-700 transition-colors">
+              {ffmpegStatus === 'installed' ? 'Reinstall' : 'Install FFmpeg'}
             </button>
           </div>
         </div>
 
-        <div className="sv-panel p-5 rounded-2xl">
+        <div className="bk-panel p-5 rounded-2xl">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h3 className="text-sm font-medium sv-text">Native Adblocker & Filters</h3>
-              <p className="text-xs sv-text opacity-60 mt-1">Filters network requests and injects element blockers.</p>
+              <h3 className="text-sm font-medium bk-text">Native Adblocker & Filters</h3>
+              <p className="text-xs bk-text opacity-60 mt-1">Filters network requests and injects element blockers.</p>
             </div>
             <button
               onClick={() => setIsAdblockEnabled(!isAdblockEnabled)}
@@ -296,14 +296,14 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
           </div>
 
           <div className="mt-4 pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
-            <h4 className="text-[10px] font-medium sv-text opacity-50 mb-3 uppercase tracking-wider">Web Resource Filters</h4>
+            <h4 className="text-[10px] font-medium bk-text opacity-50 mb-3 uppercase tracking-wider">Web Resource Filters</h4>
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
               {Object.entries(networkFilters || {}).map(([term, enabled]) => (
                 <label key={term} className={`group flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${enabled ? 'bg-[color-mix(in_srgb,var(--theme-accent)_10%,transparent)] border-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)]' : 'bg-[color-mix(in_srgb,var(--theme-bg)_40%,transparent)] border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)] grayscale opacity-70 hover:opacity-100 hover:grayscale-0'}`}>
                   <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border transition-all ${enabled ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]' : 'border-[color-mix(in_srgb,var(--theme-text)_30%,transparent)] bg-transparent'}`}>
                     {enabled && <div className="w-1.5 h-1.5 bg-white rounded-full scale-100" />}
                   </div>
-                  <span className={`text-xs font-mono truncate min-w-0 flex-1 transition-colors ${enabled ? 'text-[var(--theme-accent)]' : 'sv-text'}`}>{term}</span>
+                  <span className={`text-xs font-mono truncate min-w-0 flex-1 transition-colors ${enabled ? 'text-[var(--theme-accent)]' : 'bk-text'}`}>{term}</span>
                   <input type="checkbox" className="hidden" checked={enabled} onChange={(e) => {
                     setNetworkFilters(prev => ({ ...prev, [term]: e.target.checked }));
                   }} />
@@ -319,11 +319,11 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
                 </label>
               ))}
               <div className="flex items-center gap-2 p-1 pl-2 rounded-lg border border-dashed border-[color-mix(in_srgb,var(--theme-text)_20%,transparent)] bg-[color-mix(in_srgb,var(--theme-bg)_20%,transparent)] focus-within:border-[var(--theme-accent)] transition-colors">
-                <Plus size={14} className="sv-text opacity-40" />
+                <Plus size={14} className="bk-text opacity-40" />
                 <input
                   type="text"
                   placeholder="Add network rule..."
-                  className="bg-transparent border-none outline-none text-xs font-mono sv-text w-full py-1 placeholder:sv-text placeholder:opacity-30"
+                  className="bg-transparent border-none outline-none text-xs font-mono bk-text w-full py-1 placeholder:bk-text placeholder:opacity-30"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       const val = e.currentTarget.value.trim();
@@ -522,30 +522,30 @@ const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setN
               <p className="text-xs text-zinc-500 mt-1">Configure paths for saved media and block unwanted file types.</p>
             </div>
           </div>
-          
+
           <div className="space-y-4">
-              <div className="flex items-center gap-4">
-               <div className="flex-1">
-                 <label className="block text-xs text-zinc-500 mb-1.5">Download Location</label>
-                 <div className="flex gap-2">
-                   <input type="text" value={downloadsLoc} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
-                   <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsLoc')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
-                 </div>
-               </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <label className="block text-xs text-zinc-500 mb-1.5">Download Location</label>
+                <div className="flex gap-2">
+                  <input type="text" value={downloadsLoc} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
+                  <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsLoc')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
+                </div>
+              </div>
             </div>
             <div className="flex items-center gap-4">
-               <div className="flex-1">
-                 <label className="block text-xs text-zinc-500 mb-1.5">Temporary Muxing Location</label>
-                 <div className="flex gap-2">
-                   <input type="text" value={downloadsTemp} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
-                   <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsTemp')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
-                 </div>
-               </div>
+              <div className="flex-1">
+                <label className="block text-xs text-zinc-500 mb-1.5">Temporary Muxing Location</label>
+                <div className="flex gap-2">
+                  <input type="text" value={downloadsTemp} readOnly placeholder="Select a folder..." className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-400 cursor-not-allowed outline-none" />
+                  <button onClick={() => ahk.call('PromptSelectFolder', 'downloadsTemp')} className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-sm transition-colors whitespace-nowrap">Choose Folder</button>
+                </div>
+              </div>
             </div>
             <div className="pt-4 border-t border-[color-mix(in_srgb,var(--theme-text)_10%,transparent)]">
-                 <label className="block text-xs text-zinc-500 mb-1.5">Global Blocked Extensions</label>
-                 <p className="text-[10px] text-zinc-600 mb-2">These extensions will be blocked regardless of site. (e.g. .exe, .msi, .bat)</p>
-                 <TagsInput tags={blockedExts} onChange={setBlockedExts} />
+              <label className="block text-xs text-zinc-500 mb-1.5">Global Blocked Extensions</label>
+              <p className="text-[10px] text-zinc-600 mb-2">These extensions will be blocked regardless of site. (e.g. .exe, .msi, .bat)</p>
+              <TagsInput tags={blockedExts} onChange={setBlockedExts} />
             </div>
           </div>
         </div>

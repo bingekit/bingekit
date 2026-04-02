@@ -53,7 +53,7 @@ DoSelectFolder(id) {
     dir := DirSelect("*" WorkspaceDir, 3, "Select Folder")
     if (dir != "") {
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('sv-folder-selected', { detail: { id: '" id "', dir: '" StrReplace(dir, "\", "\\") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-folder-selected', { detail: { id: '" id "', dir: '" StrReplace(dir, "\", "\\") "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
     }
@@ -104,12 +104,12 @@ AHK_TogglePiP() {
     global IsPiPMode, MainGui, PlayerGui, PlayerWV
     global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
     IsPiPMode := !IsPiPMode
-    
+
     if (MainGui) {
         js := "try { window.dispatchEvent(new CustomEvent('pip-mode-change', { detail: { isPip: " (IsPiPMode ? "true" : "false") " } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
-    
+
     if (IsPiPMode) {
         if (MainGui) {
             MainGui.Hide()
@@ -134,7 +134,7 @@ AHK_TogglePiP() {
             (
                 (function() {
                     console.log("loading pip js");
-                    if (document.getElementById('sv-pip-container')) return;
+                    if (document.getElementById('bk-pip-container')) return;
                     
                     function findLargestPlayingVideo() {
                         const videos = Array.from(document.querySelectorAll('video'))
@@ -149,12 +149,12 @@ AHK_TogglePiP() {
                     }
                 
                     let style = document.createElement('style');
-                    style.id = 'sv-pip-style';
+                    style.id = 'bk-pip-style';
                     style.textContent = "iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }";
                     document.body.append(style);
                 
                     const container = document.createElement('div');
-                    container.id = 'sv-pip-container';
+                    container.id = 'bk-pip-container';
                     container.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:999999999;pointer-events:none;display:flex;align-items:center;justify-content:center;transition:background 0.2s ease;';
                     
                     const dragArea = document.createElement('div');
@@ -171,7 +171,7 @@ AHK_TogglePiP() {
                     
                     let isPlaying = true;
                     playBtn.addEventListener('click', () => {
-                        window.postMessage('sv-toggle-play', '*');
+                        window.postMessage('bk-toggle-play', '*');
                     });
                 
                     container.addEventListener('mouseenter', () => {
@@ -264,7 +264,7 @@ AHK_TogglePiP() {
         if (PlayerGui) {
             PlayerGui.Opt("-AlwaysOnTop -Resize -Caption")
             try {
-                PlayerWV.wv.ExecuteScriptAsync("var pip = document.getElementById('sv-pip-container'); if (pip) pip.remove(); var st = document.getElementById('sv-pip-style'); if (st) st.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
+                PlayerWV.wv.ExecuteScriptAsync("var pip = document.getElementById('bk-pip-container'); if (pip) pip.remove(); var st = document.getElementById('bk-pip-style'); if (st) st.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
             }
             catch {
                 MsgBox("Error removing PiP")
@@ -359,6 +359,6 @@ AHK_GetActiveSubtitle() {
 AHK_ToggleMedia() {
     global PlayerWV
     if (PlayerWV) {
-        PlayerWV.wv.ExecuteScriptAsync("window.top.postMessage('sv-toggle-play', '*');")
+        PlayerWV.wv.ExecuteScriptAsync("window.top.postMessage('bk-toggle-play', '*');")
     }
 }

@@ -16,7 +16,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
-  "name": "streamview",
+  "name": "BingeKit",
   "private": true,
   "devDependencies": {
     "@types/bun": "latest"

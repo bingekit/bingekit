@@ -1,6 +1,6 @@
 # Remote Parsing: SmartFetch & RawFetch
 
-StreamView utilizes an orchestrated asynchronous scraping pipeline to harvest values without dropping frame rates or freezing the primary user interface.
+BingeKit utilizes an orchestrated asynchronous scraping pipeline to harvest values without dropping frame rates or freezing the primary user interface.
 
 ## 1. SmartFetch Engine
 
@@ -21,13 +21,13 @@ return new Promise(async (resolve) => {
        url: ep.getAttribute('href')
     }));
     
-    // Resolve back to StreamView's Flow Engine securely
+    // Resolve back to BingeKit's Flow Engine securely
     resolve(result); 
 });
 ```
 
 ### AutoHotkey Bridge
-When `AHK_StartSmartFetch` triggers, StreamView invokes a non-visible GUI Window, navigates to the target URL, appends the JavaScript query wrapper, hooks `AddScriptToExecuteOnDocumentCreatedAsync`, and resolves a `COM` Promise bridging the payload.
+When `AHK_StartSmartFetch` triggers, BingeKit invokes a non-visible GUI Window, navigates to the target URL, appends the JavaScript query wrapper, hooks `AddScriptToExecuteOnDocumentCreatedAsync`, and resolves a `COM` Promise bridging the payload.
 
 ## 2. RawFetchHTML
 

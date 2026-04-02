@@ -12,7 +12,7 @@ AHK_DownloadStarting(sender, args) {
     ; Parse config
     downloadLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadLoc == "") {
-        downloadLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        downloadLoc := EnvGet("USERPROFILE") "\Videos\BingeKit"
         if !DirExist(downloadLoc) {
             try DirCreate(downloadLoc)
         }
@@ -35,7 +35,7 @@ AHK_DownloadStarting(sender, args) {
         args.Cancel := 1
         args.Handled := 1
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('sv-download-blocked', { detail: { file: '" StrReplace(outFileName, "'", "\'") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-download-blocked', { detail: { file: '" StrReplace(outFileName, "'", "\'") "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
         return
@@ -51,7 +51,7 @@ AHK_DownloadStarting(sender, args) {
 
     ; Send init to react
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('sv-download-started', { detail: { file: '" StrReplace(outFileName, "'", "\'") "', path: '" StrReplace(args.ResultFilePath, "\", "\\") "' } })) } catch(e){}"
+        js := "try { window.dispatchEvent(new CustomEvent('bk-download-started', { detail: { file: '" StrReplace(outFileName, "'", "\'") "', path: '" StrReplace(args.ResultFilePath, "\", "\\") "' } })) } catch(e){}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }
@@ -63,7 +63,7 @@ AHK_DownloadProgress(sender, *) {
     path := sender.ResultFilePath
 
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('sv-download-progress', { detail: { path: '" StrReplace(path, "\", "\\") "', total: " total ", rcv: " rcv " } })) } catch(e){}"
+        js := "try { window.dispatchEvent(new CustomEvent('bk-download-progress', { detail: { path: '" StrReplace(path, "\", "\\") "', total: " total ", rcv: " rcv " } })) } catch(e){}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }
@@ -74,7 +74,7 @@ AHK_DownloadState(sender, *) {
     path := sender.ResultFilePath
 
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('sv-download-state', { detail: { path: '" StrReplace(path, "\", "\\") "', state: " state " } })) } catch(e){}"
+        js := "try { window.dispatchEvent(new CustomEvent('bk-download-state', { detail: { path: '" StrReplace(path, "\", "\\") "', state: " state " } })) } catch(e){}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }
@@ -82,7 +82,7 @@ AHK_DownloadState(sender, *) {
 AHK_CheckFFmpegStatus() {
     if (RunWait("cmd.exe /c ffmpeg -version", , "Hide") == 0)
         return "installed"
-        
+
     ffmpegExe := A_ScriptDir "\bin\ffmpeg.exe"
     if FileExist(ffmpegExe)
         return "installed"
@@ -110,12 +110,12 @@ AHK_EnsureFFmpeg(force := false) {
             SetTimer(() => ToolTip(), -5000)
             return ""
         }
-        
+
         try {
             shell := ComObject("Shell.Application")
             zipFile := shell.NameSpace(tmpZip)
             destination := shell.NameSpace(A_Temp)
-            destination.CopyHere(zipFile.Items(), 4|16)
+            destination.CopyHere(zipFile.Items(), 4 | 16)
         } catch {
             ToolTip("Failed to extract FFmpeg.")
             SetTimer(() => ToolTip(), -5000)
@@ -135,7 +135,7 @@ AHK_NativeDownloadWinHttp(url, destPath, extraHeaders := "") {
     req := ComObject("WinHttp.WinHttpRequest.5.1")
     req.Open("GET", url, true)
     req.SetRequestHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-    
+
     ; Parse any simple headers we passed, e.g., 'Cookie: foo=bar'
     if (extraHeaders != "") {
         lines := StrSplit(extraHeaders, "`n", "`r")
@@ -147,10 +147,10 @@ AHK_NativeDownloadWinHttp(url, destPath, extraHeaders := "") {
             }
         }
     }
-    
+
     req.Send()
     req.WaitForResponse()
-    
+
     stream := ComObject("ADODB.Stream")
     stream.Type := 1 ; Binary
     stream.Open()
@@ -166,7 +166,7 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
 
     downloadLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadLoc == "") {
-        downloadLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        downloadLoc := EnvGet("USERPROFILE") "\Videos\BingeKit"
         if !DirExist(downloadLoc) {
             try DirCreate(downloadLoc)
         }
@@ -177,7 +177,7 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
     finalPath := downloadLoc "\" targetFilename
 
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('sv-download-started', { detail: { file: '" StrReplace(targetFilename, "'", "\'") "', path: '" StrReplace(finalPath, "\", "\\") "', isFFmpeg: true } })) } catch(e){}"
+        js := "try { window.dispatchEvent(new CustomEvent('bk-download-started', { detail: { file: '" StrReplace(targetFilename, "'", "\'") "', path: '" StrReplace(finalPath, "\", "\\") "', isFFmpeg: true } })) } catch(e){}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 
@@ -233,7 +233,7 @@ CheckFFmpegProcess(pid, finalPath, cb, logFile) {
         SetTimer(cb, 0)
         if (MainGui) {
             ; 2 = Completed
-            js := "try { window.dispatchEvent(new CustomEvent('sv-download-state', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', state: 2 } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-download-state', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', state: 2 } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
         try FileDelete(logFile)
@@ -265,7 +265,7 @@ CheckFFmpegProcess(pid, finalPath, cb, logFile) {
                             timeStr := matches[2]
                             speedStr := matches[3]
 
-                            js := "try { window.dispatchEvent(new CustomEvent('sv-download-progress', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', total: 0, rcv: " sizeBytes ", speed: '" speedStr "', ffmpegTime: '" timeStr "' } })) } catch(e){}"
+                            js := "try { window.dispatchEvent(new CustomEvent('bk-download-progress', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', total: 0, rcv: " sizeBytes ", speed: '" speedStr "', ffmpegTime: '" timeStr "' } })) } catch(e){}"
                             MainGui.Control.ExecuteScriptAsync(js)
                         }
                     }
@@ -278,7 +278,7 @@ CheckFFmpegProcess(pid, finalPath, cb, logFile) {
 AHK_ListDownloads() {
     downloadLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadLoc == "") {
-        downloadLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        downloadLoc := EnvGet("USERPROFILE") "\Videos\BingeKit"
         if !DirExist(downloadLoc) {
             try DirCreate(downloadLoc)
         }
@@ -348,7 +348,7 @@ AHK_DownloadSubtitle(url, targetFilename) {
 
     downloadLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadLoc == "") {
-        downloadLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        downloadLoc := EnvGet("USERPROFILE") "\Videos\BingeKit"
         if !DirExist(downloadLoc) {
             try DirCreate(downloadLoc)
         }
@@ -364,7 +364,7 @@ AHK_DownloadSubtitle(url, targetFilename) {
             userAgent := m[1]
         if RegExMatch(ActiveMediaAuth, '"cookie"\s*:\s*"([^"]+)"', &m)
             cookie := m[1]
-            
+
         if (userAgent)
             headerStr .= "User-Agent: " userAgent "`n"
         if (cookie)

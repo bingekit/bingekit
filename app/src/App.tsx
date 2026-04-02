@@ -37,7 +37,7 @@ const MainLayout = () => {
 
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [showInterfaces, setShowInterfaces] = React.useState(false);
-  
+
   const activeDownloadsCount = Object.values(activeDownloads || {}).filter((dl: any) => dl.state !== 2).length;
 
   React.useEffect(() => {
@@ -161,7 +161,7 @@ const MainLayout = () => {
             <Film size={16} className="text-indigo-500" />
 
             {activeTab !== 'player' && (
-              <span className="text-xs  ml-6 font-medium tracking-wider uppercase">StreamView</span>
+              <span className="text-xs  ml-6 font-medium tracking-wider uppercase">BingeKit</span>
             )}
           </div>
         </div>

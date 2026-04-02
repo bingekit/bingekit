@@ -38,7 +38,7 @@ export const DashboardView = () => {
     <div className="w-full h-full bg-zinc-950 flex flex-col items-center px-8 pt-[15vh] pb-24 overflow-y-auto custom-scrollbar">
       <div className="flex items-center gap-3 mb-8 shrink-0">
         <Film size={48} className="text-indigo-500" />
-        <h1 className="text-5xl font-light tracking-tight text-zinc-100">StreamView</h1>
+        <h1 className="text-5xl font-light tracking-tight text-zinc-100">BingeKit</h1>
       </div>
 
       <div className="w-full max-w-2xl relative mb-8 flex flex-col gap-3">
@@ -94,7 +94,7 @@ export const DashboardView = () => {
                 let queryTargetSeason = '';
                 let queryTargetEpisode = '';
                 let querySubtitle = '';
-                
+
                 const metaMatch = multiSearchQuery.match(/(.*?)(?:\s*-\s*|\s+)s(\d{1,2})(?:e(\d{1,2}))?(?:\s|$)/i);
                 if (metaMatch) {
                   baseQuery = metaMatch[1].trim() || metaMatch[0];
@@ -344,7 +344,7 @@ export const DashboardView = () => {
                       if (Array.isArray(fetchResults) && fetchResults.length > 0) {
                         const validResults = fetchResults.filter(r => r.title && r.href);
                         const totalValidCount = validResults.length;
-                        
+
                         for (let i = 0; i < validResults.length; i++) {
                           const res = validResults[i];
                           const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -360,7 +360,7 @@ export const DashboardView = () => {
 
                             let deepJsQuery = '';
                             if (customJs) {
-                                deepJsQuery = `
+                              deepJsQuery = `
                                    window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
                                    window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
                                    window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
@@ -376,13 +376,13 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                              } else {
-                                const tvConfigString = JSON.stringify({
-                                  epSel: plugin.media.epSel || '',
-                                  seasonSel: plugin.media.seasonSel || ''
-                                });
+                            } else {
+                              const tvConfigString = JSON.stringify({
+                                epSel: plugin.media.epSel || '',
+                                seasonSel: plugin.media.seasonSel || ''
+                              });
 
-                                deepJsQuery = `
+                              deepJsQuery = `
                                    window.SV_TARGET_SEASON = ${JSON.stringify(queryTargetSeason)};
                                    window.SV_TARGET_EPISODE = ${JSON.stringify(queryTargetEpisode)};
                                    window.SV_TARGET_SUBTITLE = ${JSON.stringify(querySubtitle)};
@@ -435,49 +435,49 @@ export const DashboardView = () => {
                                      }
                                    });
                                  `;
-                              }
+                            }
 
-                              try {
-                                const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
-                                if (Array.isArray(deepResults) && deepResults.length > 0) {
-                                  matchedDeep = true;
-                                  results.length = 0; // Clear other concurrent results
+                            try {
+                              const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                              if (Array.isArray(deepResults) && deepResults.length > 0) {
+                                matchedDeep = true;
+                                results.length = 0; // Clear other concurrent results
 
+                                results.push({
+                                  id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
+                                  title: res.title,
+                                  url: res.href,
+                                  pluginName: opName,
+                                  type: 'result'
+                                });
+                                deepResults.forEach((dep: any) => {
                                   results.push({
-                                    id: plugin.id + '_parent_' + Math.random().toString(36).substring(7),
-                                    title: res.title,
-                                    url: res.href,
+                                    id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
+                                    title: '↳ ' + dep.title,
+                                    url: dep.href,
                                     pluginName: opName,
                                     type: 'result'
                                   });
-                                  deepResults.forEach((dep: any) => {
-                                    results.push({
-                                      id: plugin.id + '_deep_' + Math.random().toString(36).substring(7),
-                                      title: '↳ ' + dep.title,
-                                      url: dep.href,
-                                      pluginName: opName,
-                                      type: 'result'
-                                    });
-                                  });
+                                });
 
-                                  setSearchResults(results);
-                                  setIsSearching(false);
-                                  return; // Break out immediately!
-                                }
-                              } catch (e) {
-                                console.error('[Search] Deep Search failed', e);
+                                setSearchResults(results);
+                                setIsSearching(false);
+                                return; // Break out immediately!
                               }
+                            } catch (e) {
+                              console.error('[Search] Deep Search failed', e);
                             }
+                          }
 
-                            if (!matchedDeep) {
-                              results.push({
-                                id: plugin.id + '_' + Math.random().toString(36).substring(7),
-                                title: res.title,
-                                url: res.href,
-                                pluginName: opName,
-                                type: 'result'
-                              });
-                            }
+                          if (!matchedDeep) {
+                            results.push({
+                              id: plugin.id + '_' + Math.random().toString(36).substring(7),
+                              title: res.title,
+                              url: res.href,
+                              pluginName: opName,
+                              type: 'result'
+                            });
+                          }
                         }
                         if (totalValidCount === 0) {
                           console.log(`[Search] ${opName} found 0 valid results.`);
@@ -546,8 +546,8 @@ export const DashboardView = () => {
                     }
                   }}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-all ${activeSearchTags.includes(tag)
-                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                      : 'bg-zinc-900/50 text-zinc-400 border-zinc-800 hover:border-zinc-700'
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                    : 'bg-zinc-900/50 text-zinc-400 border-zinc-800 hover:border-zinc-700'
                     }`}
                 >
                   {tag}

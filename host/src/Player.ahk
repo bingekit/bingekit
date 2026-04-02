@@ -243,17 +243,17 @@ AHK_PlayerResourceRequested(sender, args) {
     }
 
     uri := args.Request.Uri
-    
+
     if (RegExMatch(uri, "i)(\.m3u8?|\.mp4|\.flv|\.webm|/playlist|/manifest|type=video|/master(\.txt|\.json|/)|/hls/(index|master))")) {
         ActiveMediaStream := uri
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('sv-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
     } else if (InStr(uri, ".vtt") || InStr(uri, ".srt") || InStr(uri, ".ass")) {
         ActiveMediaSubtitles.Push(uri)
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('sv-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
     }

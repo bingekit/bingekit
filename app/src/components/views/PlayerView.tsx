@@ -119,7 +119,7 @@ export const PlayerView = () => {
 
         ahk.call('InjectJS', `
                  (function() {
-                    const styleId = 'sv-focus-style';
+                    const styleId = 'bk-focus-style';
                     let existingStyle = document.getElementById(styleId);
                     if (!existingStyle) {
                       existingStyle = document.createElement('style');
@@ -135,7 +135,7 @@ export const PlayerView = () => {
       } else {
         ahk.call('InjectJS', `
                  (function() {
-                    let existingStyle = document.getElementById('sv-focus-style');
+                    let existingStyle = document.getElementById('bk-focus-style');
                     if (existingStyle) existingStyle.parentNode.removeChild(existingStyle);
                  })();
               `);
@@ -148,20 +148,20 @@ export const PlayerView = () => {
     if (activeTab !== 'player') return;
     const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
     const { ignoreVideoUrls, ignoreVideoCSS } = plugin?.player || {};
-    ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
+    ahk.call('InjectJS', `window.top.postMessage({ type: 'bk-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
   }, [url, activeTab, plugins]);
 
   React.useEffect(() => {
     if (activeTab !== 'player' || playerStatus !== 'found') return;
     if (url === lastResumeUrl.current) return;
-    
+
     // Auto-Resume Video from History
     const hItem = history.find(h => h.url === url && h.type === 'watch');
     if (hItem && hItem.currentTime && hItem.duration) {
       // Only resume if we are past the first 5 seconds and not in the last 10% 
       if (hItem.currentTime > 5 && hItem.currentTime < (hItem.duration * 0.9)) {
         lastResumeUrl.current = url;
-        ahk.call('InjectJS', `window.top.postMessage({ type: 'sv-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`);
+        ahk.call('InjectJS', `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`);
       }
     }
   }, [url, activeTab, playerStatus, history]);
@@ -172,42 +172,42 @@ export const PlayerView = () => {
       if (e.detail.type === 'video') {
         const url = e.detail.url;
         if (url !== lastUrl) {
-           lastUrl = url;
-           setActiveMediaUrl(url);
+          lastUrl = url;
+          setActiveMediaUrl(url);
         }
       }
     };
-    window.addEventListener('sv-media-detected', handleMediaDetect);
+    window.addEventListener('bk-media-detected', handleMediaDetect);
 
     const intv = setInterval(() => {
       try {
         const m = ahk.call('GetActiveMedia');
         if (m && typeof m === 'string' && m.length > 5 && m !== activeMediaUrl) {
-            lastUrl = m;
-            setActiveMediaUrl(m);
+          lastUrl = m;
+          setActiveMediaUrl(m);
         } else if (!m && activeMediaUrl) {
-            lastUrl = '';
-            setActiveMediaUrl(null);
+          lastUrl = '';
+          setActiveMediaUrl(null);
         }
-        
+
         try {
-            const qStr = ahk.call('GetActiveMediaQualities');
-            if (qStr && typeof qStr === 'string' && qStr.length > 5) {
-                const qParsed = JSON.parse(qStr);
-                if (JSON.stringify(qParsed) !== JSON.stringify(activeMediaQualities)) setActiveMediaQualities(qParsed);
-            } else if (!qStr && activeMediaQualities.length > 0) setActiveMediaQualities([]);
-        } catch(e) {}
-        
+          const qStr = ahk.call('GetActiveMediaQualities');
+          if (qStr && typeof qStr === 'string' && qStr.length > 5) {
+            const qParsed = JSON.parse(qStr);
+            if (JSON.stringify(qParsed) !== JSON.stringify(activeMediaQualities)) setActiveMediaQualities(qParsed);
+          } else if (!qStr && activeMediaQualities.length > 0) setActiveMediaQualities([]);
+        } catch (e) { }
+
         try {
-            const sub = ahk.call('GetActiveSubtitle');
-            if (sub && sub !== activeSubtitleUrl) setActiveSubtitleUrl(sub);
-            else if (!sub && activeSubtitleUrl) setActiveSubtitleUrl(null);
-        } catch(e) {}
-      } catch (e) {}
+          const sub = ahk.call('GetActiveSubtitle');
+          if (sub && sub !== activeSubtitleUrl) setActiveSubtitleUrl(sub);
+          else if (!sub && activeSubtitleUrl) setActiveSubtitleUrl(null);
+        } catch (e) { }
+      } catch (e) { }
     }, 2000);
 
     return () => {
-      window.removeEventListener('sv-media-detected', handleMediaDetect);
+      window.removeEventListener('bk-media-detected', handleMediaDetect);
       clearInterval(intv);
     };
   }, [activeMediaUrl, activeMediaQualities, activeSubtitleUrl]);
@@ -334,28 +334,28 @@ export const PlayerView = () => {
                   <div className="absolute right-1.5 pointer-events-none opacity-50"><ChevronDown size={14} className="text-emerald-400" /></div>
                 </div>
               ) : (
-                  <button
-                    onClick={() => {
-                      let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
-                      ahk.call('DownloadActiveVideo', activeMediaUrl, dName, activeSubtitleUrl || "");
-                    }}
-                    className="text-xs font-medium text-emerald-400 animate-pulse hover:text-emerald-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 py-1 rounded"
-                  >
-                    <Download size={14} /> Rip Stream
-                  </button>
+                <button
+                  onClick={() => {
+                    let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
+                    ahk.call('DownloadActiveVideo', activeMediaUrl, dName, activeSubtitleUrl || "");
+                  }}
+                  className="text-xs font-medium text-emerald-400 animate-pulse hover:text-emerald-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 py-1 rounded"
+                >
+                  <Download size={14} /> Rip Stream
+                </button>
               )}
             </>
           )}
           {activeSubtitleUrl && (
             <button
-               onClick={() => {
-                 let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.vtt') : `sub_${Date.now()}.vtt`;
-                 ahk.call('DownloadSubtitle', activeSubtitleUrl, dName);
-               }}
-               className="ml-2 text-xs font-medium text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-amber-500/10 hover:bg-amber-500/20 py-1 rounded"
+              onClick={() => {
+                let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.vtt') : `sub_${Date.now()}.vtt`;
+                ahk.call('DownloadSubtitle', activeSubtitleUrl, dName);
+              }}
+              className="ml-2 text-xs font-medium text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-amber-500/10 hover:bg-amber-500/20 py-1 rounded"
             >
-               <span className="font-bold border border-amber-400/50 rounded-sm px-1 leading-none text-[8px] uppercase tracking-wider">CC</span>
-               Download Sub
+              <span className="font-bold border border-amber-400/50 rounded-sm px-1 leading-none text-[8px] uppercase tracking-wider">CC</span>
+              Download Sub
             </button>
           )}
           <div className="flex-1" />

@@ -1,6 +1,6 @@
-# StreamView Architecture & API Overview
+# BingeKit Architecture & API Overview
 
-StreamView is a headless-capable, fully synchronized media automation platform built on an AutoHotkey v2 (AHK) foundation with a React-based frontend. It dynamically spawns persistent edge WebView2 instances and manages seamless bi-directional JS/COM RPC bridges.
+BingeKit is a headless-capable, fully synchronized media automation platform built on an AutoHotkey v2 (AHK) foundation with a React-based frontend. It dynamically spawns persistent edge WebView2 instances and manages seamless bi-directional JS/COM RPC bridges.
 
 ## Documentation Index
 
@@ -18,7 +18,7 @@ StreamView is a headless-capable, fully synchronized media automation platform b
 
 ## Network Filter API (WebResource Blocking)
 
-StreamView natively hooks deep inside the `ICoreWebView2` COM pipeline to block analytic servers or undesired ad services *before* they open sockets. Rather than filtering within the DOM (which is bypassed by `<iframe>` injection), the backend strictly prevents resolution.
+BingeKit natively hooks deep inside the `ICoreWebView2` COM pipeline to block analytic servers or undesired ad services *before* they open sockets. Rather than filtering within the DOM (which is bypassed by `<iframe>` injection), the backend strictly prevents resolution.
 
 ### Appending to the Block List Programmatically
 Any injected JavaScript snippet (Userscripts or Site Plugin JS) can register a new term to the WebResource rules engine instantly.

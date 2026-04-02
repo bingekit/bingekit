@@ -59,7 +59,7 @@
         });
     });
 
-    const svParseM3U8Qualities = (txt, baseUrl) => {
+    const bkParseM3U8Qualities = (txt, baseUrl) => {
         try {
             if (!txt.includes('#EXT-X-STREAM-INF')) return null;
             let lines = txt.split(/\r?\n/);
@@ -93,36 +93,36 @@
         } catch (e) { }
     };
 
-    const svCheckStreamUrl = (u) => {
+    const bkCheckStreamUrl = (u) => {
         if (!u || typeof u !== 'string') return;
         if (u.match(/\.(m3u8?|mp4|flv|webm|mkv)/i) || u.includes('/playlist') || u.includes('/manifest') || u.includes('/master') || u.includes('/hls/index') || u.includes('/hls/master')) {
-            postSniffed('sv-media-sniffed', new URL(u, location.href).href);
+            postSniffed('bk-media-sniffed', new URL(u, location.href).href);
         } else if (u.match(/\.(vtt|srt)/i)) {
-            postSniffed('sv-sub-sniffed', new URL(u, location.href).href);
+            postSniffed('bk-sub-sniffed', new URL(u, location.href).href);
         }
     };
 
     const origFetch = window.fetch;
     window.fetch = async function () {
         let u = typeof arguments[0] === 'string' ? arguments[0] : (arguments[0]?.url || "");
-        svCheckStreamUrl(u);
+        bkCheckStreamUrl(u);
         let res = await origFetch.apply(this, arguments);
         try {
             let ct = res.headers.get('content-type') || '';
             if (ct.includes('mpegurl') || ct.includes('x-mpegURL') || ct.includes('vnd.apple.mpegurl')) {
                 let clone = res.clone();
                 clone.text().then(txt => {
-                    let qualities = svParseM3U8Qualities(txt, u);
-                    postSniffed('sv-media-sniffed', new URL(u, location.href).href, { qualities });
+                    let qualities = bkParseM3U8Qualities(txt, u);
+                    postSniffed('bk-media-sniffed', new URL(u, location.href).href, { qualities });
                 }).catch(() => { });
             } else if (u && res.ok && (ct.includes('text') || ct === '')) {
                 let clone = res.clone();
                 clone.text().then(txt => {
                     if (txt && typeof txt === 'string' && txt.trim().startsWith('#EXTM3U')) {
-                        let qualities = svParseM3U8Qualities(txt, u);
-                        postSniffed('sv-media-sniffed', new URL(u, location.href).href, { qualities });
+                        let qualities = bkParseM3U8Qualities(txt, u);
+                        postSniffed('bk-media-sniffed', new URL(u, location.href).href, { qualities });
                     } else if (u.match(/\.(vtt|srt)/i) || (typeof txt === 'string' && txt.trim().startsWith('WEBVTT'))) {
-                        postSniffed('sv-sub-sniffed', new URL(u, location.href).href);
+                        postSniffed('bk-sub-sniffed', new URL(u, location.href).href);
                     }
                 }).catch(() => { });
             }
@@ -133,7 +133,7 @@
     const origOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function () {
         let u = arguments[1] || "";
-        svCheckStreamUrl(u);
+        bkCheckStreamUrl(u);
         this.addEventListener('load', function () {
             try {
                 const ct = this.getResponseHeader('Content-Type') || '';
@@ -141,14 +141,14 @@
                 if (this.responseType === 'text' || this.responseType === '') txt = this.responseText || '';
 
                 if (ct.includes('mpegurl') || ct.includes('x-mpegURL') || ct.includes('vnd.apple.mpegurl')) {
-                    let qualities = svParseM3U8Qualities(txt, u);
-                    postSniffed('sv-media-sniffed', new URL(u, location.href).href, { qualities });
+                    let qualities = bkParseM3U8Qualities(txt, u);
+                    postSniffed('bk-media-sniffed', new URL(u, location.href).href, { qualities });
                 } else if (txt) {
                     if (typeof txt === 'string' && txt.trim().startsWith('#EXTM3U')) {
-                        let qualities = svParseM3U8Qualities(txt, u);
-                        postSniffed('sv-media-sniffed', new URL(u, location.href).href, { qualities });
+                        let qualities = bkParseM3U8Qualities(txt, u);
+                        postSniffed('bk-media-sniffed', new URL(u, location.href).href, { qualities });
                     } else if (u.match(/\.(vtt|srt)/i) || (typeof txt === 'string' && txt.trim().startsWith('WEBVTT'))) {
-                        postSniffed('sv-sub-sniffed', new URL(u, location.href).href);
+                        postSniffed('bk-sub-sniffed', new URL(u, location.href).href);
                     }
                 }
             } catch (e) { }
@@ -177,7 +177,7 @@
 
                 let activeTrack = Array.from(v.querySelectorAll('track')).find(t => t.mode === 'showing' || t.mode === 'hidden' || t.getAttribute('default') !== null) || v.querySelector('track');
                 if (activeTrack && activeTrack.src) {
-                    postSniffed('sv-sub-sniffed', new URL(activeTrack.src, location.href).href);
+                    postSniffed('bk-sub-sniffed', new URL(activeTrack.src, location.href).href);
                 }
             }
         });
@@ -187,7 +187,7 @@
             window._svLastDurLocal = pDur;
             window._svLastSrcLocal = pSrc;
             if (window.top !== window) {
-                window.top.postMessage({ type: 'sv-play-state', playing: true, currentTime: pTime, duration: pDur, activeSrc: pSrc }, '*');
+                window.top.postMessage({ type: 'bk-play-state', playing: true, currentTime: pTime, duration: pDur, activeSrc: pSrc }, '*');
             } else {
                 window.updateGlobalPlayState && window.updateGlobalPlayState();
             }
@@ -195,7 +195,7 @@
             if (window._svLastPlayingLocal) {
                 window._svLastPlayingLocal = false;
                 if (window.top !== window) {
-                    window.top.postMessage({ type: 'sv-play-state', playing: false, currentTime: window._svLastTimeLocal, duration: window._svLastDurLocal, activeSrc: "" }, '*');
+                    window.top.postMessage({ type: 'bk-play-state', playing: false, currentTime: window._svLastTimeLocal, duration: window._svLastDurLocal, activeSrc: "" }, '*');
                 } else {
                     window.updateGlobalPlayState && window.updateGlobalPlayState();
                 }
@@ -205,7 +205,7 @@
 
     let lastPausedVideo = null;
     window.addEventListener('message', (e) => {
-        if (e.data === 'sv-toggle-play') {
+        if (e.data === 'bk-toggle-play') {
             const videos = Array.from(document.querySelectorAll('video'));
             let active = videos.find(v => !v.paused && v.readyState !== 0);
             if (active) {
@@ -220,9 +220,9 @@
                 }
             }
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
-                try { f.contentWindow?.postMessage('sv-toggle-play', '*'); } catch (err) { }
+                try { f.contentWindow?.postMessage('bk-toggle-play', '*'); } catch (err) { }
             });
-        } else if (e.data && e.data.type === 'sv-seek-cmd') {
+        } else if (e.data && e.data.type === 'bk-seek-cmd') {
             if (window.top === window && e.data.mainUrl) {
                 const currentMain = location.href.replace(/\/index\.html?$/i, "/").replace(/\/$/, "");
                 const targetMain = e.data.mainUrl.replace(/\/index\.html?$/i, "/").replace(/\/$/, "");
@@ -256,7 +256,7 @@
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
             });
-        } else if (e.data && e.data.type === 'sv-ignore-cfg') {
+        } else if (e.data && e.data.type === 'bk-ignore-cfg') {
             window._svIgnoreVideoUrls = e.data.urls;
             window._svIgnoreVideoCSS = e.data.css;
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
@@ -295,13 +295,13 @@
         };
 
         window.addEventListener('message', (e) => {
-            if (e.data && e.data.type === 'sv-play-state') {
+            if (e.data && e.data.type === 'bk-play-state') {
                 if (e.data.playing) window._svPlayingTimers.set(e.source, { time: Date.now(), currentTime: e.data.currentTime, duration: e.data.duration, activeSrc: e.data.activeSrc });
                 else window._svPlayingTimers.delete(e.source);
                 window.updateGlobalPlayState();
-            } else if (e.data && e.data.type === 'sv-media-sniffed' && e.data.url) {
+            } else if (e.data && e.data.type === 'bk-media-sniffed' && e.data.url) {
                 try { window.chrome.webview.hostObjects.ahk.SetMediaStream(e.data.url, e.data.qualities ? JSON.stringify(e.data.qualities) : "", e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
-            } else if (e.data && e.data.type === 'sv-sub-sniffed' && e.data.url) {
+            } else if (e.data && e.data.type === 'bk-sub-sniffed' && e.data.url) {
                 try { window.chrome.webview.hostObjects.ahk.SetSubtitleStream(e.data.url, e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
             }
         });

@@ -29,7 +29,7 @@ Halts execution until the specific element selector appears in the DOM.
 Issues synthetic DOM events precisely targeted at a selected element.
 - **Context**: `[Player]`
 - **Modes**: `click` | `setValue`
-- **Under the Hood**: When `setValue` is used, StreamView automatically simulates user bubbling inputs:
+- **Under the Hood**: When `setValue` is used, BingeKit automatically simulates user bubbling inputs:
   ```javascript
   el.dispatchEvent(new Event('input', {bubbles: true}));
   el.dispatchEvent(new Event('change', {bubbles: true}));

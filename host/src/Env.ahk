@@ -13,7 +13,8 @@ InitEnvironment() {
         "--msWebView2CodeCache " .
         "--no-first-run " .
         "--msWebView2CancelInitialNavigation " .
-        "--disable-web-security " .
+        ;"--disable-web-security " .
+        ;; ^ smart fetch does away with this need, makes browsing that slight bit more secure lol
         "--disable-features=OverscrollHistoryNavigation"
         "--autoplay-policy=no-user-gesture-required"
         "--force-dark-mode"
@@ -33,12 +34,12 @@ InitEnvironment() {
         WebViewSettings := {}
     }
 
-    SplashGui := Gui("-Caption +AlwaysOnTop +ToolWindow", "StreamView Loading")
+    SplashGui := Gui("-Caption +AlwaysOnTop +ToolWindow", "BingeKit Loading")
     SplashGui.BackColor := "09090b"
     SplashGui.MarginX := 0
     SplashGui.MarginY := 0
     SplashGui.SetFont("s32 c818cf8 bold", "Segoe UI")
-    SplashGui.Add("Text", "x0 y55 w400 center BackgroundTrans", "StreamView")
+    SplashGui.Add("Text", "x0 y55 w400 center BackgroundTrans", "BingeKit")
     SplashGui.SetFont("s9 ca1a1aa norm", "Segoe UI")
     SplashGui.Add("Text", "x0 y120 w400 center BackgroundTrans", "INITIALIZING ENGINE COMPONENTS")
     SplashGui.Add("Progress", "x0 y195 w400 h5 c818cf8 Background27272a", 100)
@@ -48,13 +49,13 @@ InitEnvironment() {
     }
 
     try {
-        MainGui := WebViewGui("+Resize -Caption", "StreamView", , WebViewSettings)
+        MainGui := WebViewGui("+Resize -Caption", "BingeKit", , WebViewSettings)
     } catch as err {
         if (SplashGui) {
             SplashGui.Destroy()
             SplashGui := ""
         }
-        MsgBox("Critical Error: Failed to initialize WebView2 component.`n`nError details:`n" err.Message "`n`nPlease ensure Microsoft Edge WebView2 Runtime is installed.", "StreamView Initialization Error", 16)
+        MsgBox("Critical Error: Failed to initialize WebView2 component.`n`nError details:`n" err.Message "`n`nPlease ensure Microsoft Edge WebView2 Runtime is installed.", "BingeKit Initialization Error", 16)
         ExitApp()
     }
 
@@ -68,7 +69,7 @@ InitEnvironment() {
     WV.Settings.IsPinchZoomEnabled := 0
     WV.Settings.IsBuiltInErrorPageEnabled := 0
     WV.Settings.IsGeneralAutofillEnabled := 0
-    
+
     try {
         WV.add_DownloadStarting(AHK_DownloadStarting)
     } catch {
@@ -77,10 +78,10 @@ InitEnvironment() {
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
     MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
-    
+
     downloadsLoc := AHK_LoadData("downloads_loc.txt")
     if (downloadsLoc == "") {
-        downloadsLoc := EnvGet("USERPROFILE") "\Videos\StreamView"
+        downloadsLoc := EnvGet("USERPROFILE") "\Videos\BingeKit"
         if !DirExist(downloadsLoc) {
             try DirCreate(downloadsLoc)
         }
