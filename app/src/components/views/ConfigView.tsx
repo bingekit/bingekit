@@ -131,6 +131,14 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     description: 'When holding Control to open a link in a new tab, open it in the background. If disabled, it will immediately focus the new tab.',
     default: true,
     value: true,
+  },
+  {
+    id: 'AutoFocusVideo',
+    name: 'Auto Focus Video',
+    type: 'boolean',
+    description: 'When the video is playing, automatically enables the focused mode (which uses the site plugin CSS selector and styling to focus the player).',
+    default: true,
+    value: true,
   }
 ];
 

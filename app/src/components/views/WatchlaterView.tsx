@@ -22,7 +22,7 @@ export const WatchlaterView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navigateUrl, ctrlClickBackgroundTab
   } = useAppContext();
 
   return (
@@ -36,10 +36,9 @@ export const WatchlaterView = () => {
         {watchLater.map(item => (
           <div
             key={item.id}
-            onClick={() => {
-              setUrl(item.url);
-              setInputUrl(item.url);
-              setActiveTab('player');
+            onClick={(e) => {
+              const isCtrl = e.ctrlKey || e.metaKey;
+              navigateUrl(item.url, isCtrl, isCtrl && ctrlClickBackgroundTab);
             }}
             className="group p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all duration-300 flex items-center gap-4"
           >

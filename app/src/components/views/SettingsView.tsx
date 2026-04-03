@@ -295,7 +295,9 @@ export const SettingsView = () => {
                     if (isMultiTabEnabled && browserTabs.length > 1) {
                       setShowMultiTabDialog(true);
                     } else {
-                      setIsMultiTabEnabled(!isMultiTabEnabled);
+                      const newMultiTab = !isMultiTabEnabled;
+                      setIsMultiTabEnabled(newMultiTab);
+                      ahk.call('SaveData', 'multi_tab_enabled.txt', newMultiTab ? 'true' : 'false');
                     }
                   }}
                   className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${isMultiTabEnabled ? 'bg-[var(--theme-accent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
@@ -848,6 +850,7 @@ export const SettingsView = () => {
                   });
                   
                   setIsMultiTabEnabled(false);
+                  ahk.call('SaveData', 'multi_tab_enabled.txt', 'false');
                   setShowMultiTabDialog(false);
                 }}
                 className="px-4 py-2 text-sm bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-colors border border-red-500/30 font-medium"

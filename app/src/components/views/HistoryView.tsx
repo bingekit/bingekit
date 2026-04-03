@@ -4,7 +4,7 @@ import { useAppContext } from '../../context/AppContext';
 import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../lib/db';
 
 export const HistoryView = () => {
-  const { history, setHistory, setUrl, setInputUrl, setActiveTab } = useAppContext();
+  const { history, setHistory, navigateUrl, ctrlClickBackgroundTab } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'browse' | 'watch'>('all');
   const [groupBy, setGroupBy] = useState<'time' | 'site' | 'length'>('time');
@@ -196,7 +196,7 @@ export const HistoryView = () => {
                 key={item.id}
                 className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900 rounded-xl transition-all gap-4"
               >
-                <div className="flex items-center gap-4 flex-1 min-w-0 w-full cursor-pointer" onClick={() => { setUrl(item.url); setInputUrl(item.url); setActiveTab('player'); }}>
+                <div className="flex items-center gap-4 flex-1 min-w-0 w-full cursor-pointer" onClick={(e) => { const isCtrl = e.ctrlKey || e.metaKey; navigateUrl(item.url, isCtrl, isCtrl && ctrlClickBackgroundTab); }}>
                   <div className={`w-10 h-10 rounded-lg bg-zinc-800/80 group-hover:bg-indigo-500/10 flex items-center justify-center flex-shrink-0 transition-colors ${item.type === 'watch' ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-indigo-400'}`}>
                     {item.type === 'watch' ? <PlaySquare size={18} /> : <Compass size={18} />}
                   </div>
@@ -236,7 +236,7 @@ export const HistoryView = () => {
 
                 <div className="flex items-center gap-2 flex-shrink-0 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
-                    onClick={() => { setUrl(item.url); setInputUrl(item.url); setActiveTab('player'); }}
+                    onClick={(e) => { const isCtrl = e.ctrlKey || e.metaKey; navigateUrl(item.url, isCtrl, isCtrl && ctrlClickBackgroundTab); }}
                     className="p-1.5 rounded-md text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
                   >
                     <ExternalLink size={16} />

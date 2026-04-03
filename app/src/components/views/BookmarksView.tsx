@@ -22,7 +22,8 @@ export const BookmarksView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
+    navigateUrl, ctrlClickBackgroundTab
   } = useAppContext();
 
   return (
@@ -101,16 +102,15 @@ export const BookmarksView = () => {
                   </div>
                   <div
                     className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 transition-all cursor-pointer"
-                    onClick={() => {
-                      setUrl(bookmark.url);
-                      setInputUrl(bookmark.url);
-                      setActiveTab('player');
+                    onClick={(e) => {
+                      const isCtrl = e.ctrlKey || e.metaKey;
+                      navigateUrl(bookmark.url, isCtrl, isCtrl && ctrlClickBackgroundTab);
                     }}
                   >
                     <Tv size={18} />
                   </div>
                   <div className="flex-1 min-w-0 pr-8">
-                    <h4 className="text-sm font-medium text-zinc-200 truncate cursor-pointer" onClick={() => { setUrl(bookmark.url); setInputUrl(bookmark.url); setActiveTab('player'); }}>
+                    <h4 className="text-sm font-medium text-zinc-200 truncate cursor-pointer" onClick={(e) => { const isCtrl = e.ctrlKey || e.metaKey; navigateUrl(bookmark.url, isCtrl, isCtrl && ctrlClickBackgroundTab); }}>
                       {bookmark.title}
                     </h4>
                     <p className="text-xs text-zinc-500 truncate mt-0.5">{bookmark.url}</p>
