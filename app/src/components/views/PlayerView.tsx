@@ -206,6 +206,16 @@ export const PlayerView = () => {
       const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
       ahk.call('InjectJS', cmd);
       setTimeout(() => ahk.call('InjectJS', cmd), 1500); // 1 lightweight retry
+    } else {
+      // The video is completely new to BingeKit (or functionally unwatched at <15s).
+      // Many SPA sites (like icefy) lazily recycle the exact same HTML5 <video> element 
+      // without resetting its .currentTime attribute, natively causing the new episode 
+      // to literally physically resume at the exact second the last one finished!
+      // We must violently wipe the timeline to 0s to obliterate the site's cached bleed!
+      lastResumeUrl.current = url;
+      const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: 0, mainUrl: "${url}" }, '*');`;
+      ahk.call('InjectJS', cmd);
+      setTimeout(() => ahk.call('InjectJS', cmd), 1500);
     }
   }, [url, activeTab, playerStatus]);
 

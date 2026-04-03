@@ -140,6 +140,18 @@ export function useHistoryState(
           newHistory[existingIdx] = item;
           addHistoryItem(item).catch(console.error);
         } else {
+          const sessionAge = Date.now() - sessionStartMs;
+          const isGhostSpike = latestTime > 30; // A brand new url naturally starts at 0s. A 30s+ spike is definitively a ghost.
+          let validNewTime = undefined;
+
+          // Enforce Universal Truth Shield for brand new entries
+          if (isGhostSpike && sessionAge < 15000) {
+             // Block ghost SPA phase transmissions completely
+             validNewTime = undefined;
+          } else if (latestTime > 0) {
+             validNewTime = latestTime;
+          }
+
           const rawTitle = pageTitleRef.current || fetchTitleForUrl(currentUrl) || host;
           const cleanTitle = rawTitle.replace(/[^\p{L}\p{N}\s\-–—:'.,&()|]/gu, "").trim();
           const newItem: HistoryItem = {
@@ -150,7 +162,7 @@ export function useHistoryState(
              domain: host,
              type: 'watch',
              watchDuration: timeToSave,
-             currentTime: latestTime > 0 ? latestTime : undefined,
+             currentTime: validNewTime,
              duration: latestDur > 0 ? latestDur : undefined,
              tags
           };
