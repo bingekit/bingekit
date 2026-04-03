@@ -92,27 +92,35 @@ DoSelectFolder(id) {
     }
 }
 
-AHK_InjectJS(js) {
-    global WV, PlayerWV, PlayerGui
+AHK_InjectJS(js, tabId:="") {
+    global WV, PlayerGuis, PlayerWVs, ActiveTabId
     WV.ExecuteScriptAsync(js)
-    if (PlayerGui && PlayerWV) {
-        PlayerWV.wv.ExecuteScriptAsync(js)
+    if (tabId == "")
+        tabId := ActiveTabId
+    if (PlayerGuis.Has(tabId) && PlayerWVs.Has(tabId)) {
+        PlayerWVs[tabId].wv.ExecuteScriptAsync(js)
     }
 }
 
-AHK_EvalPlayerJS(js) {
-    global PlayerWV, PlayerGui
-    if (PlayerGui && PlayerWV) {
-        return PlayerWV.ExecuteScript(js)
+AHK_EvalPlayerJS(js, tabId:="") {
+    global PlayerGuis, PlayerWVs, ActiveTabId
+    if (tabId == "")
+        tabId := ActiveTabId
+    if (PlayerGuis.Has(tabId) && PlayerWVs.Has(tabId)) {
+        return PlayerWVs[tabId].ExecuteScript(js)
     }
     return ""
 }
 
 AHK_UpdateUserscriptPayload(js) {
-    global UserscriptsScript, PlayerWV, PlayerGui
+    global UserscriptsScript, PlayerGuis, PlayerWVs
     UserscriptsScript := js
-    if (PlayerGui && PlayerWV) {
-        PlayerWV.wv.ExecuteScriptAsync(js)
+    if (IsSet(PlayerGuis)) {
+        for id, pGui in PlayerGuis {
+            if (PlayerWVs.Has(id)) {
+                PlayerWVs[id].wv.ExecuteScriptAsync(js)
+            }
+        }
     }
 }
 
@@ -133,9 +141,14 @@ AHK_HideTooltip(*) {
 
 global IsPiPMode := false
 
-AHK_TogglePiP() {
-    global IsPiPMode, MainGui, PlayerGui, PlayerWV
-    global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+AHK_TogglePiP(tabId:="main") {
+    global IsPiPMode, MainGui, PlayerGuis, PlayerWVs, ActiveTabId, PlayerRects
+    if (tabId == "main")
+        tabId := ActiveTabId
+    
+    if (!PlayerGuis.Has(tabId) || !PlayerWVs.Has(tabId))
+        return
+
     IsPiPMode := !IsPiPMode
 
     if (MainGui) {
@@ -143,30 +156,33 @@ AHK_TogglePiP() {
         MainGui.Control.ExecuteScriptAsync(js)
     }
 
+    pGui := PlayerGuis[tabId]
+    pWv := PlayerWVs[tabId]
+
     if (IsPiPMode) {
         if (MainGui) {
             MainGui.Hide()
         }
-        if (PlayerGui) {
-            PlayerGui.Opt("+AlwaysOnTop +Resize -Caption")
-            PlayerGui.BackColor := "000000"
+        if (pGui) {
+            pGui.Opt("+AlwaysOnTop +Resize -Caption")
+            pGui.BackColor := "000000"
             try {
-                DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", PlayerGui.Hwnd, "UInt", 34, "Int*", 0xFFFFFFFE, "UInt", 4)
+                DllCall("dwmapi\DwmSetWindowAttribute", "Ptr", pGui.Hwnd, "UInt", 34, "Int*", 0xFFFFFFFE, "UInt", 4)
             }
             w := 400
             h := 225
             ; Place bottom right with 20px padding from the right and 60px from the bottom (taskbar room)
             x := A_ScreenWidth - w - 20
             y := A_ScreenHeight - h - 60
-            PlayerGui.Move(x, y, w, h)
-            PlayerWV.Move(0, 0, w, h)
-            PlayerWV.wvc.Fill()
+            pGui.Move(x, y, w, h)
+            pWv.Move(0, 0, w, h)
+            pWv.wvc.Fill()
 
             ; Inject PiP UI into PlayerWV
             pipJs := "
             (
                 (function() {
-                    console.log("loading pip js");
+                    console.log(""loading pip js"");
                     if (document.getElementById('bk-pip-container')) return;
                     
                     function findLargestPlayingVideo() {
@@ -183,7 +199,7 @@ AHK_TogglePiP() {
                 
                     let style = document.createElement('style');
                     style.id = 'bk-pip-style';
-                    style.textContent = "iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }";
+                    style.textContent = ""iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }"";
                     document.body.append(style);
                 
                     const container = document.createElement('div');
@@ -288,26 +304,29 @@ AHK_TogglePiP() {
                     window.__svPipEscapeHandler = escapeHandler;
                 })();
             )"
-            PlayerWV.wv.ExecuteScriptAsync(pipJs)
+            pWv.wv.ExecuteScriptAsync(pipJs)
         }
     } else {
         if (MainGui) {
             MainGui.Show()
         }
-        if (PlayerGui) {
-            PlayerGui.Opt("-AlwaysOnTop -Resize -Caption")
+        if (pGui) {
+            pGui.Opt("-AlwaysOnTop -Resize -Caption")
             try {
-                PlayerWV.wv.ExecuteScriptAsync("var pip = document.getElementById('bk-pip-container'); if (pip) pip.remove(); var st = document.getElementById('bk-pip-style'); if (st) st.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
+                pWv.wv.ExecuteScriptAsync("var pip = document.getElementById('bk-pip-container'); if (pip) pip.remove(); var st = document.getElementById('bk-pip-style'); if (st) st.remove(); if (window.__svPipEscapeHandler) { window.removeEventListener('keydown', window.__svPipEscapeHandler); window.__svPipEscapeHandler = null; }")
             }
             catch {
                 MsgBox("Error removing PiP")
             }
 
             try {
-                WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
-                PlayerGui.Move(CX + PlayerRectX, CY + PlayerRectY, PlayerRectW, PlayerRectH)
-                PlayerWV.Move(0, 0, PlayerRectW, PlayerRectH)
-                PlayerWV.wvc.Fill()
+                if (PlayerRects.Has(tabId)) {
+                    rect := PlayerRects[tabId]
+                    WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+                    pGui.Move(CX + rect.x, CY + rect.y, rect.w, rect.h)
+                    pWv.Move(0, 0, rect.w, rect.h)
+                    pWv.wvc.Fill()
+                }
             } catch {
 
             }
@@ -315,83 +334,105 @@ AHK_TogglePiP() {
     }
 }
 
-AHK_ResizePiP(vw, vh) {
-    global PlayerGui, PlayerWV, IsPiPMode
-    if (IsPiPMode && PlayerGui) {
-        WinGetPos(&X, &Y, &W, &H, PlayerGui.Hwnd)
+AHK_ResizePiP(vw, vh, tabId:="main") {
+    global PlayerGuis, PlayerWVs, ActiveTabId, IsPiPMode
+    if (tabId == "main")
+        tabId := ActiveTabId
+    
+    if (!PlayerGuis.Has(tabId) || !PlayerWVs.Has(tabId))
+        return
+
+    pGui := PlayerGuis[tabId]
+    pWv := PlayerWVs[tabId]
+
+    if (IsPiPMode && pGui) {
+        WinGetPos(&X, &Y, &W, &H, pGui.Hwnd)
         newW := W
         newH := H
         if (vw > 0 && vh > 0) {
             newH := Round(newW * (vh / vw))
         }
         newY := (Y + H) - newH
-        PlayerGui.Move(X, newY, newW, newH)
-        PlayerWV.Move(0, 0, newW, newH)
-        PlayerWV.wvc.Fill()
+        pGui.Move(X, newY, newW, newH)
+        pWv.Move(0, 0, newW, newH)
+        pWv.wvc.Fill()
     }
 }
 
-AHK_DragMove() {
-    global PlayerGui
-    if (PlayerGui && IsPiPMode) {
+AHK_DragMove(tabId:="main") {
+    global PlayerGuis, ActiveTabId, IsPiPMode
+    if (tabId == "main")
+        tabId := ActiveTabId
+    if (!PlayerGuis.Has(tabId))
+        return
+    pGui := PlayerGuis[tabId]
+    if (pGui && IsPiPMode) {
         DllCall("ReleaseCapture")
-        PostMessage(0xA1, 2, 0, , "ahk_id " PlayerGui.Hwnd)
+        PostMessage(0xA1, 2, 0, , "ahk_id " pGui.Hwnd)
     }
 }
 
-AHK_ResizeEdge(dir) {
-    global PlayerGui, IsPiPMode
-    if (PlayerGui && IsPiPMode) {
+AHK_ResizeEdge(dir, tabId:="main") {
+    global PlayerGuis, ActiveTabId, IsPiPMode
+    if (tabId == "main")
+        tabId := ActiveTabId
+    if (!PlayerGuis.Has(tabId))
+        return
+    pGui := PlayerGuis[tabId]
+    if (pGui && IsPiPMode) {
         DllCall("ReleaseCapture")
         hit := dir = "n" ? 12 : dir = "s" ? 15 : dir = "e" ? 11 : dir = "w" ? 10 : dir = "ne" ? 14 : dir = "nw" ? 13 : dir = "se" ? 17 : dir = "sw" ? 16 : 0
         if (hit)
-            PostMessage(0xA1, hit, 0, , "ahk_id " PlayerGui.Hwnd)
+            PostMessage(0xA1, hit, 0, , "ahk_id " pGui.Hwnd)
     }
 }
 
-AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0, activeSrc := "") {
-    global MainGui, ActiveMediaStream
+AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0, activeSrc := "", id := "") {
+    global MainGui, ActiveMediaStreams, ActiveTabId
+    id := id ? id : ActiveTabId
     if (activeSrc != "") {
-        ActiveMediaStream := activeSrc
+        if !IsSet(ActiveMediaStreams)
+            ActiveMediaStreams := Map()
+        ActiveMediaStreams[id] := activeSrc
     }
     if (MainGui) {
-        js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") ", currentTime: " currentTime ", duration: " duration " } })) } catch(e) {}"
+        js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") ", currentTime: " currentTime ", duration: " duration ", tabId: '" id "' } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }
 
-global ActiveSubtitleStream := ""
-global ActiveMediaStreamQualities := ""
-global ActiveMediaAuth := ""
+global ActiveSubtitleStreams := Map()
+global ActiveMediaStreamQualitiesMap := Map()
+global ActiveMediaAuths := Map()
 
-AHK_SetMediaStream(url, qualities := "", auth := "") {
-    global ActiveMediaStream, ActiveMediaStreamQualities, ActiveMediaAuth
-    ActiveMediaStream := url
-    ActiveMediaStreamQualities := qualities
+AHK_SetMediaStream(url, qualities := "", auth := "", id := "") {
+    global ActiveTabId, ActiveMediaStreams, ActiveMediaStreamQualitiesMap, ActiveMediaAuths
+    id := id ? id : ActiveTabId
+    ActiveMediaStreams[id] := url
+    ActiveMediaStreamQualitiesMap[id] := qualities
     if (auth != "")
-        ActiveMediaAuth := auth
+        ActiveMediaAuths[id] := auth
 }
 
-AHK_SetSubtitleStream(url, auth := "") {
-    global ActiveSubtitleStream, ActiveMediaAuth
-    ActiveSubtitleStream := url
+AHK_SetSubtitleStream(url, auth := "", id := "") {
+    global ActiveTabId, ActiveSubtitleStreams, ActiveMediaAuths
+    id := id ? id : ActiveTabId
+    ActiveSubtitleStreams[id] := url
     if (auth != "")
-        ActiveMediaAuth := auth
+        ActiveMediaAuths[id] := auth
 }
 
 AHK_GetActiveMediaQualities() {
-    global ActiveMediaStreamQualities
-    return ActiveMediaStreamQualities
+    global ActiveTabId, ActiveMediaStreamQualitiesMap
+    if (ActiveMediaStreamQualitiesMap.Has(ActiveTabId))
+        return ActiveMediaStreamQualitiesMap[ActiveTabId]
+    return ""
 }
 
-AHK_GetActiveSubtitle() {
-    global ActiveSubtitleStream
-    return ActiveSubtitleStream
-}
 
 AHK_ToggleMedia() {
-    global PlayerWV
-    if (PlayerWV) {
-        PlayerWV.wv.ExecuteScriptAsync("window.top.postMessage('bk-toggle-play', '*');")
+    global PlayerWVs, ActiveTabId
+    if (PlayerWVs.Has(ActiveTabId)) {
+        PlayerWVs[ActiveTabId].wv.ExecuteScriptAsync("window.top.postMessage('bk-toggle-play', '*');")
     }
 }

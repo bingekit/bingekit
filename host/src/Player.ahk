@@ -1,15 +1,21 @@
-global PlayerGui := ""
-global PlayerWV := ""
-global PlayerCurrentUrl := ""
-global PendingPlayerUrl := ""
-global PlayerRectX := 0
-global PlayerRectY := 0
-global PlayerRectW := 0
-global PlayerRectH := 0
+global PlayerGuis := Map()
+global PlayerWVs := Map()
+global PlayerCurrentUrls := Map()
+global PendingPlayerUrls := Map()
+global PlayerRects := Map()
 
 global NetworkFilters := Map()
 global NetworkAdblockEnabled := true
 global SiteBlockersMap := "{}"
+
+global ActiveTabId := "main"
+global ActiveMediaStreams := Map()
+global ActiveMediaSubtitles := Map()
+
+AHK_SetActiveTabId(id) {
+    global ActiveTabId
+    ActiveTabId := id
+}
 
 AHK_UpdateSiteBlockers(jsonStr) {
     global SiteBlockersMap
@@ -21,35 +27,34 @@ AHK_GetSiteBlockers() {
     return SiteBlockersMap
 }
 
-AHK_UpdateURL(url) {
-    global WV, PlayerCurrentUrl
+AHK_UpdateURL(url, id := "") {
+    global PlayerCurrentUrls, ActiveTabId, MainGui
+    id := id ? id : ActiveTabId
     try {
-        PlayerCurrentUrl := url
-        js := 'window.dispatchEvent(new CustomEvent("player-url-changed", { detail: { url: "' url '" } }))'
-        WV.ExecuteScriptAsync(js)
+        PlayerCurrentUrls[id] := url
+        js := 'window.dispatchEvent(new CustomEvent("player-url-changed", { detail: { url: "' url '", tabId: "' id '" } }))'
+        MainGui.Control.ExecuteScriptAsync(js)
     } catch {
     }
 }
 
-AHK_UpdatePlayerUrl(url) {
-    global ActiveMediaStream := ""
-    global ActiveMediaSubtitles := []
+AHK_UpdatePlayerUrl(url, id := "main") {
     DoUpdateUrl() {
-        global PlayerWV, PlayerCurrentUrl, PendingPlayerUrl
-        if (!PlayerWV) {
-            PendingPlayerUrl := url
+        global PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls
+        if (!PlayerWVs.Has(id)) {
+            PendingPlayerUrls[id] := url
         } else if (url != "") {
-            PlayerCurrentUrl := url
-            PlayerWV.Navigate(url)
+            PlayerCurrentUrls[id] := url
+            PlayerWVs[id].Navigate(url)
         }
     }
     SetTimer(DoUpdateUrl, -1)
 }
 
-AHK_UpdatePlayerRect(x, y, w, h, visible) {
+AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
     DoUpdateRect() {
-        global PlayerGui, PlayerWV, PlayerCurrentUrl, MainGui, WebViewSettings, PendingPlayerUrl
-        global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+        global PlayerGuis, PlayerWVs, PlayerCurrentUrls, MainGui, WebViewSettings, PendingPlayerUrls
+        global PlayerRects
         global GlobalScript, AdblockScript, IsPiPMode
 
         if (IsPiPMode ?? false) {
@@ -59,23 +64,27 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
         w := w - 3
         h := h - 3
 
-        PlayerRectX := x
-        PlayerRectY := y
-        PlayerRectW := w
-        PlayerRectH := h
+        if (!PlayerRects.Has(id)) {
+            PlayerRects[id] := {x: x, y: y, w: w, h: h}
+        } else {
+            PlayerRects[id].x := x
+            PlayerRects[id].y := y
+            PlayerRects[id].w := w
+            PlayerRects[id].h := h
+        }
 
         if (visible) {
-            if (!PlayerGui) {
-                PlayerGui := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
-                PlayerGui.OnEvent("Size", AHK_PlayerGuiResized)
-                PlayerWV := WebViewCtrl(PlayerGui, "w" w " h" h, WebViewSettings)
+            if (!PlayerGuis.Has(id)) {
+                PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+                PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
+                PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
 
-                PlayerWV.Settings.IsGeneralAutofillEnabled := 0
-                PlayerWV.Settings.IsSwipeNavigationEnabled := 0
-                PlayerWV.Settings.IsBuiltInErrorPageEnabled := 0
-                PlayerWV.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
-                PlayerWV.AddHostObjectToScript("ahk", {
-                    UpdateURL: AHK_UpdateURL,
+                PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
+                PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0
+                PlayerWVs[id].Settings.IsBuiltInErrorPageEnabled := 0
+                PlayerWVs[id].BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
+                PlayerWVs[id].AddHostObjectToScript("ahk", {
+                    UpdateURL: (url) => AHK_UpdateURL(url, id),
                     GetUserscriptPayload: AHK_GetUserscriptPayload,
                     CacheSet: AHK_CacheSet,
                     CacheGet: AHK_CacheGet,
@@ -86,109 +95,157 @@ AHK_UpdatePlayerRect(x, y, w, h, visible) {
                     ResizePiP: AHK_ResizePiP,
                     DragMove: AHK_DragMove,
                     ResizeEdge: AHK_ResizeEdge,
-                    ReportPlayState: AHK_ReportPlayState,
+                    ReportPlayState: (state, time := 0, dur := 0, src := "") => AHK_ReportPlayState(state, time, dur, src, id),
                     ToggleMedia: AHK_ToggleMedia,
-                    ReportPlayerStatus: AHK_ReportPlayerStatus,
-                    SetMediaStream: AHK_SetMediaStream,
-                    SetSubtitleStream: AHK_SetSubtitleStream
+                    ReportPlayerStatus: (auth, hasP, title := "") => AHK_ReportPlayerStatus(auth, hasP, title, id),
+                    SetMediaStream: (v, q := "", a := "") => AHK_SetMediaStream(v, q, a, id),
+                    SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id)
                 })
-                ;PlayerWV.NavigationCompleted(OnNavigationCompleted)
-                PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
-                PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
-                PlayerWV.AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
-                PlayerWV.wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
+                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
+                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
+                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
+                PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
                 try {
-                    PlayerWV.wv.add_DownloadStarting(AHK_DownloadStarting)
+                    PlayerWVs[id].wv.add_DownloadStarting(AHK_DownloadStarting)
                 } catch {
                 }
                 try {
-                    PlayerWV.wv.AddWebResourceRequestedFilter("*", 0)
-                    PlayerWV.wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
+                    PlayerWVs[id].wv.AddWebResourceRequestedFilter("*", 0)
+                    PlayerWVs[id].wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
                 } catch as e {
                     OutputDebug(e.Message)
                 }
-                if (PendingPlayerUrl != "") {
-                    PlayerCurrentUrl := PendingPlayerUrl
-                    PlayerWV.Navigate(PendingPlayerUrl)
-                    PendingPlayerUrl := ""
+                if (PendingPlayerUrls.Has(id) && PendingPlayerUrls[id] != "") {
+                    pendingUrl := PendingPlayerUrls[id]
+                    PendingPlayerUrls.Delete(id)
+                    PlayerCurrentUrls[id] := pendingUrl
+                    PlayerWVs[id].Navigate(pendingUrl)
                 }
             }
 
-            WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
-            ScreenX := CX + x
-            ScreenY := CY + y
+            if (PlayerWVs.Has(id) && PlayerGuis.Has(id)) {
+                WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+                ScreenX := CX + x
+                ScreenY := CY + y
 
-            PlayerWV.wvc.IsVisible := 1
-            PlayerWV.Move(0, 0, w, h)
-            PlayerWV.wvc.Fill()
+                PlayerWVs[id].wvc.IsVisible := 1
+                PlayerWVs[id].Move(0, 0, w, h)
+                PlayerWVs[id].wvc.Fill()
 
-            PlayerGui.Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
+                PlayerGuis[id].Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
+            }
         } else {
-            if (PlayerGui) {
-                PlayerWV.wvc.IsVisible := 0
-                PlayerGui.Hide()
+            if (PlayerGuis.Has(id)) {
+                if (PlayerWVs.Has(id))
+                    PlayerWVs[id].wvc.IsVisible := 0
+                PlayerGuis[id].Hide()
             }
         }
     }
     SetTimer(DoUpdateRect, -1)
 }
 
+AHK_ClosePlayer(id) {
+    global PlayerGuis, PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls, PlayerRects, ActiveMediaStreams, ActiveMediaSubtitles
+    if (PlayerGuis.Has(id)) {
+        try PlayerWVs[id].wvc.IsVisible := 0
+        try PlayerGuis[id].Destroy()
+        PlayerGuis.Delete(id)
+        PlayerWVs.Delete(id)
+        if (PlayerCurrentUrls.Has(id))
+            PlayerCurrentUrls.Delete(id)
+        if (PendingPlayerUrls.Has(id))
+            PendingPlayerUrls.Delete(id)
+        if (PlayerRects.Has(id))
+            PlayerRects.Delete(id)
+        if (ActiveMediaStreams.Has(id))
+            ActiveMediaStreams.Delete(id)
+        if (ActiveMediaSubtitles.Has(id))
+            ActiveMediaSubtitles.Delete(id)
+    }
+}
+
+AHK_PlayerGuiResized(guiObj, minMax, width, height) {
+    global PlayerWVs, PlayerGuis
+    if (minMax = -1)
+        return
+    for id, pwv in PlayerWVs {
+        if (PlayerGuis.Has(id) && PlayerGuis[id].Hwnd == guiObj.Hwnd) {
+            pwv.Move(0, 0, width, height)
+            pwv.wvc.Fill()
+            break
+        }
+    }
+}
+
 AHK_PlayerFullscreenChanged(ICoreWebView2, *) {
-    global PlayerGui, PlayerWV, MainGui
-    global PlayerRectX, PlayerRectY, PlayerRectW, PlayerRectH
+    global PlayerGuis, PlayerWVs, MainGui, PlayerRects
+    foundId := ""
+    for id, pwv in PlayerWVs {
+        if (pwv.wv.ptr == ICoreWebView2.ptr) {
+            foundId := id
+            break
+        }
+    }
+    if (foundId == "")
+        return
+
     try {
         if (ICoreWebView2.ContainsFullScreenElement) {
-            mon := DllCall("MonitorFromWindow", "Ptr", PlayerGui.Hwnd, "UInt", 2, "Ptr")
+            mon := DllCall("MonitorFromWindow", "Ptr", PlayerGuis[foundId].Hwnd, "UInt", 2, "Ptr")
             NumPut("UInt", 40, mInfo := Buffer(40))
             DllCall("GetMonitorInfo", "Ptr", mon, "Ptr", mInfo)
             mX := NumGet(mInfo, 4, "Int")
             mY := NumGet(mInfo, 8, "Int")
             mW := NumGet(mInfo, 12, "Int") - mX
             mH := NumGet(mInfo, 16, "Int") - mY
-            PlayerGui.Opt("+AlwaysOnTop")
-            PlayerGui.Move(mX, mY, mW, mH)
-            PlayerWV.Move(0, 0, mW, mH)
-            PlayerWV.wvc.Fill()
+            PlayerGuis[foundId].Opt("+AlwaysOnTop")
+            PlayerGuis[foundId].Move(mX, mY, mW, mH)
+            PlayerWVs[foundId].Move(0, 0, mW, mH)
+            PlayerWVs[foundId].wvc.Fill()
         } else {
-            PlayerGui.Opt("-AlwaysOnTop")
+            PlayerGuis[foundId].Opt("-AlwaysOnTop")
             WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
-            PlayerGui.Move(CX + PlayerRectX, CY + PlayerRectY, PlayerRectW, PlayerRectH)
-            PlayerWV.Move(0, 0, PlayerRectW, PlayerRectH)
-            PlayerWV.wvc.Fill()
+            PlayerGuis[foundId].Move(CX + PlayerRects[foundId].x, CY + PlayerRects[foundId].y, PlayerRects[foundId].w, PlayerRects[foundId].h)
+            PlayerWVs[foundId].Move(0, 0, PlayerRects[foundId].w, PlayerRects[foundId].h)
+            PlayerWVs[foundId].wvc.Fill()
         }
     } catch {
     }
 }
 
-AHK_PlayerGoBack(*) {
-    global PlayerWV
-    if (PlayerWV) {
+AHK_PlayerGoBack(id := "main") {
+    global PlayerWVs, ActiveTabId
+    id := id ? id : ActiveTabId
+    if (PlayerWVs.Has(id)) {
         try {
-            PlayerWV.wv.GoBack()
+            PlayerWVs[id].wv.GoBack()
         } catch {
-            PlayerWV.wv.ExecuteScriptAsync("window.history.back()")
+            PlayerWVs[id].wv.ExecuteScriptAsync("window.history.back()")
         }
     }
 }
 
-AHK_PlayerGoForward(*) {
-    global PlayerWV
-    if (PlayerWV) {
+AHK_PlayerGoForward(id := "main") {
+    global PlayerWVs, ActiveTabId
+    id := id ? id : ActiveTabId
+    if (PlayerWVs.Has(id)) {
         try {
-            PlayerWV.wv.GoForward()
+            PlayerWVs[id].wv.GoForward()
         } catch {
-            PlayerWV.wv.ExecuteScriptAsync("window.history.forward()")
+            PlayerWVs[id].wv.ExecuteScriptAsync("window.history.forward()")
         }
     }
 }
 
-AHK_PlayerReload(*) {
-    global PlayerWV
-    if (PlayerWV) {
+AHK_PlayerReload(id := "main") {
+    global PlayerWVs, ActiveTabId
+    id := id ? id : ActiveTabId
+    if (PlayerWVs.Has(id)) {
         try {
-            PlayerWV.wv.Reload()
+            PlayerWVs[id].wv.Reload()
         } catch {
-            PlayerWV.wv.ExecuteScriptAsync("window.location.reload()")
+            PlayerWVs[id].wv.ExecuteScriptAsync("window.location.reload()")
         }
     }
 }
@@ -228,32 +285,60 @@ AHK_UpdateAdblockStatus(status) {
     NetworkAdblockEnabled := (status = "true")
 }
 
-global ActiveMediaStream := ""
-global ActiveMediaSubtitles := []
-
 AHK_GetActiveMedia() {
-    global ActiveMediaStream
-    return ActiveMediaStream
+    global ActiveTabId, ActiveMediaStreams
+    if (ActiveMediaStreams.Has(ActiveTabId))
+        return ActiveMediaStreams[ActiveTabId]
+    return ""
+}
+
+AHK_GetActiveSubtitle() {
+    global ActiveTabId, ActiveMediaSubtitles
+    if (ActiveMediaSubtitles.Has(ActiveTabId)) {
+        subs := ActiveMediaSubtitles[ActiveTabId]
+        if (subs.Length > 0)
+            return subs[subs.Length]
+    }
+    return ""
 }
 
 AHK_PlayerResourceRequested(sender, args) {
-    global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStream, ActiveMediaSubtitles, MainGui
+    global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStreams, ActiveMediaSubtitles, MainGui, PlayerWVs
+    
+    foundId := "main"
+    for id, pwv in PlayerWVs {
+        if (pwv.wv.ptr == sender.ptr) {
+            foundId := id
+            break
+        }
+    }
+
     if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
         ; Still do media checking
     }
 
     uri := args.Request.Uri
 
+    if (InStr(uri, "http://blank.localhost/")) {
+        try {
+            args.Response := sender.Environment.CreateWebResourceResponse(0, 200, "OK", "")
+            return
+        } catch {
+        }
+    }
+
     if (RegExMatch(uri, "i)(\.m3u8?|\.mp4|\.flv|\.webm|/playlist|/manifest|type=video|/master(\.txt|\.json|/)|/hls/(index|master))")) {
-        ActiveMediaStream := uri
+        ActiveMediaStreams[foundId] := uri
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "', tabId: '" foundId "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
     } else if (InStr(uri, ".vtt") || InStr(uri, ".srt") || InStr(uri, ".ass")) {
-        ActiveMediaSubtitles.Push(uri)
+        if (!ActiveMediaSubtitles.Has(foundId))
+            ActiveMediaSubtitles[foundId] := []
+        ActiveMediaSubtitles[foundId].Push(uri)
         if (MainGui) {
-            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "' } })) } catch(e){}"
+            js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "', tabId: '" foundId "' } })) } catch(e){}"
             MainGui.Control.ExecuteScriptAsync(js)
         }
     }
@@ -272,30 +357,20 @@ AHK_PlayerResourceRequested(sender, args) {
 
     if (isBlocked) {
         try {
-            ; Return 403 Forbidden to block it seamlessly.
             args.Response := sender.Environment.CreateWebResourceResponse(0, 403, "Blocked", "")
         } catch {
-            ; Fallback if Environment isn't directly exposed
         }
     }
 }
 
-AHK_PlayerGuiResized(guiObj, minMax, width, height) {
-    global PlayerWV
-    if (minMax = -1)
-        return
-    if (PlayerWV) {
-        PlayerWV.Move(0, 0, width, height)
-        PlayerWV.wvc.Fill()
-    }
-}
-AHK_ReportPlayerStatus(authStatus, hasPlayer, titleStr := "") {
-    global MainGui
+AHK_ReportPlayerStatus(authStatus, hasPlayer, titleStr := "", id := "") {
+    global MainGui, ActiveTabId
+    id := id ? id : ActiveTabId
     if (MainGui) {
         safeTitle := StrReplace(titleStr, "'", "\'")
         safeTitle := StrReplace(safeTitle, "`n", "")
         safeTitle := StrReplace(safeTitle, "`r", "")
-        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") ", title: '" safeTitle "' } })) } catch(e) {}"
+        js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") ", title: '" safeTitle "', tabId: '" id "' } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
     }
 }

@@ -17,14 +17,14 @@ export const DashboardView = () => {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
     theme, setTheme, bookmarks, setBookmarks, selectedBookmarks, setSelectedBookmarks,
     followedItems, setFollowedItems, isCheckingUpdates, setIsCheckingUpdates, plugins, setPlugins,
-    editingPlugin, setEditingPlugin, testSearchUrl, setTestSearchUrl, testSearchResults, setTestSearchResults,
+    editingPlugin, setEditingPlugin, testSearchQuery, setTestSearchQuery, testSearchResults, setTestSearchResults,
     isTestingSearch, setIsTestingSearch, flows, setFlows, editingFlow, setEditingFlow, userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId, activeTab, setActiveTab, multiSearchQuery, setMultiSearchQuery,
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine,
     searchThreadLimit,
-    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins
+    playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, navigateUrl, loadPlugins
   } = useAppContext();
 
   const [activeSearchTags, setActiveSearchTags] = useState<string[]>([]);
@@ -663,10 +663,8 @@ export const DashboardView = () => {
                     {matchedPlugins.map(p => (
                       <div
                         key={p.id}
-                        onClick={() => {
-                          setUrl(p.baseUrl);
-                          setInputUrl(p.baseUrl);
-                          setActiveTab('player');
+                        onClick={(e) => {
+                          navigateUrl(p.baseUrl, e.ctrlKey || e.metaKey);
                         }}
                         className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
                       >
@@ -700,10 +698,8 @@ export const DashboardView = () => {
                   {plugins.filter(p => p.enabled !== false && (!p.tags || p.tags.length === 0)).map(p => (
                     <div
                       key={p.id}
-                      onClick={() => {
-                        setUrl(p.baseUrl);
-                        setInputUrl(p.baseUrl);
-                        setActiveTab('player');
+                      onClick={(e) => {
+                        navigateUrl(p.baseUrl, e.ctrlKey || e.metaKey);
                       }}
                       className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
                     >
@@ -741,10 +737,8 @@ export const DashboardView = () => {
               {searchResults.map((result) => (
                 <div
                   key={result.id}
-                  onClick={() => {
-                    setUrl(result.url);
-                    setInputUrl(result.url);
-                    setActiveTab('player');
+                  onClick={(e) => {
+                    navigateUrl(result.url, e.ctrlKey || e.metaKey);
                   }}
                   className="p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all flex items-center gap-4 group"
                 >
@@ -772,10 +766,8 @@ export const DashboardView = () => {
                       {grouping.map(result => (
                         <div
                           key={result.id}
-                          onClick={() => {
-                            setUrl(result.url);
-                            setInputUrl(result.url);
-                            setActiveTab('player');
+                          onClick={(e) => {
+                            if (result.type !== 'empty') navigateUrl(result.url, e.ctrlKey || e.metaKey);
                           }}
                           className={`p-3 bg-zinc-950/50 border border-zinc-800/80 hover:border-indigo-500/40 rounded-xl cursor-pointer transition-all flex items-start gap-4 ${result.type === 'empty' ? 'opacity-50 hover:opacity-100' : ''}`}
                         >

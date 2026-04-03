@@ -11,6 +11,39 @@ const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
+const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className?: string }> = ({ tabId, isVisuallyActive, className }) => {
+  const slotRef = React.useRef<HTMLDivElement>(null);
+  const lastRectRef = React.useRef('');
+
+  React.useEffect(() => {
+    if (!slotRef.current) return;
+    const observer = new ResizeObserver(() => {
+      if (slotRef.current) {
+        const rect = slotRef.current.getBoundingClientRect();
+        const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
+        if (lastRectRef.current !== rectStr) {
+          lastRectRef.current = rectStr;
+          ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+        }
+      }
+    });
+
+    observer.observe(slotRef.current);
+    const rect = slotRef.current.getBoundingClientRect();
+    const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
+    lastRectRef.current = rectStr;
+    ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+
+    return () => {
+      observer.disconnect();
+      lastRectRef.current = '';
+      ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false, tabId);
+    };
+  }, [isVisuallyActive, tabId]);
+
+  return <div ref={slotRef} className={className} />;
+};
+
 export const PlayerView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -24,7 +57,8 @@ export const PlayerView = () => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     discoveryItems, setDiscoveryItems, history,
-    isFocusedMode, setIsFocusedMode, authStatus, playerStatus, pageTitle
+    isFocusedMode, setIsFocusedMode, authStatus, playerStatus, pageTitle,
+    isMultiTabEnabled, tilingMode, browserTabs, activeBrowserTabId
   } = useAppContext();
 
   const [activeMediaUrl, setActiveMediaUrl] = React.useState<string | null>(null);
@@ -425,7 +459,47 @@ export const PlayerView = () => {
       )}
 
 
-      <div ref={playerRef} className="w-full flex-1 bg-zinc-900 border-none relative" />
+      <div className="w-full flex-1 relative bg-zinc-900 border-none overflow-hidden">
+        {(() => {
+          if (!isMultiTabEnabled || tilingMode === 'none' || browserTabs.length === 1) {
+             return <PlayerSlot tabId={activeBrowserTabId} isVisuallyActive={activeTab === 'player'} className="w-full h-full absolute top-0 left-0" />;
+          }
+          
+          if (tilingMode === 'split-vt') {
+             const tab1 = browserTabs[0];
+             const tab2 = browserTabs[1] || tab1; // fallback
+             return (
+                <div className="flex w-full h-full gap-0.5 bg-zinc-800">
+                   <PlayerSlot tabId={tab1.id} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
+                   {browserTabs.length > 1 && <PlayerSlot tabId={tab2.id} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />}
+                </div>
+             );
+          }
+
+          if (tilingMode === 'split-hz') {
+             const tab1 = browserTabs[0];
+             const tab2 = browserTabs[1] || tab1; // fallback
+             return (
+                <div className="flex flex-col w-full h-full gap-0.5 bg-zinc-800">
+                   <PlayerSlot tabId={tab1.id} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
+                   {browserTabs.length > 1 && <PlayerSlot tabId={tab2.id} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />}
+                </div>
+             );
+          }
+
+          if (tilingMode === 'grid') {
+             return (
+                <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-zinc-800">
+                   {browserTabs.slice(0, 4).map((t, idx) => (
+                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={activeTab === 'player'} className={`w-full h-full bg-zinc-900 overflow-hidden ${browserTabs.length === 3 && idx === 2 ? 'col-span-2' : ''}`} />
+                   ))}
+                </div>
+             );
+          }
+
+          return null;
+        })()}
+      </div>
     </div>
 
   );

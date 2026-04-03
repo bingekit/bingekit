@@ -27,7 +27,7 @@ export const SettingsView = () => {
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp,
-    activeSettingsTab, setActiveSettingsTab
+    activeSettingsTab, setActiveSettingsTab, isMultiTabEnabled, setIsMultiTabEnabled
   } = useAppContext();
 
   React.useEffect(() => {
@@ -272,6 +272,26 @@ export const SettingsView = () => {
                   className={`w-12 h-6 rounded-full transition-colors relative ${isPortableApp ? 'bg-[var(--theme-accent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isPortableApp ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--theme-text-main)] flex items-center gap-2">
+                  <LayoutGrid size={16} className="text-[var(--theme-accent)]" />
+                  Enable Multi-Tab Interface (Beta)
+                </h3>
+                <p className="text-xs text-[var(--theme-text-sec)] mt-1 max-w-xl">
+                  Transforms the UI to allow multiple web views, tabs, and dynamic tiling. Enabling this will reorganize the top title bar and change how you manage active sites.
+                </p>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <button
+                  onClick={() => setIsMultiTabEnabled(!isMultiTabEnabled)}
+                  className={`w-12 h-6 rounded-full transition-colors relative ${isMultiTabEnabled ? 'bg-[var(--theme-accent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isMultiTabEnabled ? 'left-7' : 'left-1'}`} />
                 </button>
               </div>
             </div>

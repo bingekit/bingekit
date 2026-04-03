@@ -46,6 +46,8 @@ WV.AddHostObjectToScript("ahk", {
     EvalPlayerJS: AHK_EvalPlayerJS,
     UpdatePlayerRect: AHK_UpdatePlayerRect,
     UpdatePlayerUrl: AHK_UpdatePlayerUrl,
+    ClosePlayer: AHK_ClosePlayer,
+    SetActiveTabId: AHK_SetActiveTabId,
     UpdateURL: AHK_UpdateURL,
     UpdateUserscriptPayload: AHK_UpdateUserscriptPayload,
     GetUserscriptPayload: AHK_GetUserscriptPayload,

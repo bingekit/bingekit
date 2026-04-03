@@ -78,6 +78,11 @@ interface AppContextType {
   autoCheckPluginUpdates: boolean; setAutoCheckPluginUpdates: React.Dispatch<React.SetStateAction<boolean>>;
   autoUpdatePlugins: boolean; setAutoUpdatePlugins: React.Dispatch<React.SetStateAction<boolean>>;
   checkPluginUpdates: () => Promise<void>;
+  isMultiTabEnabled: boolean; setIsMultiTabEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  browserTabs: { id: string, url: string, inputUrl: string, title?: string }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string }[]>>;
+  activeBrowserTabId: string; setActiveBrowserTabId: React.Dispatch<React.SetStateAction<string>>;
+  tilingMode: 'none' | 'split-hz' | 'split-vt' | 'grid'; setTilingMode: React.Dispatch<React.SetStateAction<'none' | 'split-hz' | 'split-vt' | 'grid'>>;
+  navigateUrl: (targetUrl: string, inNewTab?: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -108,11 +113,35 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [pluginUpdateCount, setPluginUpdateCount] = useState(0);
   const [autoCheckPluginUpdates, setAutoCheckPluginUpdates] = useState(true);
   const [autoUpdatePlugins, setAutoUpdatePlugins] = useState(false);
+  const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
+  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/', title: 'New Tab' }]);
+  const [activeBrowserTabId, setActiveBrowserTabId] = useState('main');
+  const [tilingMode, setTilingMode] = useState<'none' | 'split-hz' | 'split-vt' | 'grid'>('none');
+  const activeBrowserTabIdRef = useRef('main');
+  useEffect(() => { activeBrowserTabIdRef.current = activeBrowserTabId; }, [activeBrowserTabId]);
+
   const isInitialThemeMount = useRef(true);
   const isInitialHistoryMount = useRef(true);
   const isInitialDiscoveryMount = useRef(true);
   const isInitialHistoryEnabledMount = useRef(true);
   const isInitialHomePageMount = useRef(true);
+  const isInitialMultiTabMount = useRef(true);
+
+  useEffect(() => {
+    activeBrowserTabIdRef.current = activeBrowserTabId;
+    try { ahk.call('SetActiveTabId', activeBrowserTabId); } catch(e) {}
+    
+    // Sync the global URL states to the active tab's preserved URL
+    const activeTabObj = browserTabs.find(t => t.id === activeBrowserTabId);
+    if (activeTabObj) {
+      if (activeTabObj.url !== url) {
+        lastSyncUrl.current = activeTabObj.url;
+        setUrl(activeTabObj.url);
+        setInputUrl(activeTabObj.inputUrl || activeTabObj.url);
+        document.title = activeTabObj.title || 'BingeKit';
+      }
+    }
+  }, [activeBrowserTabId, browserTabs]);
   const [theme, setTheme] = useState({
     mode: 'dark',
     titlebarBg: '#09090b',
@@ -174,54 +203,32 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [pageTitle, setPageTitle] = useState<string>('');
   const pageTitleRef = useRef<string>('');
 
-  useEffect(() => {
-    if (activeTab === 'player' && playerRef.current) {
-      const observer = new ResizeObserver(() => {
-        if (playerRef.current) {
-          const rect = playerRef.current.getBoundingClientRect();
-          const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)}`;
-          if (lastRectRef.current !== rectStr) {
-            lastRectRef.current = rectStr;
-            ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), true);
-          }
-        }
-      });
-      observer.observe(playerRef.current);
-      const rect = playerRef.current.getBoundingClientRect();
-      const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)}`;
-      lastRectRef.current = rectStr;
-      ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), true);
-      return () => {
-        observer.disconnect();
-        lastRectRef.current = '';
-        ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false);
-      };
-    } else if (activeTab !== 'player') {
-      lastRectRef.current = '';
-      ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false);
+
+
+  const computeNavUrl = (target: string) => {
+    let navUrl = target;
+    if (target === 'about:blank') {
+      navUrl = 'http://blank.localhost/';
+    } else if (target.startsWith('custom:')) {
+      navUrl = `http://blank.localhost/#${target}`;
+    } else if (target.startsWith('interface:')) {
+      let path = target.replace('interface:', '');
+      if (!path.includes('.')) {
+        if (path && !path.endsWith('/')) { path += '/'; }
+        path += 'index.html';
+      }
+      navUrl = `http://interface.localhost/${path}`;
     }
-  }, [activeTab]);
+    return navUrl;
+  };
 
   useEffect(() => {
     if (activeTab === 'player') {
       if (lastSyncUrl.current !== url) {
         lastSyncUrl.current = url;
-        let navUrl = url;
-        if (url === 'about:blank') {
-          navUrl = 'data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E';
-        } else if (url.startsWith('custom:')) {
-          navUrl = `data:text/html,%3Chtml%3E%3Cbody%3E%3C%2Fbody%3E%3C%2Fhtml%3E#${url}`;
-        } else if (url.startsWith('interface:')) {
-          let path = url.replace('interface:', '');
-          if (!path.includes('.')) {
-            if (path && !path.endsWith('/')) { path += '/'; }
-            path += 'index.html';
-          }
-          navUrl = `http://interface.localhost/${path}`;
-          console.log(url);
-        }
-        ahk.call('UpdatePlayerUrl', navUrl);
-        ahk.call('UpdateURL', url);
+        const navUrl = computeNavUrl(url);
+        ahk.call('UpdatePlayerUrl', navUrl, activeBrowserTabId);
+        ahk.call('UpdateURL', url, activeBrowserTabId);
       }
     }
   }, [activeTab, url]);
@@ -240,11 +247,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           reportedUrl = reportedUrl.replace(/index\.html?$/i, '');
           reportedUrl = reportedUrl.replace(/\/$/, '');
         }
-        lastSyncUrl.current = reportedUrl;
-        setUrl(reportedUrl);
-        setInputUrl(reportedUrl);
-        setPageTitle('');
-        pageTitleRef.current = '';
+        const eventTabId = e.detail.tabId || 'main';
+        setBrowserTabs(prev => {
+          const newTabs = [...prev];
+          const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
+          if (tabIdx >= 0) {
+            newTabs[tabIdx] = { ...newTabs[tabIdx], url: reportedUrl, inputUrl: reportedUrl };
+          } else {
+            newTabs.push({ id: eventTabId, url: reportedUrl, inputUrl: reportedUrl, title: 'New Tab' });
+          }
+          return newTabs;
+        });
+        if (eventTabId === activeBrowserTabIdRef.current) {
+          lastSyncUrl.current = reportedUrl;
+          setUrl(reportedUrl);
+          setInputUrl(reportedUrl);
+          setPageTitle('');
+          pageTitleRef.current = '';
+        }
       }
     };
     window.addEventListener('player-url-changed', handleEvent);
@@ -258,11 +278,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     const handleStatusUpdate = (e: any) => {
       if (e.detail) {
-        if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
-        if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
+        const eventTabId = e.detail.tabId || 'main';
         if (e.detail.title !== undefined && e.detail.title !== '') {
-          setPageTitle(e.detail.title);
-          pageTitleRef.current = e.detail.title;
+          setBrowserTabs(prev => {
+            const newTabs = [...prev];
+            const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
+            if (tabIdx >= 0) {
+              newTabs[tabIdx] = { ...newTabs[tabIdx], title: e.detail.title };
+            }
+            return newTabs;
+          });
+        }
+        if (eventTabId === activeBrowserTabIdRef.current) {
+          if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
+          if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
+          if (e.detail.title !== undefined && e.detail.title !== '') {
+            setPageTitle(e.detail.title);
+            pageTitleRef.current = e.detail.title;
+          }
         }
       }
     };
@@ -583,6 +616,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedDlTemp = ahk.call('LoadData', 'downloads_temp.txt');
     if (savedDlTemp) setDownloadsTemp(savedDlTemp);
 
+    const savedMultiTab = ahk.call('LoadData', 'multi_tab_enabled.txt');
+    if (savedMultiTab) setIsMultiTabEnabled(savedMultiTab === 'true');
+
     const savedBlockedExts = ahk.call('LoadData', 'blocked_exts.json');
     if (savedBlockedExts) {
       try { setBlockedExts(JSON.parse(savedBlockedExts)); } catch (e) { }
@@ -686,6 +722,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     try { ahk.call('UpdateAdblockStatus', isAdblockEnabled ? 'true' : 'false'); } catch (e) { }
   }, [isAdblockEnabled]);
+
+  useEffect(() => {
+    if (isInitialMultiTabMount.current) { isInitialMultiTabMount.current = false; return; }
+    ahk.call('SaveData', 'multi_tab_enabled.txt', isMultiTabEnabled ? 'true' : 'false');
+  }, [isMultiTabEnabled]);
 
   const isInitialDlLocMount = useRef(true);
   useEffect(() => {
@@ -1067,9 +1108,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {}
   };
 
-  const handleNavigate = (e: React.FormEvent) => {
-    e.preventDefault();
-    let finalUrl = inputUrl.trim();
+  const navigateUrl = (targetUrl: string, inNewTab: boolean = false) => {
+    let finalUrl = targetUrl.trim();
     if (finalUrl === 'about:config') {
       setActiveTab('config');
       return;
@@ -1083,9 +1123,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         finalUrl = `https://${finalUrl}`;
       }
     }
-    setUrl(finalUrl);
-    setInputUrl(finalUrl);
+
+    if (inNewTab) {
+      const newId = Date.now().toString();
+      setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl, title: 'New Tab' }]);
+      setActiveBrowserTabId(newId);
+      ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
+    } else {
+      setUrl(finalUrl);
+      setInputUrl(finalUrl);
+    }
     setActiveTab('player');
+  };
+
+  const handleNavigate = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigateUrl(inputUrl);
   };
 
   const savePlugin = () => {
@@ -1323,11 +1376,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden,
-    defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navButtons, setNavButtons, installedInterfaces,
+    defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage, playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, navigateUrl, loadPlugins, navButtons, setNavButtons, installedInterfaces,
     networkFilters, setNetworkFilters, isFocusedMode, setIsFocusedMode, authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp, pluginRepoUrl, setPluginRepoUrl,
-    pluginUpdateCount, setPluginUpdateCount, autoCheckPluginUpdates, setAutoCheckPluginUpdates, autoUpdatePlugins, setAutoUpdatePlugins, checkPluginUpdates
+    pluginUpdateCount, setPluginUpdateCount, autoCheckPluginUpdates, setAutoCheckPluginUpdates, autoUpdatePlugins, setAutoUpdatePlugins, checkPluginUpdates,
+    isMultiTabEnabled, setIsMultiTabEnabled, browserTabs, setBrowserTabs, activeBrowserTabId, setActiveBrowserTabId, tilingMode, setTilingMode
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

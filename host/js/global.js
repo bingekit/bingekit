@@ -14,7 +14,7 @@
                 </div>`;
         });
         return;
-    } else if ((location.href.startsWith("about:blank#") || location.href.startsWith("data:text/html")) && location.href.includes("#custom:")) {
+    } else if ((location.href.startsWith("about:blank#") || location.href.startsWith("http://blank.localhost/#") || location.href.startsWith("data:text/html")) && location.href.includes("#custom:")) {
         const url = location.href.substring(location.href.indexOf("#custom:") + 1);
         runSync = false;
         window.addEventListener("DOMContentLoaded", () => {

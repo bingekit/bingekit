@@ -1,61 +1,80 @@
-#HotIf IsSet(MainGui) && (WinActive("ahk_id " MainGui.Hwnd) || WinActive("ahk_id " PlayerGui.Hwnd))
+isAppActive() {
+    global MainGui, PlayerGuis
+    if (IsSet(MainGui) && MainGui != "" && WinActive("ahk_id " MainGui.Hwnd))
+        return true
+    if (IsSet(PlayerGuis)) {
+        for _, bg in PlayerGuis {
+            if (WinActive("ahk_id " bg.Hwnd))
+                return true
+        }
+    }
+    return false
+}
+
+#HotIf isAppActive() && !(IsSet(IsPiPMode) && IsPiPMode)
 #Up::
 {
-    global MainGui, PlayerGui, PlayerWV
+    global MainGui
     WinMaximize("ahk_id " MainGui.Hwnd)
 }
 #Down::
 {
-    global MainGui, PlayerGui, PlayerWV
+    global MainGui
     WinMinimize("ahk_id " MainGui.Hwnd)
 }
-#HotIf
-
-#HotIf MainGui != "" && WinActive("ahk_id " MainGui.Hwnd)
 F5::
 {
-    global MainGui, PlayerGui, PlayerWV
+    global MainGui
     AHK_EvalPlayerJS("window.location.reload()")
 }
-#HotIf
-
-#HotIf IsSet(IsPiPMode) && IsPiPMode && PlayerGui != "" && WinActive("ahk_id " PlayerGui.Hwnd)
-Escape:: AHK_TogglePiP()
-!F4:: AHK_TogglePiP()
-#HotIf
-
-#HotIf (IsSet(MainGui) && MainGui != "" && WinActive("ahk_id " MainGui.Hwnd)) || (IsSet(PlayerGui) && PlayerGui != "" && WinActive("ahk_id " PlayerGui.Hwnd))
 F11::
 {
-    global PlayerWV
-    if (IsSet(PlayerWV) && PlayerWV != "") {
+    global PlayerWVs, ActiveTabId
+    if (PlayerWVs.Has(ActiveTabId)) {
         js := "(function() { "
             . "if(document.fullscreenElement) { document.exitFullscreen(); } else { "
             . "const vs = Array.from(document.querySelectorAll('video, iframe[allowfullscreen]')); "
             . "const t = vs.length > 0 ? vs[0] : null; "
             . "if(t && typeof t.requestFullscreen === 'function') { t.requestFullscreen().catch(() => document.documentElement.requestFullscreen()); } "
             . "else { document.documentElement.requestFullscreen(); } } })();"
-
         try {
-            PlayerWV.wv.ExecuteScriptAsync(js)
+            PlayerWVs[ActiveTabId].wv.ExecuteScriptAsync(js)
         } catch {
-            ; Failed to execute script
         }
     }
 }
 Escape::
 {
-    global PlayerWV
-    if (IsSet(PlayerWV) && PlayerWV != "") {
+    global PlayerWVs, ActiveTabId
+    if (PlayerWVs.Has(ActiveTabId)) {
         js := "(function() { "
             . "if(document.fullscreenElement) { document.exitFullscreen(); } "
             . "})();"
-
         try {
-            PlayerWV.wv.ExecuteScriptAsync(js)
+            PlayerWVs[ActiveTabId].wv.ExecuteScriptAsync(js)
         } catch {
-            ; Failed to execute script
         }
     }
 }
+^w::
+{
+    global MainGui
+    if (IsSet(MainGui) && MainGui != "") {
+        js := "try { window.dispatchEvent(new CustomEvent('bk-close-active-tab')) } catch(e){}"
+        MainGui.Control.ExecuteScriptAsync(js)
+    }
+}
+^t::
+{
+    global MainGui
+    if (IsSet(MainGui) && MainGui != "") {
+        js := "try { window.dispatchEvent(new CustomEvent('bk-new-tab')) } catch(e){}"
+        MainGui.Control.ExecuteScriptAsync(js)
+    }
+}
+#HotIf
+
+#HotIf IsSet(IsPiPMode) && IsPiPMode && isAppActive()
+Escape:: AHK_TogglePiP()
+!F4:: AHK_TogglePiP()
 #HotIf

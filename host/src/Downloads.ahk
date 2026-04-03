@@ -181,10 +181,11 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
         MainGui.Control.ExecuteScriptAsync(js)
     }
 
-    global ActiveMediaAuth
+    global ActiveTabId, ActiveMediaAuths
     authOpts := ""
     headerStr := ""
-    if (ActiveMediaAuth != "") {
+    if (ActiveMediaAuths.Has(ActiveTabId)) {
+        ActiveMediaAuth := ActiveMediaAuths[ActiveTabId]
         referer := "", userAgent := "", cookie := ""
         if RegExMatch(ActiveMediaAuth, '"referer"\s*:\s*"([^"]+)"', &m)
             referer := m[1]
@@ -354,9 +355,10 @@ AHK_DownloadSubtitle(url, targetFilename) {
         }
     }
 
-    global ActiveMediaAuth
+    global ActiveTabId, ActiveMediaAuths
     headerStr := ""
-    if (ActiveMediaAuth != "") {
+    if (ActiveMediaAuths.Has(ActiveTabId)) {
+        ActiveMediaAuth := ActiveMediaAuths[ActiveTabId]
         referer := "", userAgent := "", cookie := ""
         if RegExMatch(ActiveMediaAuth, '"referer"\s*:\s*"([^"]+)"', &m)
             referer := m[1]
