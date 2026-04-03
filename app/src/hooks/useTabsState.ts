@@ -11,7 +11,8 @@ export function useTabsState(
   setAuthStatus: any,
   setPlayerStatus: any,
   pageTitleRef: MutableRefObject<string>,
-  computeNavUrl: (target: string) => string
+  computeNavUrl: (target: string) => string,
+  setPlayerNavSignal: any
 ) {
   const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
   const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string, favicon?: string, isPlaying?: boolean, isMuted?: boolean }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/' }]);
@@ -71,6 +72,7 @@ export function useTabsState(
           setInputUrl(reportedUrl);
           setPageTitle('');
           pageTitleRef.current = '';
+          setPlayerNavSignal((s: number) => s + 1);
         }
       }
     };

@@ -75,6 +75,7 @@ export function useHistoryState(
 
     let totalWatchMs = 0;
     let lastPlayTime = Date.now();
+    let sessionStartMs = Date.now();
     let isCurrentlyPlaying = false;
     let saveTimer: any;
 
@@ -113,13 +114,26 @@ export function useHistoryState(
           const item = { ...newHistory[existingIdx] };
           item.watchDuration = (item.watchDuration || 0) + timeToSave;
           item.timestamp = Date.now();
+
+          // Sync rich titles dynamically if the plugin feeds better titles via tabs overriding!
+          const rawTitle = pageTitleRef.current;
+          if (rawTitle && rawTitle.length > 2 && rawTitle !== item.title) {
+             const cleanTitle = rawTitle.replace(/[^\p{L}\p{N}\s\-–—:'.,&()|]/gu, "").trim();
+             if (cleanTitle) item.title = cleanTitle;
+          }
+
           if (latestTime > 0) {
-            if (item.currentTime && item.currentTime > 15 && latestTime < 5) {
-              // DB Drop Shield: Skip writing early page-load progress (<5s) if DB already has a mature playtime (>15s).
-              // This gives auto-resume time to catch up without permanently wiping progress.
-            } else {
-              item.currentTime = latestTime;
-            }
+             const sessionAge = Date.now() - sessionStartMs;
+             const dropSize = item.currentTime ? (item.currentTime - latestTime) : 0;
+             const isGhostSpike = (!item.currentTime || item.currentTime < 5) && latestTime > 30;
+
+             // Universal Truth Shield: In the first 15 seconds of a session, we inherently distrust massive 
+             // trajectory deviations (>30s drops from auto-resetting players, or >30s spikes from SPA ghost videos).
+             if ((dropSize > 30 || isGhostSpike) && sessionAge < 15000) {
+                // Do not permanently commit these drastic changes to the DB during this turbulent window.
+             } else {
+                item.currentTime = latestTime;
+             }
           }
           if (latestDur > 0) item.duration = latestDur;
           if (tags.length > 0) item.tags = tags;
@@ -127,18 +141,18 @@ export function useHistoryState(
           addHistoryItem(item).catch(console.error);
         } else {
           const rawTitle = pageTitleRef.current || fetchTitleForUrl(currentUrl) || host;
-          const cleanTitle = rawTitle.replace(/[^\\x20-\\x7E]/g, "").trim();
+          const cleanTitle = rawTitle.replace(/[^\p{L}\p{N}\s\-–—:'.,&()|]/gu, "").trim();
           const newItem: HistoryItem = {
-            id: Date.now().toString() + 'w',
-            url: currentUrl,
-            title: cleanTitle,
-            timestamp: Date.now(),
-            domain: host,
-            type: 'watch',
-            watchDuration: timeToSave,
-            currentTime: latestTime > 0 ? latestTime : undefined,
-            duration: latestDur > 0 ? latestDur : undefined,
-            tags
+             id: Date.now().toString() + 'w',
+             url: currentUrl,
+             title: cleanTitle,
+             timestamp: Date.now(),
+             domain: host,
+             type: 'watch',
+             watchDuration: timeToSave,
+             currentTime: latestTime > 0 ? latestTime : undefined,
+             duration: latestDur > 0 ? latestDur : undefined,
+             tags
           };
           newHistory.unshift(newItem);
           addHistoryItem(newItem).catch(console.error);
@@ -159,14 +173,7 @@ export function useHistoryState(
           return newTabs;
         });
 
-        if (e.detail.currentTime !== undefined) {
-           // Drop Shield: If time dramatically drops (e.g. >10s) we only accept it if it's not suspiciously exactly ~0s during a recent nav/reload
-           if (latestTime > 15 && e.detail.currentTime < 5) {
-             // Block suspicious page-load 0s drops
-           } else {
-             latestTime = e.detail.currentTime;
-           }
-        }
+        if (e.detail.currentTime !== undefined) latestTime = e.detail.currentTime;
         if (e.detail.duration !== undefined) latestDur = e.detail.duration;
 
         if (e.detail.isPlaying && !isCurrentlyPlaying) {

@@ -146,7 +146,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setAuthStatus,
     setPlayerStatus,
     pageTitleRef,
-    computeNavUrl
+    computeNavUrl,
+    setPlayerNavSignal
   );
 
   const plugins = usePluginsState(

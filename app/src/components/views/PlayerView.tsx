@@ -37,7 +37,7 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
     return () => {
       observer.disconnect();
       lastRectRef.current = '';
-      try { ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch(err) {}
+      try { ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch (err) { }
     };
   }, [isVisuallyActive, tabId]);
 
@@ -177,7 +177,7 @@ export const PlayerView = () => {
       }
     }
 
-  }, [isFocusedMode, activeTab, playerStatus, url, plugins]);
+  }, [isFocusedMode, activeTab, playerStatus, url, plugins, playerNavSignal]);
 
   React.useEffect(() => {
     if (activeTab !== 'player') return;
@@ -190,24 +190,24 @@ export const PlayerView = () => {
     lastResumeUrl.current = '';
   }, [playerNavSignal]);
 
+  const historyRef = React.useRef(history);
+  historyRef.current = history;
+
   React.useEffect(() => {
     if (activeTab !== 'player' || playerStatus !== 'found') return;
     if (url === lastResumeUrl.current) return;
 
     // Auto-Resume Video from History
-    const hItem = history.find(h => h.url === url && h.type === 'watch');
-    if (hItem && hItem.currentTime && hItem.duration) {
-      // Only resume if we are past the first 5 seconds and not in the last 10% 
-      if (hItem.currentTime > 5 && hItem.currentTime < (hItem.duration * 0.9)) {
-        lastResumeUrl.current = url;
-        const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
-        ahk.call('InjectJS', cmd);
-        setTimeout(() => ahk.call('InjectJS', cmd), 1500);
-        setTimeout(() => ahk.call('InjectJS', cmd), 3500);
-        setTimeout(() => ahk.call('InjectJS', cmd), 5500);
-      }
+    const hItem = historyRef.current.find(h => h.url === url && h.type === 'watch');
+    if (hItem && hItem.currentTime && hItem.currentTime > 15) {
+      if (hItem.duration && hItem.currentTime > (hItem.duration * 0.9)) return;
+      
+      lastResumeUrl.current = url;
+      const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
+      ahk.call('InjectJS', cmd);
+      setTimeout(() => ahk.call('InjectJS', cmd), 1500); // 1 lightweight retry
     }
-  }, [url, activeTab, playerStatus, history]);
+  }, [url, activeTab, playerStatus]);
 
   React.useEffect(() => {
     let lastUrl = '';
@@ -255,30 +255,7 @@ export const PlayerView = () => {
     };
   }, [activeMediaUrl, activeMediaQualities, activeSubtitleUrl]);
 
-  React.useEffect(() => {
-    if (activeTab !== 'player' || playerStatus !== 'found') return;
-    
-    // Auto-Polling Heartbeat:
-    // If the plugin scripts omit crucial seek/timeupdate events, this heartbeat forcefully
-    // polls the native video element every 3 seconds to guarantee accurate tracking persistence.
-    ahk.call('InjectJS', `
-      (function() {
-         if (window.__bk_heartbeat) return;
-         window.__bk_heartbeat = true;
-         setInterval(function() {
-            var v = document.querySelector('video');
-            if (v && !v.paused) {
-               window.top.postMessage({
-                  type: 'player-play-state',
-                  isPlaying: true,
-                  currentTime: v.currentTime,
-                  duration: v.duration
-               }, '*');
-            }
-         }, 3000);
-      })();
-    `);
-  }, [activeTab, playerStatus]);
+
 
   return (
 
@@ -495,64 +472,64 @@ export const PlayerView = () => {
       <div className="w-full flex-1 relative bg-zinc-900 border-none overflow-hidden">
         {(() => {
           if (!isMultiTabEnabled || tilingMode === 'none' || browserTabs.length === 1) {
-             return (
-                <div className="w-full h-full relative">
-                   {browserTabs.map(t => (
-                      <PlayerSlot 
-                         key={t.id} 
-                         tabId={t.id} 
-                         isVisuallyActive={activeTab === 'player' && t.id === activeBrowserTabId} 
-                         className={t.id === activeBrowserTabId ? "w-full h-full absolute top-0 left-0 z-10" : "absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none"} 
-                      />
-                   ))}
-                </div>
-             );
+            return (
+              <div className="w-full h-full relative">
+                {browserTabs.map(t => (
+                  <PlayerSlot
+                    key={t.id}
+                    tabId={t.id}
+                    isVisuallyActive={activeTab === 'player' && t.id === activeBrowserTabId}
+                    className={t.id === activeBrowserTabId ? "w-full h-full absolute top-0 left-0 z-10" : "absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none"}
+                  />
+                ))}
+              </div>
+            );
           }
-          
+
           if (tilingMode === 'split-vt') {
-             const visibleIds = [browserTabs[0].id, browserTabs[1].id];
-             return (
-                <div className="w-full h-full relative">
-                   <div className="flex w-full h-full gap-0.5 bg-zinc-800 relative z-10">
-                      <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
-                      <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
-                   </div>
-                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
-                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
-                   ))}
+            const visibleIds = [browserTabs[0].id, browserTabs[1].id];
+            return (
+              <div className="w-full h-full relative">
+                <div className="flex w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                  <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
+                  <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
                 </div>
-             );
+                {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                  <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
+                ))}
+              </div>
+            );
           }
 
           if (tilingMode === 'split-hz') {
-             const visibleIds = [browserTabs[0].id, browserTabs[1].id];
-             return (
-                <div className="w-full h-full relative">
-                   <div className="flex flex-col w-full h-full gap-0.5 bg-zinc-800 relative z-10">
-                      <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
-                      <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
-                   </div>
-                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
-                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
-                   ))}
+            const visibleIds = [browserTabs[0].id, browserTabs[1].id];
+            return (
+              <div className="w-full h-full relative">
+                <div className="flex flex-col w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                  <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
+                  <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
                 </div>
-             );
+                {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                  <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
+                ))}
+              </div>
+            );
           }
 
           if (tilingMode === 'grid') {
-             const visibleIds = browserTabs.slice(0, 4).map(t => t.id);
-             return (
-                <div className="w-full h-full relative">
-                   <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-zinc-800 relative z-10">
-                      {browserTabs.slice(0, 4).map((t, idx) => (
-                         <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={activeTab === 'player'} className={`w-full h-full bg-zinc-900 overflow-hidden ${browserTabs.length === 3 && idx === 2 ? 'col-span-2' : ''}`} />
-                      ))}
-                   </div>
-                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
-                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
-                   ))}
+            const visibleIds = browserTabs.slice(0, 4).map(t => t.id);
+            return (
+              <div className="w-full h-full relative">
+                <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                  {browserTabs.slice(0, 4).map((t, idx) => (
+                    <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={activeTab === 'player'} className={`w-full h-full bg-zinc-900 overflow-hidden ${browserTabs.length === 3 && idx === 2 ? 'col-span-2' : ''}`} />
+                  ))}
                 </div>
-             );
+                {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                  <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
+                ))}
+              </div>
+            );
           }
 
           return null;
