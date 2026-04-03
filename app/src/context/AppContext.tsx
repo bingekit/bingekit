@@ -139,7 +139,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const activeTabObj = browserTabs.find(t => t.id === activeBrowserTabId);
     if (activeTabObj) {
       if (activeTabObj.url !== url) {
-        lastSyncUrl.current = activeTabObj.url;
+        lastSyncUrls.current[activeBrowserTabId] = activeTabObj.url;
         setUrl(activeTabObj.url);
         setInputUrl(activeTabObj.inputUrl || activeTabObj.url);
         document.title = activeTabObj.title || 'BingeKit';
@@ -199,7 +199,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [defaultSearchEngine, setDefaultSearchEngine] = useState('https://duckduckgo.com/?q=');
   const playerRef = useRef<HTMLDivElement>(null);
   const lastRectRef = useRef('');
-  const lastSyncUrl = useRef<string | null>(null);
+  const lastSyncUrls = useRef<Record<string, string>>({});
 
   const [isFocusedMode, setIsFocusedMode] = useState<boolean>(false);
   const [authStatus, setAuthStatus] = useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
@@ -228,20 +228,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (activeTab === 'player') {
-      if (lastSyncUrl.current !== url) {
-        lastSyncUrl.current = url;
+      const currentLast = lastSyncUrls.current[activeBrowserTabId];
+      if (currentLast !== url) {
+        lastSyncUrls.current[activeBrowserTabId] = url;
         const navUrl = computeNavUrl(url);
         ahk.call('UpdatePlayerUrl', navUrl, activeBrowserTabId);
         ahk.call('UpdateURL', url, activeBrowserTabId);
       }
     }
-  }, [activeTab, url]);
+  }, [activeTab, url, activeBrowserTabId]);
 
   useEffect(() => {
     const handleEvent = (e: any) => {
       if (e.detail && e.detail.url) {
         console.log("player-url-changed", e.detail.url);
-        if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('data:text/html')) && (lastSyncUrl.current?.startsWith('custom:') || lastSyncUrl.current === 'about:blank')) {
+        const eventTabId = e.detail.tabId || 'main';
+        const eventLastSync = lastSyncUrls.current[eventTabId];
+        if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('data:text/html')) && (eventLastSync?.startsWith('custom:') || eventLastSync === 'about:blank')) {
           return;
         }
         let reportedUrl = e.detail.url;
@@ -251,7 +254,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           reportedUrl = reportedUrl.replace(/index\.html?$/i, '');
           reportedUrl = reportedUrl.replace(/\/$/, '');
         }
-        const eventTabId = e.detail.tabId || 'main';
         setBrowserTabs(prev => {
           const newTabs = [...prev];
           const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
@@ -262,8 +264,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           }
           return newTabs;
         });
+        lastSyncUrls.current[eventTabId] = reportedUrl;
         if (eventTabId === activeBrowserTabIdRef.current) {
-          lastSyncUrl.current = reportedUrl;
           setUrl(reportedUrl);
           setInputUrl(reportedUrl);
           setPageTitle('');
@@ -1133,6 +1135,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (inNewTab) {
       const newId = Date.now().toString();
       setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl, title: 'New Tab' }]);
+      lastSyncUrls.current[newId] = finalUrl;
       ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
       if (!isBackground) {
         setActiveBrowserTabId(newId);
