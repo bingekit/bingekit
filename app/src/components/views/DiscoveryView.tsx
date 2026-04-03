@@ -62,8 +62,8 @@ export const DiscoveryView = () => {
           </div>
 
           <button
-            onClick={() => {
-              if (confirm('Clear all dismissed items?')) {
+            onClick={async () => {
+              if (await window.showConfirm('Clear all dismissed items?')) {
                 setDiscoveryItems(discoveryItems.filter(i => !i.dismissed));
               }
             }}

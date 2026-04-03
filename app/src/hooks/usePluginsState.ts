@@ -426,7 +426,7 @@ export function usePluginsState(
       let match;
       while ((match = promptRegex.exec(res)) !== null) {
         const promptTitle = match[1];
-        const userInput = window.prompt(`Flow Input Required:\\n${promptTitle}`, "");
+        const userInput = await window.showPrompt(`Flow Input Required:\n${promptTitle}`, "");
         res = res.replace(match[0], userInput || "");
       }
       return res;

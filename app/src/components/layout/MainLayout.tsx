@@ -6,6 +6,9 @@ import { useAppContext } from '../../context/AppContext';
 import { ThemeStyles } from './ThemeStyles';
 import { Titlebar } from './Titlebar';
 import { Sidebar } from './Sidebar';
+import { Toaster } from '../ui/Toaster';
+import { GlobalPrompt } from '../ui/GlobalPrompt';
+import { GlobalConfirm } from '../ui/GlobalConfirm';
 
 // Views
 import { DashboardView } from '../views/DashboardView';
@@ -117,6 +120,10 @@ export const MainLayout = () => {
           </div>
         </div>
       </div>
+      
+      <Toaster />
+      <GlobalPrompt />
+      <GlobalConfirm />
     </div>
   );
 };

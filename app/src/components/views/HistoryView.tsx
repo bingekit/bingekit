@@ -34,7 +34,7 @@ export const HistoryView = () => {
         urlMap.set(item.url, { ...item });
       } else {
         if (existing.type === 'browse' && item.type === 'watch') {
-           urlMap.set(item.url, { ...item, timestamp: Math.max(existing.timestamp, item.timestamp) });
+          urlMap.set(item.url, { ...item, timestamp: Math.max(existing.timestamp, item.timestamp) });
         }
       }
     });
@@ -115,7 +115,7 @@ export const HistoryView = () => {
       : Object.keys(groups).sort();
 
   return (
-    <div 
+    <div
       ref={scrollRef}
       onScroll={(e) => historyScrollPos = e.currentTarget.scrollTop}
       className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative"
@@ -167,29 +167,29 @@ export const HistoryView = () => {
 
           {(history.length > 0) && (
             <div className="flex items-center gap-2 hidden md:flex">
-                <button
-                onClick={() => {
-                    if (confirm('Clear non-watched browsing history?')) {
+              <button
+                onClick={async () => {
+                  if (await window.showConfirm('Clear non-watched browsing history?')) {
                     setHistory(history.filter(h => h.type === 'watch'));
                     clearBrowsedHistoryDB().catch(console.error);
-                    }
+                  }
                 }}
                 className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 px-3 py-2 rounded-full transition-colors"
                 title="Clear Browsed"
-                >
+              >
                 <Trash2 size={16} /> <span className="hidden lg:inline">Browsed</span>
-                </button>
-                <button
-                onClick={() => {
-                    if (confirm('Clear all history?')) {
+              </button>
+              <button
+                onClick={async () => {
+                  if (await window.showConfirm('Clear all history?')) {
                     setHistory([]);
                     clearHistoryDB().catch(console.error);
-                    }
+                  }
                 }}
                 className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 px-4 py-2 rounded-full transition-colors"
-                >
+              >
                 <Trash2 size={16} /> <span className="hidden lg:inline">All</span>
-                </button>
+              </button>
             </div>
           )}
         </div>
@@ -208,7 +208,7 @@ export const HistoryView = () => {
                 className="group flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900 rounded-xl transition-all gap-4"
               >
                 <div className="flex items-center gap-4 flex-1 min-w-0 w-full cursor-pointer" onClick={(e) => { const isCtrl = e.ctrlKey || e.metaKey; navigateUrl(item.url, isCtrl, isCtrl && ctrlClickBackgroundTab); }}>
-                  <div className={`w-10 h-10 rounded-lg bg-zinc-800/80 group-hover:bg-indigo-500/10 flex items-center justify-center flex-shrink-0 transition-colors ${item.type === 'watch' ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-indigo-400'}`}>
+                  <div className={`w-10 h-10 rounded-lg bg-zinc-900/40 group-hover:bg-indigo-500/10 flex items-center justify-center flex-shrink-0 transition-colors ${item.type === 'watch' ? 'text-emerald-400' : 'text-zinc-400 group-hover:text-indigo-400'}`}>
                     {item.type === 'watch' ? <PlaySquare size={18} /> : <Compass size={18} />}
                   </div>
                   <div className="flex-1 min-w-0">

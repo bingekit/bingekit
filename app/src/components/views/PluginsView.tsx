@@ -207,7 +207,7 @@ export const PluginsView = () => {
       if (success === "true" || success === true || success === 1) {
         loadPlugins();
       } else {
-        alert("Failed to install plugin from: " + zipUrl);
+        window.showToast("Failed to install plugin from: " + zipUrl, "error");
       }
       setInstallingItems((prev) => prev.filter((i) => i !== itemId));
     }, 100);
@@ -223,11 +223,11 @@ export const PluginsView = () => {
         if (rp && rp.zipUrl) {
           const success = ahk.call("InstallExtensionZip", rp.zipUrl, "sites");
           if (success !== "true" && success !== true && success !== 1) {
-             failCount++;
+            failCount++;
           }
         }
       });
-      if (failCount > 0) alert("Failed to install " + failCount + " plugins from pack.");
+      if (failCount > 0) window.showToast("Failed to install " + failCount + " plugins from pack.", "error");
       loadPlugins();
       setInstallingItems((prev) => prev.filter((i) => i !== pack.id));
     }, 100);
@@ -236,7 +236,7 @@ export const PluginsView = () => {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Plugins List */}
-      <div 
+      <div
         ref={sidebarScrollRef}
         onScroll={(e) => pluginsSidebarScrollPos = e.currentTarget.scrollTop}
         className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar"
@@ -262,18 +262,18 @@ export const PluginsView = () => {
 
         {/* Browse Repository Button Group */}
         <div className="flex gap-2 mb-4">
-           <button onClick={() => { setViewMode(viewMode === "gallery" ? "editor" : "gallery"); setEditingPlugin(null); }}
-                   className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${viewMode === "gallery" ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"}`}>
-              <Store size={16} /> Browse Gallery
-              {pluginUpdateCount > 0 && (
-                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{pluginUpdateCount}</span>
-              )}
-           </button>
-           <button onClick={() => checkPluginUpdates()}
-                   title="Check for Updates"
-                   className="w-10 rounded-xl flex items-center justify-center text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors shrink-0">
-              <RefreshCw size={16} />
-           </button>
+          <button onClick={() => { setViewMode(viewMode === "gallery" ? "editor" : "gallery"); setEditingPlugin(null); }}
+            className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${viewMode === "gallery" ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20" : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20"}`}>
+            <Store size={16} /> Browse Gallery
+            {pluginUpdateCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">{pluginUpdateCount}</span>
+            )}
+          </button>
+          <button onClick={() => checkPluginUpdates()}
+            title="Check for Updates"
+            className="w-10 rounded-xl flex items-center justify-center text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 transition-colors shrink-0">
+            <RefreshCw size={16} />
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -299,7 +299,7 @@ export const PluginsView = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {plugin.icon ? (
-                    <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {plugin.icon.includes("<svg") ||
                         plugin.icon.includes("http") ? (
                         <div
@@ -315,7 +315,7 @@ export const PluginsView = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
                       <Globe size={14} />
                     </div>
                   )}
@@ -406,111 +406,111 @@ export const PluginsView = () => {
               </button>
             </div>
 
-            <div 
+            <div
               ref={galleryScrollRef}
               onScroll={(e) => pluginsGalleryScrollPos = e.currentTarget.scrollTop}
               className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
             >
               {isRepoLoading && !repoData ? (
-                 <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
-                    <RefreshCw size={32} className="animate-spin mb-4" />
-                    <p>Loading Repository Manifest...</p>
-                 </div>
+                <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
+                  <RefreshCw size={32} className="animate-spin mb-4" />
+                  <p>Loading Repository Manifest...</p>
+                </div>
               ) : !repoData ? (
-                 <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
-                    <Square size={48} className="mb-4 opacity-20" />
-                    <p>Failed to load repository manifest. Check URL in about:config or your network.</p>
-                 </div>
+                <div className="flex flex-col items-center justify-center py-20 text-zinc-500">
+                  <Square size={48} className="mb-4 opacity-20" />
+                  <p>Failed to load repository manifest. Check URL in about:config or your network.</p>
+                </div>
               ) : repoTab === "plugins" ? (
-                 <div className="grid grid-cols-2 gap-4">
-                    {repoData.plugins?.map(p => {
-                       const localMatch = plugins.find(lp => lp.id === p.id);
-                       const isInstalled = !!localMatch;
-                       const hasUpdateUrl = !!p.zipUrl;
-                       const canUpdate = isInstalled && hasUpdateUrl && localMatch.version && p.version && localMatch.version !== p.version;
-                       const isInstalling = installingItems.includes(p.id);
+                <div className="grid grid-cols-2 gap-4">
+                  {repoData.plugins?.map(p => {
+                    const localMatch = plugins.find(lp => lp.id === p.id);
+                    const isInstalled = !!localMatch;
+                    const hasUpdateUrl = !!p.zipUrl;
+                    const canUpdate = isInstalled && hasUpdateUrl && localMatch.version && p.version && localMatch.version !== p.version;
+                    const isInstalling = installingItems.includes(p.id);
 
-                       return (
-                          <div key={p.id} className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-2xl flex flex-col hover:border-indigo-500/50 hover:bg-zinc-900/80 transition-all shadow-sm">
-                             <div className="flex items-start gap-4">
-                               <div className="w-14 h-14 rounded-xl bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner overflow-hidden">
-                                 {p.icon && p.icon.includes("<svg") ? (
-                                    <div className="w-8 h-8 text-zinc-300" dangerouslySetInnerHTML={{__html: p.icon}} />
-                                 ) : p.icon && p.icon.includes("http") ? (
-                                    <img src={p.icon} alt="" className="w-full h-full object-cover" />
-                                 ) : (
-                                    <Puzzle size={24} className="text-zinc-500" />
-                                 )}
-                               </div>
-                               <div className="flex-1">
-                                 <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
-                                     {p.name}
-                                     {isInstalled && <span className="px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded text-[10px] uppercase font-bold tracking-wider">Installed</span>}
-                                 </h3>
-                                 <p className="text-xs text-indigo-300 mt-1 tracking-wide font-medium">{p.id} • v{p.version}</p>
-                               </div>
-                               <div>
-                                  {isInstalling ? (
-                                     <button disabled className="bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
-                                         <RefreshCw size={16} className="animate-spin" /> Installing...
-                                     </button>
-                                  ) : canUpdate ? (
-                                     <button onClick={() => p.zipUrl && handleInstallPluginZip(p.zipUrl, p.id)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
-                                         <DownloadCloud size={16} /> Update (v{p.version})
-                                     </button>
-                                  ) : !isInstalled ? (
-                                     <button onClick={() => p.zipUrl && handleInstallPluginZip(p.zipUrl, p.id)} className="bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
-                                         <DownloadCloud size={16} /> Install
-                                     </button>
-                                  ) : (
-                                     <button disabled className="bg-zinc-800/50 text-zinc-500 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-zinc-700/50">
-                                         <CheckCircle2 size={16} /> Up to Date
-                                     </button>
-                                  )}
-                               </div>
-                             </div>
-                             <p className="text-sm text-zinc-400 mt-4 leading-relaxed line-clamp-2">{p.description}</p>
-                             <div className="mt-auto pt-4 flex items-center gap-2">
-                                {p.tags?.map(t => <span key={t} className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full border border-zinc-700/50">{t}</span>)}
-                             </div>
+                    return (
+                      <div key={p.id} className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-2xl flex flex-col hover:border-indigo-500/50 hover:bg-zinc-900/80 transition-all shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-xl bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner overflow-hidden">
+                            {p.icon && p.icon.includes("<svg") ? (
+                              <div className="w-8 h-8 text-zinc-300" dangerouslySetInnerHTML={{ __html: p.icon }} />
+                            ) : p.icon && p.icon.includes("http") ? (
+                              <img src={p.icon} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <Puzzle size={24} className="text-zinc-500" />
+                            )}
                           </div>
-                       )
-                    })}
-                 </div>
+                          <div className="flex-1">
+                            <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
+                              {p.name}
+                              {isInstalled && <span className="px-1.5 py-0.5 bg-green-500/10 text-green-400 rounded text-[10px] uppercase font-bold tracking-wider">Installed</span>}
+                            </h3>
+                            <p className="text-xs text-indigo-300 mt-1 tracking-wide font-medium">{p.id} • v{p.version}</p>
+                          </div>
+                          <div>
+                            {isInstalling ? (
+                              <button disabled className="bg-indigo-500/20 text-indigo-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                                <RefreshCw size={16} className="animate-spin" /> Installing...
+                              </button>
+                            ) : canUpdate ? (
+                              <button onClick={() => p.zipUrl && handleInstallPluginZip(p.zipUrl, p.id)} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all">
+                                <DownloadCloud size={16} /> Update (v{p.version})
+                              </button>
+                            ) : !isInstalled ? (
+                              <button onClick={() => p.zipUrl && handleInstallPluginZip(p.zipUrl, p.id)} className="bg-white hover:bg-zinc-200 text-black px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all">
+                                <DownloadCloud size={16} /> Install
+                              </button>
+                            ) : (
+                              <button disabled className="bg-zinc-800/50 text-zinc-500 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border border-zinc-700/50">
+                                <CheckCircle2 size={16} /> Up to Date
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-zinc-400 mt-4 leading-relaxed line-clamp-2">{p.description}</p>
+                        <div className="mt-auto pt-4 flex items-center gap-2">
+                          {p.tags?.map(t => <span key={t} className="text-[10px] bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full border border-zinc-700/50">{t}</span>)}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               ) : (
-                 <div className="space-y-4">
-                    {repoData.packs?.map(pack => {
-                       const isInstalling = installingItems.includes(pack.id);
-                       return (
-                          <div key={pack.id} className="p-6 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl flex items-center justify-between gap-6 relative overflow-hidden">
-                             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-                             <div className="flex-1 relative z-10">
-                                <h3 className="text-lg font-bold text-indigo-300 flex items-center gap-2 mb-1">
-                                    <Package size={20} /> {pack.name}
-                                </h3>
-                                <p className="text-sm text-zinc-400 mb-3">{pack.description}</p>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {pack.plugins.map(pId => {
-                                        const rp = repoData.plugins.find(p => p.id === pId);
-                                        return <span key={pId} className="text-[10px] bg-indigo-500/10 text-indigo-200 px-2 py-1 rounded-md border border-indigo-500/20">{rp?.name || pId}</span>
-                                    })}
-                                </div>
-                             </div>
-                             <div className="relative z-10 shrink-0">
-                                {isInstalling ? (
-                                   <button disabled className="bg-indigo-500/20 text-indigo-400 px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
-                                      <RefreshCw size={18} className="animate-spin" /> Installing Pack...
-                                   </button>
-                                ) : (
-                                   <button onClick={() => handleInstallPack(pack)} className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
-                                      <DownloadCloud size={18} /> Install Pack
-                                   </button>
-                                )}
-                             </div>
+                <div className="space-y-4">
+                  {repoData.packs?.map(pack => {
+                    const isInstalling = installingItems.includes(pack.id);
+                    return (
+                      <div key={pack.id} className="p-6 bg-gradient-to-br from-indigo-500/10 to-transparent border border-indigo-500/20 rounded-2xl flex items-center justify-between gap-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+                        <div className="flex-1 relative z-10">
+                          <h3 className="text-lg font-bold text-indigo-300 flex items-center gap-2 mb-1">
+                            <Package size={20} /> {pack.name}
+                          </h3>
+                          <p className="text-sm text-zinc-400 mb-3">{pack.description}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {pack.plugins.map(pId => {
+                              const rp = repoData.plugins.find(p => p.id === pId);
+                              return <span key={pId} className="text-[10px] bg-indigo-500/10 text-indigo-200 px-2 py-1 rounded-md border border-indigo-500/20">{rp?.name || pId}</span>
+                            })}
                           </div>
-                       )
-                    })}
-                 </div>
+                        </div>
+                        <div className="relative z-10 shrink-0">
+                          {isInstalling ? (
+                            <button disabled className="bg-indigo-500/20 text-indigo-400 px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2">
+                              <RefreshCw size={18} className="animate-spin" /> Installing Pack...
+                            </button>
+                          ) : (
+                            <button onClick={() => handleInstallPack(pack)} className="bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 px-6 py-3 rounded-xl text-sm font-bold flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                              <DownloadCloud size={18} /> Install Pack
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
             </div>
           </div>
@@ -569,7 +569,7 @@ export const PluginsView = () => {
               })}
             </div>
 
-            <div 
+            <div
               ref={editorScrollRef}
               onScroll={(e) => pluginsEditorScrollPos = e.currentTarget.scrollTop}
               className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
@@ -1408,91 +1408,91 @@ export const PluginsView = () => {
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                       <h3 className="text-sm font-medium text-emerald-400 flex items-center gap-2 uppercase tracking-wider">
-                         <Activity size={16} /> Advanced Tracking Flows
-                       </h3>
-                       <button onClick={() => {
-                          const flows = [...(editingPlugin.trackingFlows || [])];
-                          flows.push({ id: 'flow_' + Date.now(), name: 'New Tracking Flow' });
-                          updateEditingPlugin("root", "trackingFlows", flows);
-                       }} className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-2">
-                          <Plus size={14} /> Add Flow
-                       </button>
+                      <h3 className="text-sm font-medium text-emerald-400 flex items-center gap-2 uppercase tracking-wider">
+                        <Activity size={16} /> Advanced Tracking Flows
+                      </h3>
+                      <button onClick={() => {
+                        const flows = [...(editingPlugin.trackingFlows || [])];
+                        flows.push({ id: 'flow_' + Date.now(), name: 'New Tracking Flow' });
+                        updateEditingPlugin("root", "trackingFlows", flows);
+                      }} className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1 rounded-full text-xs transition-colors flex items-center gap-2">
+                        <Plus size={14} /> Add Flow
+                      </button>
                     </div>
 
                     {(editingPlugin.trackingFlows || []).map((flow, flowIdx) => (
                       <div key={flowIdx} className="p-5 bg-zinc-900/30 border border-zinc-800/50 rounded-xl space-y-4 relative group">
                         <button onClick={() => {
-                            const flows = [...(editingPlugin.trackingFlows || [])];
-                            flows.splice(flowIdx, 1);
-                            updateEditingPlugin("root", "trackingFlows", flows);
+                          const flows = [...(editingPlugin.trackingFlows || [])];
+                          flows.splice(flowIdx, 1);
+                          updateEditingPlugin("root", "trackingFlows", flows);
                         }} className="absolute top-4 right-4 text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Trash2 size={16} />
+                          <Trash2 size={16} />
                         </button>
 
                         <div className="grid grid-cols-4 gap-4 border-b border-zinc-800/50 pb-4">
-                           <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5 flex justify-between">
-                                  <span>Flow ID</span>
-                              </label>
-                              <input type="text" value={flow.id || ""} onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, id: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" />
-                           </div>
-                           <div>
-                              <label className="block text-xs text-zinc-500 mb-1.5">Flow Name</label>
-                              <input type="text" value={flow.name || ""} onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, name: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" />
-                           </div>
-                           <div>
-                              <div className="flex flex-col mb-1.5">
-                                 <label className="text-xs text-zinc-500">URL Pattern ({'{id}'})</label>
-                                 <span className="text-[9px] text-zinc-600">Template for custom tracking</span>
-                              </div>
-                              <input type="text" value={flow.urlPattern || ""} onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, urlPattern: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" placeholder="e.g. site.com/show/{id} OR /show/{id}" title="When a user tracks an `{id}`, the `{id}` parameter is cleanly injected into this full URL" />
-                           </div>
-                           <div>
-                              <div className="flex flex-col mb-1.5">
-                                 <label className="text-xs text-zinc-500">Auto-Detect URL Regex</label>
-                                 <span className="text-[9px] text-zinc-600">Regex to match this media</span>
-                              </div>
-                              <input type="text" value={flow.urlRegex || ""} onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, urlRegex: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                              }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" placeholder="leave blank for default" title="Used to auto-detect if an unknown URL matches this specific Tracking Flow layout" />
-                           </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5 flex justify-between">
+                              <span>Flow ID</span>
+                            </label>
+                            <input type="text" value={flow.id || ""} onChange={(e) => {
+                              const flows = [...(editingPlugin.trackingFlows || [])];
+                              flows[flowIdx] = { ...flow, id: e.target.value };
+                              updateEditingPlugin("root", "trackingFlows", flows);
+                            }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-zinc-500 mb-1.5">Flow Name</label>
+                            <input type="text" value={flow.name || ""} onChange={(e) => {
+                              const flows = [...(editingPlugin.trackingFlows || [])];
+                              flows[flowIdx] = { ...flow, name: e.target.value };
+                              updateEditingPlugin("root", "trackingFlows", flows);
+                            }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" />
+                          </div>
+                          <div>
+                            <div className="flex flex-col mb-1.5">
+                              <label className="text-xs text-zinc-500">URL Pattern ({'{id}'})</label>
+                              <span className="text-[9px] text-zinc-600">Template for custom tracking</span>
+                            </div>
+                            <input type="text" value={flow.urlPattern || ""} onChange={(e) => {
+                              const flows = [...(editingPlugin.trackingFlows || [])];
+                              flows[flowIdx] = { ...flow, urlPattern: e.target.value };
+                              updateEditingPlugin("root", "trackingFlows", flows);
+                            }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none" placeholder="e.g. site.com/show/{id} OR /show/{id}" title="When a user tracks an `{id}`, the `{id}` parameter is cleanly injected into this full URL" />
+                          </div>
+                          <div>
+                            <div className="flex flex-col mb-1.5">
+                              <label className="text-xs text-zinc-500">Auto-Detect URL Regex</label>
+                              <span className="text-[9px] text-zinc-600">Regex to match this media</span>
+                            </div>
+                            <input type="text" value={flow.urlRegex || ""} onChange={(e) => {
+                              const flows = [...(editingPlugin.trackingFlows || [])];
+                              flows[flowIdx] = { ...flow, urlRegex: e.target.value };
+                              updateEditingPlugin("root", "trackingFlows", flows);
+                            }} className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" placeholder="leave blank for default" title="Used to auto-detect if an unknown URL matches this specific Tracking Flow layout" />
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs text-zinc-500 mb-1.5">List Selector</label>
                             <input type="text" value={flow.listSel || ""} placeholder=".episodes-list"
-                               onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, listSel: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                               }}
-                               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" />
+                              onChange={(e) => {
+                                const flows = [...(editingPlugin.trackingFlows || [])];
+                                flows[flowIdx] = { ...flow, listSel: e.target.value };
+                                updateEditingPlugin("root", "trackingFlows", flows);
+                              }}
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" />
                           </div>
                           <div>
                             <label className="block text-xs text-zinc-500 mb-1.5">Episode Item Selector</label>
                             <input type="text" value={flow.itemSel || ""} placeholder=".ep-item"
-                               onChange={(e) => {
-                                 const flows = [...(editingPlugin.trackingFlows || [])];
-                                 flows[flowIdx] = { ...flow, itemSel: e.target.value };
-                                 updateEditingPlugin("root", "trackingFlows", flows);
-                               }}
-                               className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" />
+                              onChange={(e) => {
+                                const flows = [...(editingPlugin.trackingFlows || [])];
+                                flows[flowIdx] = { ...flow, itemSel: e.target.value };
+                                updateEditingPlugin("root", "trackingFlows", flows);
+                              }}
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono" />
                           </div>
                         </div>
 
@@ -1502,44 +1502,44 @@ export const PluginsView = () => {
                           { key: 'urlExtractJs', label: 'URL Extract JS', placeholder: "return el.href;" },
                           { key: 'statusExtractJs', label: 'Status Extract JS', placeholder: "return 'released';" },
                         ].map(field => (
-                            <div key={field.key}>
-                              <div className="flex items-center justify-between mb-1.5">
-                                <label className="block text-xs text-zinc-500">{field.label} (Executes on `el` element)</label>
-                                <button onClick={() => {
-                                  const val = (flow as any)[field.key] || "";
-                                  setIdeTempVal(val);
-                                  setIdeModalData({
-                                    title: field.label,
-                                    value: val,
-                                    mode: "javascript",
-                                    onChange: (newVal) => {
-                                        const flows = [...(editingPlugin.trackingFlows || [])];
-                                        flows[flowIdx] = { ...flows[flowIdx], [field.key]: newVal };
-                                        updateEditingPlugin("root", "trackingFlows", flows);
-                                    }
-                                  });
-                                }} className="text-[10px] bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1">
-                                  <Code size={12} /> IDE Editor
-                                </button>
-                              </div>
-                              <textarea
-                                value={(flow as any)[field.key] || ""}
-                                onChange={(e) => {
-                                  const flows = [...(editingPlugin.trackingFlows || [])];
-                                  flows[flowIdx] = { ...flows[flowIdx], [field.key]: e.target.value };
-                                  updateEditingPlugin("root", "trackingFlows", flows);
-                                }}
-                                rows={2} placeholder={field.placeholder}
-                                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono resize-y"
-                              />
+                          <div key={field.key}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="block text-xs text-zinc-500">{field.label} (Executes on `el` element)</label>
+                              <button onClick={() => {
+                                const val = (flow as any)[field.key] || "";
+                                setIdeTempVal(val);
+                                setIdeModalData({
+                                  title: field.label,
+                                  value: val,
+                                  mode: "javascript",
+                                  onChange: (newVal) => {
+                                    const flows = [...(editingPlugin.trackingFlows || [])];
+                                    flows[flowIdx] = { ...flows[flowIdx], [field.key]: newVal };
+                                    updateEditingPlugin("root", "trackingFlows", flows);
+                                  }
+                                });
+                              }} className="text-[10px] bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1">
+                                <Code size={12} /> IDE Editor
+                              </button>
                             </div>
+                            <textarea
+                              value={(flow as any)[field.key] || ""}
+                              onChange={(e) => {
+                                const flows = [...(editingPlugin.trackingFlows || [])];
+                                flows[flowIdx] = { ...flows[flowIdx], [field.key]: e.target.value };
+                                updateEditingPlugin("root", "trackingFlows", flows);
+                              }}
+                              rows={2} placeholder={field.placeholder}
+                              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-emerald-500 outline-none font-mono resize-y"
+                            />
+                          </div>
                         ))}
                       </div>
                     ))}
                     {(!editingPlugin.trackingFlows || editingPlugin.trackingFlows.length === 0) && (
-                        <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
-                           No tracking flows configured. Add one to enable episode tracking for this plugin!
-                        </div>
+                      <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-xl">
+                        No tracking flows configured. Add one to enable episode tracking for this plugin!
+                      </div>
                     )}
                   </div>
                 </div>

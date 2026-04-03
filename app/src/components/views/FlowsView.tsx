@@ -187,7 +187,7 @@ export const FlowsView = () => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   {flow.icon ? (
-                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {flow.icon.includes("<svg") ||
                         flow.icon.includes("http") ? (
                         <div
@@ -203,7 +203,7 @@ export const FlowsView = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
                       <ListTree size={12} />
                     </div>
                   )}

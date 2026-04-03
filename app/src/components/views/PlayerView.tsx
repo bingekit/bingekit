@@ -476,7 +476,7 @@ export const PlayerView = () => {
                             `;
                   ahk.asyncCall('InjectJS', js);
                 } else {
-                  alert('No matching plugin or saved credentials found.');
+                  window.showToast('No matching plugin or saved credentials found.', 'error');
                 }
               }
             }}

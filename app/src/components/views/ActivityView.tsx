@@ -73,7 +73,7 @@ export const ActivityView = () => {
                   hasUpdate: false
                 }]);
               } else {
-                alert("Create a plugin first to track items.");
+                window.showToast("Create a plugin first to track items.", "error");
               }
             }}
             className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-900 px-4 py-2 rounded-full transition-colors"
@@ -177,8 +177,8 @@ export const ActivityView = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium text-white">{groupTitle}</h3>
-                  <button onClick={() => {
-                    if (confirm('Stop tracking this item across all sources?')) {
+                  <button onClick={async () => {
+                    if (await window.showConfirm('Stop tracking this item across all sources?')) {
                       setFollowedItems(followedItems.filter(i => (i.label || i.id) !== expandedItemId));
                       setExpandedItemId(null);
                     }
@@ -409,7 +409,7 @@ export const ActivityView = () => {
                             else if (pl.trackingFlows.length > 0) trackingConf = pl.trackingFlows[0];
                           }
                           if (!pl || !trackingConf || !window.SmartFetch) {
-                            alert("Cannot test extractor logic.");
+                            window.showToast("Cannot test extractor logic.", "error");
                             return;
                           }
                           const js = `
@@ -441,9 +441,9 @@ export const ActivityView = () => {
                   <div className="flex justify-end pt-4 border-t border-zinc-800 gap-3">
                     <button onClick={() => setIsAddingTracking(false)} className="px-4 py-2 rounded text-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-200">Cancel</button>
                     <button onClick={() => {
-                      if (!addTrackerState.siteId) { alert("Site ID is required"); return; }
-                      if (isIdMode && !addTrackerState.idValue) { alert("ID is required when in Pattern ID Mode"); return; }
-                      if (!isIdMode && !addTrackerState.url) { alert("URL is required"); return; }
+                      if (!addTrackerState.siteId) { window.showToast("Site ID is required", "error"); return; }
+                      if (isIdMode && !addTrackerState.idValue) { window.showToast("ID is required when in Pattern ID Mode", "error"); return; }
+                      if (!isIdMode && !addTrackerState.url) { window.showToast("URL is required", "error"); return; }
                       const finalUrl = getResolvedUrl();
                       let hostname = addTrackerState.title;
                       try { if (!hostname && finalUrl.startsWith('http')) hostname = new URL(finalUrl).hostname; } catch (e) { }

@@ -70,7 +70,7 @@ export const UserscriptsView = () => {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   {s.icon ? (
-                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {s.icon.includes('<svg') || s.icon.includes('http') ? (
                         <div className="w-3 h-3" dangerouslySetInnerHTML={{ __html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />` }} />
                       ) : (
@@ -78,7 +78,7 @@ export const UserscriptsView = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded bg-zinc-800/80 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
                       <Code size={12} />
                     </div>
                   )}

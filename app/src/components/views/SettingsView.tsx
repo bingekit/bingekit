@@ -721,7 +721,7 @@ export const SettingsView = () => {
                     <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Clear History</h3>
                     <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all recorded URLs.</p>
                   </div>
-                  <button onClick={() => { if (confirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs font-medium transition-colors border border-red-500/20">Clear History</button>
+                  <button onClick={async () => { if (await window.showConfirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs font-medium transition-colors border border-red-500/20">Clear History</button>
                 </div>
               </div>
 
@@ -756,8 +756,8 @@ export const SettingsView = () => {
                     <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all system cached objects created by plugins or scripts.</p>
                   </div>
                   <button
-                    onClick={() => {
-                      if (confirm('Are you sure you want to clear all system cache?')) {
+                    onClick={async () => {
+                      if (await window.showConfirm('Are you sure you want to clear all system cache?')) {
                         ahk.call('CacheClear');
                       }
                     }}
