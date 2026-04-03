@@ -46,10 +46,10 @@ MainGui_OnSize(*) {
     if (wW >= ScreenSize.width) {
         MainGui.Move(, , ScreenSize.width,)
     }
-    if ((wY + wH) > (ScreenSizeFull.height - wY)) {
-        MainGui.Move(, , , ScreenSizeFull.height - wY)
-    }
-    if ((wX + wW) > (ScreenSizeFull.width - wX)) {
-        MainGui.Move(, , ScreenSizeFull.width - wX,)
-    }
+    ;if ((wY + wH) > (ScreenSizeFull.height - wY)) {
+    ;    MainGui.Move(, , , ScreenSizeFull.height - wY)
+    ;}
+    ;if ((wX + wW) > (ScreenSizeFull.width - wX)) {
+    ;    MainGui.Move(, , ScreenSizeFull.width - wX,)
+    ;}
 }
