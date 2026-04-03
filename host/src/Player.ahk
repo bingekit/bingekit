@@ -80,6 +80,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
 
         if (!PlayerGuis.Has(id)) {
             PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+            PlayerGuis[id].BackColor := "09090b"
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
             PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
 
@@ -141,20 +142,33 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
                 ScreenX := CX + x
                 ScreenY := CY + y
 
-                PlayerWVs[id].wvc.IsVisible := 1
-                PlayerWVs[id].Move(0, 0, w, h)
-                PlayerWVs[id].wvc.Fill()
-
-                PlayerGuis[id].Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
-            }
-        } else {
-            if (PlayerGuis.Has(id)) {
-                if (PlayerWVs.Has(id)) {
+                try {
+                    WinGetPos(&currentX, &currentY, &currentW, &currentH, "ahk_id " PlayerGuis[id].Hwnd)
+                } catch {
+                    currentX := 0, currentY := 0, currentW := 0, currentH := 0
+                }
+                if (currentX != ScreenX || currentY != ScreenY || currentW != w || currentH != h) {
                     PlayerWVs[id].wvc.IsVisible := 1
                     PlayerWVs[id].Move(0, 0, w, h)
                     PlayerWVs[id].wvc.Fill()
+                    PlayerGuis[id].Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
                 }
-                PlayerGuis[id].Show("x-9999 y-9999 w" w " h" h " NA")
+            }
+        } else {
+            if (PlayerGuis.Has(id)) {
+                try {
+                    WinGetPos(&currentX, &currentY, &currentW, &currentH, "ahk_id " PlayerGuis[id].Hwnd)
+                } catch {
+                    currentX := 0, currentY := 0, currentW := 0, currentH := 0
+                }
+                if (currentX != -9999 || currentY != -9999 || currentW != w || currentH != h) {
+                    if (PlayerWVs.Has(id)) {
+                        PlayerWVs[id].wvc.IsVisible := 1
+                        PlayerWVs[id].Move(0, 0, w, h)
+                        PlayerWVs[id].wvc.Fill()
+                    }
+                    PlayerGuis[id].Show("x-9999 y-9999 w" w " h" h " NA")
+                }
             }
         }
     }

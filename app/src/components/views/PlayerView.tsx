@@ -20,6 +20,7 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
     const observer = new ResizeObserver(() => {
       if (slotRef.current) {
         const rect = slotRef.current.getBoundingClientRect();
+        if (rect.width < 50 || rect.height < 50) return;
         const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
         if (lastRectRef.current !== rectStr) {
           lastRectRef.current = rectStr;
@@ -30,14 +31,16 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
 
     observer.observe(slotRef.current);
     const rect = slotRef.current.getBoundingClientRect();
-    const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
-    lastRectRef.current = rectStr;
-    ahk.asyncCall('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+    if (rect.width >= 50 && rect.height >= 50) {
+      const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
+      lastRectRef.current = rectStr;
+      ahk.asyncCall('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+    }
 
     return () => {
       observer.disconnect();
       lastRectRef.current = '';
-      try { ahk.asyncCall('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch (err) { }
+      try { ahk.asyncCall('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), false, tabId); } catch (err) { }
     };
   }, [isVisuallyActive, tabId]);
 
