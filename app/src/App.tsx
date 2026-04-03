@@ -59,7 +59,7 @@ const MainLayout = () => {
         return newTabs;
       });
     };
-    
+
     const handleNewTabEvent = () => {
       navigateUrl(homePage || 'https://bingekit.app/start/', true);
     };
@@ -207,7 +207,7 @@ const MainLayout = () => {
 
       {/* --- Custom Titlebar (Draggable) --- */}
       <div id="titlebar-region" className={`flex flex-col drag-region select-none border-b ${isMultiTabEnabled ? 'h-[72px]' : 'h-10'}`}>
-        
+
         {isMultiTabEnabled && (
           <div className="flex-1 flex w-full items-end pl-3 pt-2">
             <div className="flex items-end gap-[2px] flex-1 overflow-x-auto no-scrollbar">
@@ -220,11 +220,10 @@ const MainLayout = () => {
                       setActiveTab('player');
                     }
                   }}
-                  className={`h-[32px] max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${
-                    activeBrowserTabId === tab.id 
-                      ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]' 
+                  className={`h-[32px] max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
+                      ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'
                       : 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border-transparent text-[var(--theme-titlebar-text)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] hover:text-[var(--theme-text-main)]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2 truncate opacity-90">
                     {tab.favicon ? (
@@ -232,7 +231,7 @@ const MainLayout = () => {
                     ) : (
                       <Globe size={14} className="opacity-70 flex-shrink-0" />
                     )}
-                    <span className="text-xs truncate font-medium tracking-wide">{tab.title || 'New Tab'}</span>
+                    <span className="text-xs truncate font-medium tracking-wide">{tab.title || tab.url}</span>
                   </div>
                   {browserTabs.length > 1 && (
                     <button
@@ -295,122 +294,122 @@ const MainLayout = () => {
 
           {/* URL Bar */}
           {activeTab === 'player' && (
-          <div className="flex-1 ml-2 flex items-center justify-start">
-            {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
-              <div className="flex items-center justify-start text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
-                {pageTitle || (() => {
-                  try { return new URL(url).hostname; } catch (e) { return url; }
-                })()}
-              </div>
-            ) : (
-              <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 h-7 w-full max-w-lg">
-                <div className="flex items-center px-2 gap-1 text-zinc-500 relative">
-                  {navButtons.home && (
-                    <div className="flex items-center">
-                      <TooltipWrapper text="Home">
-                        <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/start/'); setInputUrl(homePage || 'https://bingekit.app/start/'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
-                      </TooltipWrapper>
-                      {installedInterfaces.length > 0 && (
-                        <div className="relative flex items-center">
-                          <button
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); setShowInterfaces(!showInterfaces); }}
-                            className={`p-0.5 ml-0.5 transition-colors rounded ${showInterfaces ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}
-                          >
-                            <ChevronDown size={12} className={`transition-transform duration-200 ${showInterfaces ? 'rotate-180' : ''}`} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {navButtons.back && !showInterfaces && (
-                    <TooltipWrapper text="Go Back">
-                      <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
-                    </TooltipWrapper>
-                  )}
-                  {navButtons.forward && !showInterfaces && (
-                    <TooltipWrapper text="Go Forward">
-                      <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
-                    </TooltipWrapper>
-                  )}
-                  {navButtons.reload && !showInterfaces && (
-                    <TooltipWrapper text="Refresh">
-                      <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
-                    </TooltipWrapper>
-                  )}
+            <div className="flex-1 ml-2 flex items-center justify-start">
+              {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
+                <div className="flex items-center justify-start text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
+                  {pageTitle || (() => {
+                    try { return new URL(url).hostname; } catch (e) { return url; }
+                  })()}
                 </div>
+              ) : (
+                <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 h-7 w-full max-w-lg">
+                  <div className="flex items-center px-2 gap-1 text-zinc-500 relative">
+                    {navButtons.home && (
+                      <div className="flex items-center">
+                        <TooltipWrapper text="Home">
+                          <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/start/'); setInputUrl(homePage || 'https://bingekit.app/start/'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
+                        </TooltipWrapper>
+                        {installedInterfaces.length > 0 && (
+                          <div className="relative flex items-center">
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); setShowInterfaces(!showInterfaces); }}
+                              className={`p-0.5 ml-0.5 transition-colors rounded ${showInterfaces ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}
+                            >
+                              <ChevronDown size={12} className={`transition-transform duration-200 ${showInterfaces ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {navButtons.back && !showInterfaces && (
+                      <TooltipWrapper text="Go Back">
+                        <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
+                      </TooltipWrapper>
+                    )}
+                    {navButtons.forward && !showInterfaces && (
+                      <TooltipWrapper text="Go Forward">
+                        <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
+                      </TooltipWrapper>
+                    )}
+                    {navButtons.reload && !showInterfaces && (
+                      <TooltipWrapper text="Refresh">
+                        <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
+                      </TooltipWrapper>
+                    )}
+                  </div>
 
 
-                {!showInterfaces && (
-                  <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
-                )}
+                  {!showInterfaces && (
+                    <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
+                  )}
 
-                <div className="flex-1 flex items-center px-2 gap-2 overflow-hidden">
-                  {showInterfaces ? (
-                    <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar py-0.5 animate-in fade-in slide-in-from-left-2 duration-200">
-                      <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mr-1">Interfaces</span>
-                      {installedInterfaces.map(inf => (
-                        <button
-                          key={inf}
-                          type="button"
-                          onClick={() => {
-                            setShowInterfaces(false);
-                            setUrl(`interface:${inf}`);
-                            setInputUrl(`interface:${inf}`);
-                          }}
-                          className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
-                        >
-                          {inf}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
+                  <div className="flex-1 flex items-center px-2 gap-2 overflow-hidden">
+                    {showInterfaces ? (
+                      <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar py-0.5 animate-in fade-in slide-in-from-left-2 duration-200">
+                        <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mr-1">Interfaces</span>
+                        {installedInterfaces.map(inf => (
+                          <button
+                            key={inf}
+                            type="button"
+                            onClick={() => {
+                              setShowInterfaces(false);
+                              setUrl(`interface:${inf}`);
+                              setInputUrl(`interface:${inf}`);
+                            }}
+                            className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
+                          >
+                            {inf}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <Search size={12} className="text-zinc-500 flex-shrink-0" />
+                        <input
+                          type="text"
+                          value={inputUrl}
+                          onChange={(e) => setInputUrl(e.target.value)}
+                          placeholder="Search streams or enter URL..."
+                          className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  {!showInterfaces && (
                     <>
-                      <Search size={12} className="text-zinc-500 flex-shrink-0" />
-                      <input
-                        type="text"
-                        value={inputUrl}
-                        onChange={(e) => setInputUrl(e.target.value)}
-                        placeholder="Search streams or enter URL..."
-                        className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
-                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!bookmarks.find(b => b.url === url)) {
+                            setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
+                          }
+                        }}
+                        className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
+                        title="Bookmark"
+                      >
+                        <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!watchLater.find(w => w.url === url)) {
+                            setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
+                          }
+                        }}
+                        className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
+                        title="Watch Later"
+                      >
+                        <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
+                      </button>
                     </>
                   )}
-                </div>
-
-                {!showInterfaces && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!bookmarks.find(b => b.url === url)) {
-                          setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
-                        }
-                      }}
-                      className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
-                      title="Bookmark"
-                    >
-                      <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!watchLater.find(w => w.url === url)) {
-                          setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
-                        }
-                      }}
-                      className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
-                      title="Watch Later"
-                    >
-                      <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
-                    </button>
-                  </>
-                )}
-              </form>
-            )}
-          </div>
-        )}
+                </form>
+              )}
+            </div>
+          )}
 
           {/* Window Controls (Normal titlebar only) */}
           {!isMultiTabEnabled && (
@@ -454,7 +453,7 @@ const MainLayout = () => {
               </TooltipWrapper>
             </div>
           )}
-          
+
           {/* Quick controls that always show */}
           {isMultiTabEnabled && activeTab === 'player' && (
             <div className="flex items-center no-drag ml-auto">
@@ -475,7 +474,7 @@ const MainLayout = () => {
                   </TooltipWrapper>
                 </div>
               )}
-              
+
               {isPlaying && (
                 <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -588,7 +587,7 @@ const MainLayout = () => {
             {activeTab === 'settings' && <SettingsView />}
             {activeTab === 'config' && <SettingsView />}
             <div className={`w-full h-full absolute inset-0 ${activeTab === 'player' ? 'z-0' : 'pointer-events-none opacity-0 z-[-1]'}`}>
-               <PlayerView />
+              <PlayerView />
             </div>
           </div>
         </div>

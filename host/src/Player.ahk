@@ -109,6 +109,10 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
             PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
             try {
+                PlayerWVs[id].wv.add_DocumentTitleChanged(AHK_PlayerTitleChanged)
+            } catch {
+            }
+            try {
                 PlayerWVs[id].wv.add_DownloadStarting(AHK_DownloadStarting)
             } catch {
             }
@@ -217,6 +221,25 @@ AHK_PlayerFullscreenChanged(ICoreWebView2, *) {
             PlayerWVs[foundId].Move(0, 0, PlayerRects[foundId].w, PlayerRects[foundId].h)
             PlayerWVs[foundId].wvc.Fill()
         }
+    } catch {
+    }
+}
+
+AHK_PlayerTitleChanged(ICoreWebView2, *) {
+    global PlayerWVs
+    foundId := ""
+    for id, pwv in PlayerWVs {
+        if (pwv.wv.ptr == ICoreWebView2.ptr) {
+            foundId := id
+            break
+        }
+    }
+    if (foundId == "")
+        return
+
+    try {
+        title := ICoreWebView2.DocumentTitle
+        AHK_ReportPlayerStatus("unknown", false, title, foundId)
     } catch {
     }
 }

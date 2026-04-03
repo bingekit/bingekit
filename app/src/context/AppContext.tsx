@@ -118,7 +118,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange] = useState(true);
   const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
-  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/', title: 'New Tab' }]);
+  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/' }]);
   const [activeBrowserTabId, setActiveBrowserTabId] = useState('main');
   const [tilingMode, setTilingMode] = useState<'none' | 'split-hz' | 'split-vt' | 'grid'>('none');
   const activeBrowserTabIdRef = useRef('main');
@@ -133,8 +133,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     activeBrowserTabIdRef.current = activeBrowserTabId;
-    try { ahk.call('SetActiveTabId', activeBrowserTabId); } catch(e) {}
-    
+    try { ahk.call('SetActiveTabId', activeBrowserTabId); } catch (e) { }
+
     // Sync the global URL states to the active tab's preserved URL
     const activeTabObj = browserTabs.find(t => t.id === activeBrowserTabId);
     if (activeTabObj) {
@@ -231,7 +231,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (previousTabIdRef.current !== activeBrowserTabId) {
       previousTabIdRef.current = activeBrowserTabId;
-      return; 
+      return;
     }
 
     if (activeTab === 'player') {
@@ -267,7 +267,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           if (tabIdx >= 0) {
             newTabs[tabIdx] = { ...newTabs[tabIdx], url: reportedUrl, inputUrl: reportedUrl };
           } else {
-            newTabs.push({ id: eventTabId, url: reportedUrl, inputUrl: reportedUrl, title: 'New Tab' });
+            newTabs.push({ id: eventTabId, url: reportedUrl, inputUrl: reportedUrl });
           }
           return newTabs;
         });
@@ -292,23 +292,41 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const handleStatusUpdate = (e: any) => {
       if (e.detail) {
         const eventTabId = e.detail.tabId || 'main';
-        if (e.detail.title !== undefined && e.detail.title !== '') {
-          setBrowserTabs(prev => {
-            const newTabs = [...prev];
-            const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
-            if (tabIdx >= 0) {
-              newTabs[tabIdx] = { ...newTabs[tabIdx], title: e.detail.title };
-            }
-            return newTabs;
-          });
+
+        let safeTitle = e.detail.title;
+        if (!safeTitle || safeTitle.trim() === '') {
+          safeTitle = '';
+        } else {
+          if (safeTitle.startsWith('blank.localhost/#')) {
+            safeTitle = safeTitle.substring('blank.localhost/#'.length);
+          } else if (safeTitle.startsWith('http://blank.localhost/#')) {
+            safeTitle = safeTitle.substring('http://blank.localhost/#'.length);
+          }
+          if (safeTitle.startsWith('interface.localhost/')) {
+            safeTitle = safeTitle.substring('interface.localhost/'.length).replace(/\/index\.html?$/i, '').replace(/\/$/, '');
+          }
+          if (safeTitle === 'blank.localhost' || safeTitle.startsWith('blank.localhost/')) {
+            //safeTitle = 'New Tab';
+          }
+          if (safeTitle === 'about:blank' || safeTitle === 'err://' || safeTitle.startsWith('data:')) {
+            //safeTitle = 'New Tab';
+          }
         }
+
+        setBrowserTabs(prev => {
+          const newTabs = [...prev];
+          const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
+          if (tabIdx >= 0) {
+            newTabs[tabIdx] = { ...newTabs[tabIdx], title: safeTitle };
+          }
+          return newTabs;
+        });
+
         if (eventTabId === activeBrowserTabIdRef.current) {
           if (e.detail.authStatus !== undefined) setAuthStatus(e.detail.authStatus);
           if (e.detail.hasPlayer !== undefined) setPlayerStatus(e.detail.hasPlayer ? 'found' : 'notFound');
-          if (e.detail.title !== undefined && e.detail.title !== '') {
-            setPageTitle(e.detail.title);
-            pageTitleRef.current = e.detail.title;
-          }
+          setPageTitle(safeTitle);
+          pageTitleRef.current = safeTitle;
         }
       }
     };
@@ -608,11 +626,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedThreadLimit) { try { setSearchThreadLimit(parseInt(savedThreadLimit) || 5); } catch (e) { } }
 
     const savedHomePage = ahk.call('LoadData', 'home_page.txt');
+    const computedHomeUrl = savedHomePage || 'https://bingekit.app/start/';
     if (savedHomePage) {
       setHomePage(savedHomePage);
       setUrl(savedHomePage);
       setInputUrl(savedHomePage);
     }
+    setBrowserTabs(prev => [{ ...prev[0], url: computedHomeUrl, inputUrl: computedHomeUrl }]);
+    ahk.call('UpdatePlayerUrl', computeNavUrl(computedHomeUrl), 'main');
+    lastSyncUrls.current['main'] = computedHomeUrl;
 
     const savedNavButtons = ahk.call('LoadData', 'nav_buttons.json');
     if (savedNavButtons) {
@@ -1095,8 +1117,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       const result = ahk.call("RawFetchHTML", pluginRepoUrl);
       if (result) {
         const repoData = JSON.parse(result);
-        const updates: {id: string, zipUrl: string}[] = [];
-        
+        const updates: { id: string, zipUrl: string }[] = [];
+
         repoData.plugins?.forEach((rp: any) => {
           const local = plugins.find(lp => lp.id === rp.id);
           if (local && local.version && rp.version && local.version !== rp.version && rp.zipUrl) {
@@ -1114,13 +1136,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
               if (success === "true" || success === true || success === 1) installedAny = true;
             });
             if (installedAny) {
-               loadPlugins();
-               setPluginUpdateCount(0);
+              loadPlugins();
+              setPluginUpdateCount(0);
             }
           }, 100);
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const navigateUrl = (targetUrl: string, inNewTab: boolean = false, isBackground: boolean = false) => {
@@ -1141,7 +1163,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (inNewTab) {
       const newId = Date.now().toString();
-      setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl, title: 'New Tab' }]);
+      setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl }]);
       lastSyncUrls.current[newId] = finalUrl;
       ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
       if (!isBackground) {
@@ -1380,8 +1402,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const isInitialPluginCheck = useRef(false);
   useEffect(() => {
     if (autoCheckPluginUpdates && plugins.length > 0 && !isInitialPluginCheck.current) {
-        isInitialPluginCheck.current = true;
-        checkPluginUpdates();
+      isInitialPluginCheck.current = true;
+      checkPluginUpdates();
     }
   }, [plugins.length, autoCheckPluginUpdates, pluginRepoUrl]);
 
