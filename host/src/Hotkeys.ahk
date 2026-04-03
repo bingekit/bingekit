@@ -56,6 +56,10 @@ Escape::
         }
     }
 }
+!F4::
+{
+    ExitApp()
+}
 ^w::
 {
     global MainGui

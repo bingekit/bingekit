@@ -83,6 +83,7 @@ InitEnvironment() {
     }
 
     MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
+    MainGui.OnEvent("Close", (*) => ExitApp())
 
     ; Initialize WebViewToo
     WV := MainGui.Control.wv
