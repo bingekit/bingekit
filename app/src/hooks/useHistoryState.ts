@@ -93,7 +93,7 @@ export function useHistoryState(
           }
           const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
           const rawTitle = pageTitleRef.current || fetchTitleForUrl(url) || host;
-          const cleanTitle = rawTitle.replace(/[^\\x20-\\x7E]/g, "").trim();
+          const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
           const newItem: HistoryItem = {
             id: Date.now().toString(),
             url,
