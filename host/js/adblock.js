@@ -18,7 +18,7 @@
 
     let adKeywords = ['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'];
     let redirectKeywords = ['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'];
-    let inlineKeywords = ['debugger', 'dstate', 'eval'];
+    let inlineKeywords = ['debugger', 'eval', 'gtag'];
 
     try {
         const customRulesStr = window.chrome.webview.hostObjects.sync.ahk.GetSiteBlockers();
@@ -40,20 +40,21 @@
 
     function isAdScript(src) {
         if (!src) return false;
-        const lowerSrc = src.toLowerCase();
+        const lowerSrc = src.toString().toLowerCase();
         return adKeywords.some(keyword => lowerSrc.includes(keyword));
     }
 
     function isBadRedirect(url) {
         if (!url) return false;
-        const lowerUrl = url.toLowerCase();
+        const lowerUrl = url.toString().toLowerCase();
         return redirectKeywords.some(keyword => lowerUrl.includes(keyword));
     }
 
     function isBadInlineScript(text) {
         if (!text) return false;
-        const lowerText = text.toLowerCase();
-        return inlineKeywords.some(keyword => lowerText.includes(keyword));
+        const lowerText = text.toString().toLowerCase();
+
+        return inlineKeywords.filter(keyword => lowerText.includes(keyword));
     }
 
     // 1. Block Popups immediately
@@ -92,8 +93,9 @@
     // 3. Intercept dynamic DOM insertions (Catches inline scripts before execution)
     const originalAppendChild = Node.prototype.appendChild;
     Node.prototype.appendChild = function (node) {
-        if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent)))) {
-            console.log("BingeKit AdBlock: Blocked script via appendChild");
+        const badMatches = isBadInlineScript(node.textContent);
+        if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && badMatches.length > 0))) {
+            console.log("BingeKit AdBlock: Blocked script via appendChild", badMatches);
             return node; // Return node to prevent breaking calling scripts
         }
         return originalAppendChild.call(this, node);
@@ -101,8 +103,9 @@
 
     const originalInsertBefore = Node.prototype.insertBefore;
     Node.prototype.insertBefore = function (node, referenceNode) {
-        if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent)))) {
-            console.log("BingeKit AdBlock: Blocked script via insertBefore");
+        const badMatches = isBadInlineScript(node.textContent);
+        if (node.nodeName === 'SCRIPT' && (isAdScript(node.src) || (!node.src && badMatches.length > 0))) {
+            console.log("BingeKit AdBlock: Blocked script via insertBefore", badMatches);
             return node;
         }
         return originalInsertBefore.call(this, node, referenceNode);
@@ -112,8 +115,9 @@
     if (originalInnerHTML) {
         Object.defineProperty(Element.prototype, 'innerHTML', {
             set: function (value) {
-                if (typeof value === 'string' && isBadInlineScript(value)) {
-                    console.log("BingeKit AdBlock: Blocked innerHTML injection");
+                const badMatches = isBadInlineScript(value);
+                if (typeof value === 'string' && badMatches.length > 0) {
+                    console.log("BingeKit AdBlock: Blocked innerHTML injection", badMatches);
                     return; // Drop the entire assignment
                 }
                 originalInnerHTML.set.call(this, value);
@@ -124,8 +128,9 @@
 
     const originalWrite = document.write;
     document.write = function (content) {
-        if (typeof content === 'string' && isBadInlineScript(content)) {
-            console.log("BingeKit AdBlock: Blocked document.write injection");
+        const badMatches = isBadInlineScript(content);
+        if (typeof content === 'string' && badMatches.length > 0) {
+            console.log("BingeKit AdBlock: Blocked document.write injection", badMatches);
             return;
         }
         originalWrite.call(document, content);
@@ -133,8 +138,9 @@
 
     const originalWriteln = document.writeln;
     document.writeln = function (content) {
-        if (typeof content === 'string' && isBadInlineScript(content)) {
-            console.log("BingeKit AdBlock: Blocked document.writeln injection");
+        const badMatches = isBadInlineScript(content);
+        if (typeof content === 'string' && badMatches.length > 0) {
+            console.log("BingeKit AdBlock: Blocked document.writeln injection", badMatches);
             return;
         }
         originalWriteln.call(document, content);
@@ -145,10 +151,11 @@
         for (const mutation of mutations) {
             for (const node of mutation.addedNodes) {
                 if (node.tagName === 'SCRIPT') {
-                    if (isAdScript(node.src) || (!node.src && isBadInlineScript(node.textContent))) {
+                    const badMatches = isBadInlineScript(node.textContent);
+                    if (isAdScript(node.src) || (!node.src && badMatches.length > 0)) {
                         node.type = 'javascript/blocked';
                         node.remove();
-                        console.log("BingeKit AdBlock: Removed script via MutationObserver:", node.src || "[Inline Script]");
+                        console.log("BingeKit AdBlock: Removed script via MutationObserver:", node.src || "[Inline Script]", badMatches);
                     }
                 }
                 else if (node.tagName === 'META' && node.httpEquiv && node.httpEquiv.toLowerCase() === 'refresh') {
@@ -160,10 +167,12 @@
                 else if (node.nodeType === Node.ELEMENT_NODE) {
                     const scripts = node.querySelectorAll('script');
                     for (const script of scripts) {
-                        if (isAdScript(script.src) || (!script.src && isBadInlineScript(script.textContent))) {
+                        const badMatches = isBadInlineScript(script.textContent);
+                        if (isAdScript(script.src) || (!script.src && badMatches.length > 0)) {
                             script.type = 'javascript/blocked';
                             script.remove();
-                            console.log("BingeKit AdBlock: Removed nested script via MutationObserver:", script.src || "[Inline Script]");
+                            console.log("BingeKit AdBlock: Removed nested script via MutationObserver:", script.src)
+                            console.log("[Inline Script]", badMatches);
                         }
                     }
                 }

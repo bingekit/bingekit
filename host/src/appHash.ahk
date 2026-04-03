@@ -1,3 +1,3 @@
-global AppHash := "d8e56c03f021d1183ce0b5dbc8f563d3"
+global AppHash := "22e1dd7fe0c7effe7c7f2e0f9f3d01c2"
 global GlobalHash := "e26f0230b0dc72f60f74e759bfc143dc"
-global AdblockHash := "3398f53f0a73ada6f8bef124d6d440bc"
+global AdblockHash := "ee119c2ce8f88b0835eee6786dca4c65"

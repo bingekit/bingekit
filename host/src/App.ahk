@@ -4,7 +4,7 @@ global WV := ""
 InitAppGui() {
     global MainGui, WV, WebViewSettings, SplashGui
     global AboutConfig_AllowRightClick, AboutConfig_AllowDevtools
-    
+
     try {
         MainGui := WebViewGui("+Resize -Caption", "BingeKit", , WebViewSettings)
     } catch as err {
@@ -54,5 +54,46 @@ InitAppGui() {
     }
     if DirExist(downloadsLoc) {
         try MainGui.Control.BrowseFolder(downloadsLoc, "downloads.localhost")
+    }
+}
+
+OnExit(AHK_AggressiveCleanup)
+
+AHK_AggressiveCleanup(*) {
+    global WV, PlayerWVs
+    pids := Map()
+
+    try {
+        if (WV) {
+            pid := WV.BrowserProcessId
+            if (pid) {
+                pids[pid] := true
+            }
+        }
+    } catch {
+    }
+
+    try {
+        if (PlayerWVs) {
+            for id, pwv in PlayerWVs {
+                try {
+                    if (pwv && pwv.wv) {
+                        pid := pwv.wv.BrowserProcessId
+                        if (pid) {
+                            pids[pid] := true
+                        }
+                    }
+                } catch {
+                }
+            }
+        }
+    } catch {
+    }
+
+    for pid, _ in pids {
+        try {
+            ProcessClose(pid)
+        } catch {
+        }
     }
 }
