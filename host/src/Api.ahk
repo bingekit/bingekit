@@ -4,7 +4,7 @@ global AdblockScript := ""
 if (A_IsCompiled) {
     WebViewCtrl.CreateFileFromResource("js\global.js", WebViewCtrl.TempDir)
     WebViewCtrl.CreateFileFromResource("js\adblock.js", WebViewCtrl.TempDir)
-    
+
     if (IsSet(GlobalHash) && GlobalHash != "") {
         if (SplashStatus)
             SplashStatus.Text := "VERIFYING GLOBAL SCRIPT"
@@ -15,7 +15,7 @@ if (A_IsCompiled) {
             ExitApp()
         }
     }
-    
+
     if (IsSet(AdblockHash) && AdblockHash != "") {
         if (SplashStatus)
             SplashStatus.Text := "VERIFYING ADBLOCK SCRIPT"
@@ -61,7 +61,7 @@ AHK_HideSplash(*) {
         SplashGui.Destroy()
         SplashGui := ""
         MainGui.Show("w1280 h800 center")
-        MainGui.Opt("+MinSize850x450")
+        MainGui.Opt("+MinSize" . MinWidth . "x" . MinHeight)
         WinSetTransparent(255, MainGui.Hwnd)
     }
 }
@@ -92,7 +92,7 @@ DoSelectFolder(id) {
     }
 }
 
-AHK_InjectJS(js, tabId:="") {
+AHK_InjectJS(js, tabId := "") {
     global WV, PlayerGuis, PlayerWVs, ActiveTabId
     WV.ExecuteScriptAsync(js)
     if (tabId == "")
@@ -102,7 +102,7 @@ AHK_InjectJS(js, tabId:="") {
     }
 }
 
-AHK_EvalPlayerJS(js, tabId:="") {
+AHK_EvalPlayerJS(js, tabId := "") {
     global PlayerGuis, PlayerWVs, ActiveTabId
     if (tabId == "")
         tabId := ActiveTabId
@@ -141,11 +141,11 @@ AHK_HideTooltip(*) {
 
 global IsPiPMode := false
 
-AHK_TogglePiP(tabId:="main") {
+AHK_TogglePiP(tabId := "main") {
     global IsPiPMode, MainGui, PlayerGuis, PlayerWVs, ActiveTabId, PlayerRects
     if (tabId == "main")
         tabId := ActiveTabId
-    
+
     if (!PlayerGuis.Has(tabId) || !PlayerWVs.Has(tabId))
         return
 
@@ -334,11 +334,11 @@ AHK_TogglePiP(tabId:="main") {
     }
 }
 
-AHK_ResizePiP(vw, vh, tabId:="main") {
+AHK_ResizePiP(vw, vh, tabId := "main") {
     global PlayerGuis, PlayerWVs, ActiveTabId, IsPiPMode
     if (tabId == "main")
         tabId := ActiveTabId
-    
+
     if (!PlayerGuis.Has(tabId) || !PlayerWVs.Has(tabId))
         return
 
@@ -359,7 +359,7 @@ AHK_ResizePiP(vw, vh, tabId:="main") {
     }
 }
 
-AHK_DragMove(tabId:="main") {
+AHK_DragMove(tabId := "main") {
     global PlayerGuis, ActiveTabId, IsPiPMode
     if (tabId == "main")
         tabId := ActiveTabId
@@ -372,7 +372,7 @@ AHK_DragMove(tabId:="main") {
     }
 }
 
-AHK_ResizeEdge(dir, tabId:="main") {
+AHK_ResizeEdge(dir, tabId := "main") {
     global PlayerGuis, ActiveTabId, IsPiPMode
     if (tabId == "main")
         tabId := ActiveTabId
@@ -449,39 +449,39 @@ global TabMenuTextHoverColor := ""
 
 AHK_ShowTabContextMenu(tabId, x, y, isMuted, bgC, hoverC, borderC, textC, textHoverC, tabCount := 2) {
     global TabMenuGui, MainGui, TabMenuHoverColor, TabMenuBgColor, TabMenuTextCtrls, TabMenuCallbacks, TabMenuTextColor, TabMenuTextHoverColor
-    
+
     if (TabMenuGui) {
         try TabMenuGui.Destroy()
     }
-    
+
     TabMenuBgColor := StrReplace(bgC, "#", "")
     TabMenuHoverColor := StrReplace(hoverC, "#", "")
     borderHex := StrReplace(borderC, "#", "")
     TabMenuTextColor := StrReplace(textC, "#", "")
     TabMenuTextHoverColor := StrReplace(textHoverC, "#", "")
-    
+
     TabMenuGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" MainGui.Hwnd " +Border")
     TabMenuGui.MarginX := 0
     TabMenuGui.MarginY := 4
     TabMenuGui.BackColor := TabMenuBgColor
-    
+
     TabMenuTextCtrls := []
     TabMenuCallbacks := []
-    
+
     if (tabCount > 1) {
         AddTabMenuItem(TabMenuTextColor, "  Close Tab", "close", tabId)
         AddTabMenuItem(TabMenuTextColor, "  Close Tabs to the Right", "closeRight", tabId)
         AddTabMenuItem(TabMenuTextColor, "  Close Other Tabs", "closeOthers", tabId)
         TabMenuGui.Add("Text", "w180 h1 x0 y+4 Background" borderHex, "")
     }
-    
+
     AddTabMenuItem(TabMenuTextColor, (isMuted = "true" || isMuted = 1 || isMuted = true) ? "  Unmute Tab" : "  Mute Tab", "toggleMute", tabId)
-    
+
     OnMessage(0x0200, TabMenuHoverHandler)
-    
+
     ; Adjust Y to not spawn directly under cursor, preventing accidental clicks
     TabMenuGui.Show("x" x " y" y " w180 NoActivate")
-    
+
     SetTimer(CheckTabMenuClickOutside, 50)
 }
 
@@ -490,7 +490,7 @@ AddTabMenuItem(textC, txt, action, tabId) {
     hText := TabMenuGui.Add("Text", "w180 h28 x0 y+0 c" textC " Background" TabMenuBgColor " +0x200", txt)
     hText.SetFont("s9", "Segoe UI")
     TabMenuTextCtrls.Push(hText)
-    
+
     idx := TabMenuCallbacks.Length + 1
     TabMenuCallbacks.Push(() => SendTabContextAction(action, tabId))
     hText.OnEvent("Click", ((i, *) => ExecuteTabMenuAction(i)).Bind(idx))
@@ -500,13 +500,13 @@ TabMenuHoverHandler(wParam, lParam, msg, hwnd) {
     global TabMenuGui, TabMenuTextCtrls, TabMenuBgColor, TabMenuHoverColor, TabMenuTextColor, TabMenuTextHoverColor
     if (!TabMenuGui)
         return
-        
+
     static lastHoverHwnd := 0
     if (hwnd == lastHoverHwnd)
         return
-        
+
     lastHoverHwnd := hwnd
-    
+
     for ctrl in TabMenuTextCtrls {
         if (ctrl.Hwnd == hwnd) {
             ctrl.Opt("Background" TabMenuHoverColor)
@@ -523,7 +523,7 @@ TabMenuHoverHandler(wParam, lParam, msg, hwnd) {
 ExecuteTabMenuAction(idx) {
     global TabMenuCallbacks, TabMenuGui
     try TabMenuCallbacks[idx]()
-    
+
     if (TabMenuGui) {
         try TabMenuGui.Destroy()
         TabMenuGui := ""
@@ -547,7 +547,7 @@ CheckTabMenuClickOutside() {
         OnMessage(0x0200, TabMenuHoverHandler, 0)
         return
     }
-    
+
     ; Check if window lost focus
     if (!WinActive("ahk_id " MainGui.Hwnd) && !WinActive("ahk_id " TabMenuGui.Hwnd)) {
         try TabMenuGui.Destroy()
@@ -558,7 +558,7 @@ CheckTabMenuClickOutside() {
     }
 
     if (GetKeyState("LButton", "P") || GetKeyState("RButton", "P")) {
-        MouseGetPos(,, &hWnd)
+        MouseGetPos(, , &hWnd)
         if (hWnd != TabMenuGui.Hwnd) {
             try TabMenuGui.Destroy()
             TabMenuGui := ""

@@ -1,4 +1,7 @@
 #Requires AutoHotkey v2.0
+
+#Include src\const.ahk
+
 #Include Lib\WebViewToo.ahk
 #Include Lib\Promise.ahk
 #Include Lib\JSON.ahk
@@ -24,12 +27,12 @@ InitEnvironment()
 #Include src\Updater.ahk
 
 ; Enable Window Message hooks for custom titlebar dragging & PiP
-#Include src\Hooks.ahk
+#Include src\MoveSize.ahk
 
 ; 4. Interop Setup: Expose AHK functions to the WebView (JavaScript)
 #Include src\api_expose.ahk
 
-#Include src\Splash.ahk
+#Include src\Startup.ahk
 
 #Include src\Hotkeys.ahk
 
