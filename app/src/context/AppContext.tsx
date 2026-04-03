@@ -114,20 +114,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSearching, setIsSearching] = useState(false);
   const pageTitleRef = useRef<string>('');
   const playerRef = useRef<HTMLDivElement>(null);
-  
+
   const navigateQueue = useRef<Array<() => void>>([]);
   const isNavigatingQueue = useRef(false);
 
   const processNavigateQueue = async () => {
     if (isNavigatingQueue.current || navigateQueue.current.length === 0) return;
     isNavigatingQueue.current = true;
-    
-    while(navigateQueue.current.length > 0) {
+
+    while (navigateQueue.current.length > 0) {
       const task = navigateQueue.current.shift();
       if (task) {
-         task();
-         // Give host app time to create the COM object and process its event loop
-         await new Promise(r => setTimeout(r, 450)); 
+        task();
+        // Give host app time to create the COM object and process its event loop
+        await new Promise(r => setTimeout(r, 250));
       }
     }
     isNavigatingQueue.current = false;
@@ -174,7 +174,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     settings.setNetworkFilters,
     [], // credentials temp empty, filled by history
     [], // followed temp empty, filled by history
-    () => {}, // setFollowedItems temp empty
+    () => { }, // setFollowedItems temp empty
     settings.pluginRepoUrl,
     settings.autoCheckPluginUpdates,
     settings.autoUpdatePlugins,
@@ -188,7 +188,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Patch references
   useEffect(() => {
-    plugins.plugins.forEach(() => {}); // trigger re-render if needed
+    plugins.plugins.forEach(() => { }); // trigger re-render if needed
   }, [plugins.plugins]);
 
   const navigateUrl = (targetUrl: string, inNewTab: boolean = false, isBackground: boolean = false) => {
@@ -224,7 +224,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setUrl(finalUrl);
       setInputUrl(finalUrl);
       general.setActiveTab('player');
-      
+
       tabs.setBrowserTabs(prev => {
         const newTabs = [...prev];
         const idx = newTabs.findIndex(t => t.id === tabs.activeBrowserTabId);
@@ -260,18 +260,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const initHistorySystem = async () => {
       const savedHistory = ahk.call('LoadData', 'history.json');
       if (savedHistory) {
-         try {
-           const legacyParsed = JSON.parse(savedHistory);
-           if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
-              await bulkAddHistory(legacyParsed);
-           }
-           ahk.call('DeleteData', 'history.json');
-         } catch(e) {}
+        try {
+          const legacyParsed = JSON.parse(savedHistory);
+          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+            await bulkAddHistory(legacyParsed);
+          }
+          ahk.call('DeleteData', 'history.json');
+        } catch (e) { }
       }
       try {
         const idbHistory = await getHistory(2000);
         history.setHistory(idbHistory);
-      } catch (e) {}
+      } catch (e) { }
     };
     initHistorySystem();
 
@@ -441,7 +441,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { }
 
     setTimeout(() => ahk.call('HideSplash'), 500);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const runFlowWithDefaults = (flow: CustomFlow, initialUrl?: string) => plugins.runFlow(flow, multiSearchQuery, initialUrl || url, {});

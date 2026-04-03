@@ -54,7 +54,7 @@ global guiPath := ""
 if (InStr(AppStartupUrl, "gui.localhost")) {
     guiPath := StrReplace(AppStartupUrl, "http://gui.localhost", A_IsCompiled ? WebViewCtrl.TempDir "\gui" : A_ScriptDir "\gui")
     guiPath := StrReplace(guiPath, "/", "\")
-    
+
     if (AppHash != "") {
         SplashStatus.Text := "VERIFYING APPLICATION INTEGRITY"
         Sleep(-1) ; Yield for repaint
@@ -73,11 +73,6 @@ if (InStr(AppStartupUrl, "gui.localhost")) {
 SplashStatus.Text := A_IsCompiled ? "LOADING COMPILED UI BUNDLE" : "WAITING FOR FRONTEND BUILDER (MAY TAKE 10s)"
 Sleep(-1) ; Yield for repaint
 
-if (guiPath != "") {
-    appSrc := FileRead(guiPath)
-    WV.NavigateToString(appSrc)
-} else {
-    WV.Navigate(AppStartupUrl)
-}
+WV.Navigate(AppStartupUrl)
 MainGui.Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
 WinSetTransparent(0, MainGui.Hwnd)
