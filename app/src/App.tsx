@@ -35,7 +35,7 @@ const MainLayout = () => {
     isQuickOptionsHidden, setIsQuickOptionsHidden, pageTitle, homePage,
     navButtons, installedInterfaces, activeDownloads, pluginUpdateCount,
     isMultiTabEnabled, browserTabs, setBrowserTabs, activeBrowserTabId, setActiveBrowserTabId,
-    tilingMode, setTilingMode, navigateUrl
+    tilingMode, setTilingMode, navigateUrl, autoFocusPlayerOnTabChange, ctrlClickBackgroundTab
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -214,7 +214,12 @@ const MainLayout = () => {
               {browserTabs.map(tab => (
                 <div
                   key={tab.id}
-                  onClick={() => setActiveBrowserTabId(tab.id)}
+                  onClick={(e) => {
+                    setActiveBrowserTabId(tab.id);
+                    if (autoFocusPlayerOnTabChange && activeTab !== 'player') {
+                      setActiveTab('player');
+                    }
+                  }}
                   className={`h-[32px] max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${
                     activeBrowserTabId === tab.id 
                       ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]' 

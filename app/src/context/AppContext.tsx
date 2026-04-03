@@ -77,12 +77,14 @@ interface AppContextType {
   pluginUpdateCount: number; setPluginUpdateCount: React.Dispatch<React.SetStateAction<number>>;
   autoCheckPluginUpdates: boolean; setAutoCheckPluginUpdates: React.Dispatch<React.SetStateAction<boolean>>;
   autoUpdatePlugins: boolean; setAutoUpdatePlugins: React.Dispatch<React.SetStateAction<boolean>>;
+  autoFocusPlayerOnTabChange: boolean; setAutoFocusPlayerOnTabChange: React.Dispatch<React.SetStateAction<boolean>>;
+  ctrlClickBackgroundTab: boolean; setCtrlClickBackgroundTab: React.Dispatch<React.SetStateAction<boolean>>;
   checkPluginUpdates: () => Promise<void>;
   isMultiTabEnabled: boolean; setIsMultiTabEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   browserTabs: { id: string, url: string, inputUrl: string, title?: string }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string }[]>>;
   activeBrowserTabId: string; setActiveBrowserTabId: React.Dispatch<React.SetStateAction<string>>;
   tilingMode: 'none' | 'split-hz' | 'split-vt' | 'grid'; setTilingMode: React.Dispatch<React.SetStateAction<'none' | 'split-hz' | 'split-vt' | 'grid'>>;
-  navigateUrl: (targetUrl: string, inNewTab?: boolean) => void;
+  navigateUrl: (targetUrl: string, inNewTab?: boolean, isBackground?: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -113,6 +115,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [pluginUpdateCount, setPluginUpdateCount] = useState(0);
   const [autoCheckPluginUpdates, setAutoCheckPluginUpdates] = useState(true);
   const [autoUpdatePlugins, setAutoUpdatePlugins] = useState(false);
+  const [autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange] = useState(true);
+  const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
   const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/', title: 'New Tab' }]);
   const [activeBrowserTabId, setActiveBrowserTabId] = useState('main');
@@ -637,6 +641,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsed.PluginRepoUrl !== undefined) setPluginRepoUrl(parsed.PluginRepoUrl);
         if (parsed.AutoCheckPluginUpdates !== undefined) setAutoCheckPluginUpdates(parsed.AutoCheckPluginUpdates);
         if (parsed.AutoUpdatePlugins !== undefined) setAutoUpdatePlugins(parsed.AutoUpdatePlugins);
+        if (parsed.AutoFocusPlayerOnTabChange !== undefined) setAutoFocusPlayerOnTabChange(parsed.AutoFocusPlayerOnTabChange);
+        if (parsed.CtrlClickBackgroundTab !== undefined) setCtrlClickBackgroundTab(parsed.CtrlClickBackgroundTab);
       }
     } catch (e) { }
 
@@ -1108,7 +1114,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) {}
   };
 
-  const navigateUrl = (targetUrl: string, inNewTab: boolean = false) => {
+  const navigateUrl = (targetUrl: string, inNewTab: boolean = false, isBackground: boolean = false) => {
     let finalUrl = targetUrl.trim();
     if (finalUrl === 'about:config') {
       setActiveTab('config');
@@ -1127,13 +1133,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (inNewTab) {
       const newId = Date.now().toString();
       setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl, title: 'New Tab' }]);
-      setActiveBrowserTabId(newId);
       ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
+      if (!isBackground) {
+        setActiveBrowserTabId(newId);
+        if (autoFocusPlayerOnTabChange) setActiveTab('player');
+      }
     } else {
       setUrl(finalUrl);
       setInputUrl(finalUrl);
+      setActiveTab('player');
     }
-    setActiveTab('player');
   };
 
   const handleNavigate = (e: React.FormEvent) => {
@@ -1381,6 +1390,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts, activeDownloads, setActiveDownloads,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp, pluginRepoUrl, setPluginRepoUrl,
     pluginUpdateCount, setPluginUpdateCount, autoCheckPluginUpdates, setAutoCheckPluginUpdates, autoUpdatePlugins, setAutoUpdatePlugins, checkPluginUpdates,
+    autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange, ctrlClickBackgroundTab, setCtrlClickBackgroundTab,
     isMultiTabEnabled, setIsMultiTabEnabled, browserTabs, setBrowserTabs, activeBrowserTabId, setActiveBrowserTabId, tilingMode, setTilingMode
   };
 

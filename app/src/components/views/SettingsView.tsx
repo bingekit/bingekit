@@ -27,8 +27,11 @@ export const SettingsView = () => {
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp,
-    activeSettingsTab, setActiveSettingsTab, isMultiTabEnabled, setIsMultiTabEnabled
+    activeSettingsTab, setActiveSettingsTab, isMultiTabEnabled, setIsMultiTabEnabled,
+    browserTabs, setBrowserTabs, activeBrowserTabId
   } = useAppContext();
+
+  const [showMultiTabDialog, setShowMultiTabDialog] = useState(false);
 
   React.useEffect(() => {
     if (activeTab === 'config') {
@@ -286,13 +289,19 @@ export const SettingsView = () => {
                   Transforms the UI to allow multiple web views, tabs, and dynamic tiling. Enabling this will reorganize the top title bar and change how you manage active sites.
                 </p>
               </div>
-              <div className="flex items-center gap-3 flex-shrink-0">
-                <button
-                  onClick={() => setIsMultiTabEnabled(!isMultiTabEnabled)}
-                  className={`w-12 h-6 rounded-full transition-colors relative ${isMultiTabEnabled ? 'bg-[var(--theme-accent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
+              <div className="flex items-center gap-4">
+                <div
+                  onClick={() => {
+                    if (isMultiTabEnabled && browserTabs.length > 1) {
+                      setShowMultiTabDialog(true);
+                    } else {
+                      setIsMultiTabEnabled(!isMultiTabEnabled);
+                    }
+                  }}
+                  className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${isMultiTabEnabled ? 'bg-[var(--theme-accent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
                 >
                   <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isMultiTabEnabled ? 'left-7' : 'left-1'}`} />
-                </button>
+                </div>
               </div>
             </div>
 
@@ -807,6 +816,46 @@ export const SettingsView = () => {
           </div>
         </div>
       </Modal>
+      {showMultiTabDialog && (
+        <Modal
+          isOpen={showMultiTabDialog}
+          title="Disable Multi-Tab Mode?"
+          onClose={() => setShowMultiTabDialog(false)}
+        >
+          <div className="p-6">
+            <p className="text-zinc-300 text-sm mb-6 leading-relaxed">
+              Disabling Multi-Tab mode will automatically close {browserTabs.length - 1} background tab(s) and keep only your currently active tab open.
+              <br /><br />
+              Are you sure you want to continue?
+            </p>
+            <div className="flex items-center justify-end gap-3 mt-4">
+              <button
+                onClick={() => setShowMultiTabDialog(false)}
+                className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const activeTabOrMain = browserTabs.find(t => t.id === activeBrowserTabId) || browserTabs[0];
+                  setBrowserTabs([activeTabOrMain]);
+                  
+                  // Clean up running webview instances in host except the active one
+                  browserTabs.forEach(t => {
+                    if (t.id !== activeTabOrMain.id) ahk.call('ClosePlayer', t.id);
+                  });
+                  
+                  setIsMultiTabEnabled(false);
+                  setShowMultiTabDialog(false);
+                }}
+                className="px-4 py-2 text-sm bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white rounded-xl transition-colors border border-red-500/30 font-medium"
+              >
+                Close Tabs & Continue
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

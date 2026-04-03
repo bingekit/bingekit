@@ -115,6 +115,22 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     default: '',
     value: '',
     requiresRestart: true,
+  },
+  {
+    id: 'AutoFocusPlayerOnTabChange',
+    name: 'Auto-Focus Player on Tab Change',
+    type: 'boolean',
+    description: 'When changing tabs or creating a new one, automatically focus the player tab so you can see the content immediately.',
+    default: true,
+    value: true,
+  },
+  {
+    id: 'CtrlClickBackgroundTab',
+    name: 'Ctrl+Click Opens in Background',
+    type: 'boolean',
+    description: 'When holding Control to open a link in a new tab, open it in the background. If disabled, it will immediately focus the new tab.',
+    default: true,
+    value: true,
   }
 ];
 

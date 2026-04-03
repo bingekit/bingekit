@@ -23,7 +23,7 @@ export const DashboardView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine,
-    searchThreadLimit,
+    searchThreadLimit, ctrlClickBackgroundTab,
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, navigateUrl, loadPlugins
   } = useAppContext();
 
@@ -664,7 +664,8 @@ export const DashboardView = () => {
                       <div
                         key={p.id}
                         onClick={(e) => {
-                          navigateUrl(p.baseUrl, e.ctrlKey || e.metaKey);
+                          const isCtrl = e.ctrlKey || e.metaKey;
+                          navigateUrl(p.baseUrl, isCtrl, isCtrl && ctrlClickBackgroundTab);
                         }}
                         className="group relative bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-emerald-500/30 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4 overflow-hidden"
                       >
@@ -699,7 +700,8 @@ export const DashboardView = () => {
                     <div
                       key={p.id}
                       onClick={(e) => {
-                        navigateUrl(p.baseUrl, e.ctrlKey || e.metaKey);
+                        const isCtrl = e.ctrlKey || e.metaKey;
+                        navigateUrl(p.baseUrl, isCtrl, isCtrl && ctrlClickBackgroundTab);
                       }}
                       className="group bg-zinc-900/40 hover:bg-zinc-900/80 border border-zinc-800/60 hover:border-zinc-700 rounded-2xl p-4 cursor-pointer transition-all duration-300 flex items-center gap-4"
                     >
@@ -738,7 +740,8 @@ export const DashboardView = () => {
                 <div
                   key={result.id}
                   onClick={(e) => {
-                    navigateUrl(result.url, e.ctrlKey || e.metaKey);
+                    const isCtrl = e.ctrlKey || e.metaKey;
+                    navigateUrl(result.url, isCtrl, isCtrl && ctrlClickBackgroundTab);
                   }}
                   className="p-4 bg-zinc-900/50 border border-zinc-800/50 hover:border-indigo-500/30 hover:bg-zinc-900 rounded-xl cursor-pointer transition-all flex items-center gap-4 group"
                 >
@@ -767,7 +770,8 @@ export const DashboardView = () => {
                         <div
                           key={result.id}
                           onClick={(e) => {
-                            if (result.type !== 'empty') navigateUrl(result.url, e.ctrlKey || e.metaKey);
+                            const isCtrl = e.ctrlKey || e.metaKey;
+                            if (result.type !== 'empty') navigateUrl(result.url, isCtrl, isCtrl && ctrlClickBackgroundTab);
                           }}
                           className={`p-3 bg-zinc-950/50 border border-zinc-800/80 hover:border-indigo-500/40 rounded-xl cursor-pointer transition-all flex items-start gap-4 ${result.type === 'empty' ? 'opacity-50 hover:opacity-100' : ''}`}
                         >
