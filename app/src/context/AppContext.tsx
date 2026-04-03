@@ -162,7 +162,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     titlebarAlt: '#18181b',
     titlebarAlt2: '#27272a',
     sidebarText: '#a1a1aa',
-    urlbarBg: ''
+    urlbarBg: '',
+    urlbarText: '',
+    urlbarIcon: ''
   });
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -659,7 +661,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           titlebarAlt: parsed.titlebarAlt || '#18181b',
           titlebarAlt2: parsed.titlebarAlt2 || '#27272a',
           sidebarText: parsed.sidebarText || parsed.textSec || '#a1a1aa',
-          urlbarBg: parsed.urlbarBg || ''
+          urlbarBg: parsed.urlbarBg || '',
+          urlbarText: parsed.urlbarText || '',
+          urlbarIcon: parsed.urlbarIcon || ''
         });
       } catch (e) { }
     }

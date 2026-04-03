@@ -173,6 +173,8 @@ const MainLayout = () => {
           --theme-titlebar-alt2: ${theme.titlebarAlt2 || '#27272a'};
           --theme-sidebar-text: ${theme.sidebarText || theme.textSec || '#a1a1aa'};
           --theme-urlbarBg: ${theme.urlbarBg || 'color-mix(in srgb, var(--theme-text-main) 4%, transparent)'};
+          --theme-urlbarText: ${theme.urlbarText || theme.titlebarTextHover || '#fafafa'};
+          --theme-urlbarIcon: ${theme.urlbarIcon || theme.urlbarText || theme.titlebarTextHover || '#a1a1aa'};
           --theme-surface: var(--theme-main);
         }
 
@@ -242,8 +244,11 @@ const MainLayout = () => {
         #titlebar-region .text-zinc-500, #titlebar-region .text-zinc-400 { color: var(--theme-titlebar-text) !important; }
         
         #titlebar-region .hover\\:text-zinc-100:hover, #titlebar-region .hover\\:text-zinc-200:hover, #titlebar-region .hover\\:text-zinc-300:hover, #titlebar-region .hover\\:text-white:hover { color: var(--theme-titlebar-text-hover) !important; filter: drop-shadow(0 0 2px var(--theme-titlebar-text-hover)); }
-        #titlebar-region input.text-xs { color: var(--theme-titlebar-text-hover) !important; }
-        #titlebar-region input::placeholder { color: color-mix(in srgb, var(--theme-titlebar-text) 50%, transparent) !important; }
+        #titlebar-region input.text-xs { color: var(--theme-urlbarText) !important; }
+        #titlebar-region input::placeholder { color: color-mix(in srgb, var(--theme-urlbarText) 50%, transparent) !important; }
+        
+        #titlebar-region form#toolbar-form .urlbar-icon { color: color-mix(in srgb, var(--theme-urlbarIcon) 70%, transparent) !important; }
+        #titlebar-region form#toolbar-form .hover\\:urlbar-icon-hover:hover, #titlebar-region form#toolbar-form button.hover\\:urlbar-icon-hover:hover { color: var(--theme-urlbarIcon) !important; }
         
         #sidebar-region { color: var(--theme-sidebar-text) !important; }
         #sidebar-region button.text-zinc-500 { color: var(--theme-sidebar-text) !important; }
@@ -265,10 +270,24 @@ const MainLayout = () => {
         
         #titlebar-region .bg-red-500\\/90:hover { background-color: rgb(239 68 68 / 0.9) !important; color: white !important; filter: none !important; }
         #titlebar-region .w-px.bg-zinc-800 { background-color: var(--theme-titlebar-alt2) !important; }
+        
+        /* Multi-tab Toolbar overrides (It is on sidebar Bg, not titlebar Bg) */
+        #titlebar-region .multi-tab-toolbar { color: var(--theme-sidebar-text) !important; }
+        #titlebar-region .multi-tab-toolbar .text-zinc-500, #titlebar-region .multi-tab-toolbar .text-zinc-400 { color: var(--theme-sidebar-text) !important; }
+        #titlebar-region .multi-tab-toolbar .hover\\:text-zinc-200:hover, #titlebar-region .multi-tab-toolbar .hover\\:text-zinc-300:hover { color: color-mix(in srgb, var(--theme-sidebar-text) 50%, var(--theme-text-main)) !important; filter: none !important; }
+        
+        /* #titlebar-region .multi-tab-toolbar .text-indigo-400, #titlebar-region .multi-tab-toolbar .text-indigo-500 { color: var(--theme-accent) !important; } */
+        #titlebar-region .multi-tab-toolbar .bg-indigo-500\\/10 { background-color: color-mix(in srgb, var(--theme-accent) 15%, transparent) !important; }
+        #titlebar-region .multi-tab-toolbar .hover\\:bg-indigo-500\\/20:hover { background-color: color-mix(in srgb, var(--theme-accent) 25%, transparent) !important; }
+        
+        #titlebar-region .multi-tab-toolbar .bg-zinc-800, #titlebar-region .multi-tab-toolbar .bg-zinc-900 { background-color: color-mix(in srgb, var(--theme-text-main) 7%, transparent) !important; }
+        #titlebar-region .multi-tab-toolbar .hover\\:bg-zinc-800:hover, #titlebar-region .multi-tab-toolbar button.hover\\:bg-zinc-800:hover { background-color: color-mix(in srgb, var(--theme-text-main) 12%, transparent) !important; color: var(--theme-text-main) !important; }
+        
+        #titlebar-region .multi-tab-toolbar form:focus-within { border-color: var(--theme-accent) !important; background-color: color-mix(in srgb, var(--theme-urlbarBg) 80%, var(--theme-mainBg)) !important; }
       `}</style>
 
       {/* --- Custom Titlebar (Draggable) --- */}
-      <div id="titlebar-region" className={`flex flex-col drag-region select-none border-b ${isMultiTabEnabled ? 'h-[72px]' : 'h-10'}`}>
+      <div id="titlebar-region" className={`flex flex-col drag-region select-none border-b ${isMultiTabEnabled ? (activeTab === 'player' ? 'h-[80px]' : 'h-10') : 'h-10'}`}>
 
         {isMultiTabEnabled && (
           <div className="flex-1 flex w-full items-end pl-3 pt-2">
@@ -322,7 +341,7 @@ const MainLayout = () => {
                   )}
                   {activeBrowserTabId === tab.id && (
                     <>
-                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--theme-accent)] rounded-t-lg" style={{ boxShadow: '0 0 10px var(--theme-accent)' }} />
+                      <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--theme-titlebar-accent)] rounded-t-lg" style={{ boxShadow: '0 0 10px var(--theme-titlebar-accent)' }} />
                       <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[var(--theme-sidebar)]" />
                     </>
                   )}
@@ -358,151 +377,216 @@ const MainLayout = () => {
         )}
 
         {/* Normal Toolbar Layer */}
-        <div className={`h-10 flex items-center w-full ${isMultiTabEnabled ? 'bg-[var(--theme-sidebar)] pl-3 border-t border-[color-mix(in_srgb,var(--theme-border)_20%,transparent)]' : 'pl-5'}`}>
-          <div className="flex items-center gap-3 w-48 flex-shrink-0">
-            <div className="flex items-center gap-2 text-zinc-400 transition-colors">
-              <Film size={16} className="text-indigo-500" />
-              {activeTab !== 'player' && (
-                <span className="text-xs ml-6 font-medium tracking-wider uppercase">BingeKit</span>
-              )}
-            </div>
-          </div>
-
-          {/* URL Bar */}
-          {activeTab === 'player' && (
-            <div className="flex-1 ml-2 flex items-center justify-start">
-              {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
-                <div className="flex items-center justify-start text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
-                  {pageTitle || (() => {
-                    try { return new URL(url).hostname; } catch (e) { return url; }
-                  })()}
-                </div>
-              ) : (
-                <form id="toolbar-form" onSubmit={handleNavigate} className="flex items-center no-drag backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 h-7 w-full max-w-lg">
-                  <div className="flex items-center px-2 gap-1 text-zinc-500 relative">
-                    {navButtons.home && (
-                      <div className="flex items-center">
-                        <TooltipWrapper text="Home">
-                          <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/start/'); setInputUrl(homePage || 'https://bingekit.app/start/'); }} className="p-0.5 hover:text-zinc-200 transition-colors"><Home size={14} /></button>
-                        </TooltipWrapper>
-                        {installedInterfaces.length > 0 && (
-                          <div className="relative flex items-center">
-                            <button
-                              type="button"
-                              onClick={(e) => { e.preventDefault(); setShowInterfaces(!showInterfaces); }}
-                              className={`p-0.5 ml-0.5 transition-colors rounded ${showInterfaces ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}
-                            >
-                              <ChevronDown size={12} className={`transition-transform duration-200 ${showInterfaces ? 'rotate-180' : ''}`} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {navButtons.back && !showInterfaces && (
-                      <TooltipWrapper text="Go Back">
-                        <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronLeft size={14} /></button>
-                      </TooltipWrapper>
-                    )}
-                    {navButtons.forward && !showInterfaces && (
-                      <TooltipWrapper text="Go Forward">
-                        <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:text-zinc-200 transition-colors"><ChevronRight size={14} /></button>
-                      </TooltipWrapper>
-                    )}
-                    {navButtons.reload && !showInterfaces && (
-                      <TooltipWrapper text="Refresh">
-                        <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:text-zinc-200 transition-colors"><RotateCw size={12} /></button>
-                      </TooltipWrapper>
-                    )}
-                  </div>
-
-
-                  {!showInterfaces && (
-                    <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
+        {(!isMultiTabEnabled || activeTab === 'player') && (
+          <div className={`h-10 flex items-center w-full ${isMultiTabEnabled ? 'multi-tab-toolbar bg-[var(--theme-sidebar)] pl-3 border-t border-[color-mix(in_srgb,var(--theme-border)_20%,transparent)]' : 'pl-5'}`}>
+            {(!isMultiTabEnabled || activeTab !== 'player') && (
+              <div className={`flex items-center flex-shrink-0 ${activeTab !== 'player' ? 'gap-3 w-48' : 'gap-3 mr-4'}`}>
+                <div className="flex items-center gap-2 text-zinc-400 transition-colors">
+                  <Film size={16} className="text-indigo-500" />
+                  {activeTab !== 'player' && (
+                    <span className="text-xs ml-6 font-medium tracking-wider uppercase">BingeKit</span>
                   )}
+                </div>
+              </div>
+            )}
 
-                  <div className="flex-1 flex items-center px-2 gap-2 overflow-hidden">
-                    {showInterfaces ? (
-                      <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar py-0.5 animate-in fade-in slide-in-from-left-2 duration-200">
-                        <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mr-1">Interfaces</span>
-                        {installedInterfaces.map(inf => (
-                          <button
-                            key={inf}
-                            type="button"
-                            onClick={() => {
-                              setShowInterfaces(false);
-                              setUrl(`interface:${inf}`);
-                              setInputUrl(`interface:${inf}`);
-                            }}
-                            className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
-                          >
-                            {inf}
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
+            {/* URL Bar */}
+            {activeTab === 'player' && (
+              <div className="flex-1 ml-2 flex items-center justify-start">
+                {urlBarMode === 'hidden' ? null : urlBarMode === 'title' ? (
+                  <div className="flex items-center justify-start text-xs text-zinc-500 font-medium truncate cursor-pointer hover:text-zinc-300 transition-colors" onClick={() => setUrlBarMode('full')}>
+                    {pageTitle || (() => {
+                      try { return new URL(url).hostname; } catch (e) { return url; }
+                    })()}
+                  </div>
+                ) : (
+                  <form id="toolbar-form" onSubmit={handleNavigate} className={`flex items-center no-drag backdrop-blur-xl border border-zinc-800/80 rounded-lg overflow-hidden transition-all focus-within:border-indigo-500/50 h-7 w-full ${isMultiTabEnabled ? 'max-w-none mr-2' : 'max-w-lg'}`}>
+                    <div className="flex items-center px-2 gap-1 urlbar-icon relative">
+                      {navButtons.home && (
+                        <div className="flex items-center">
+                          <TooltipWrapper text="Home">
+                            <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/start/'); setInputUrl(homePage || 'https://bingekit.app/start/'); }} className="p-0.5 hover:urlbar-icon-hover transition-colors"><Home size={14} /></button>
+                          </TooltipWrapper>
+                          {installedInterfaces.length > 0 && (
+                            <div className="relative flex items-center">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); setShowInterfaces(!showInterfaces); }}
+                                className={`p-0.5 ml-0.5 transition-colors rounded ${showInterfaces ? 'bg-indigo-500/20 text-indigo-400' : 'urlbar-icon hover:urlbar-icon-hover'}`}
+                              >
+                                <ChevronDown size={12} className={`transition-transform duration-200 ${showInterfaces ? 'rotate-180' : ''}`} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {navButtons.back && !showInterfaces && (
+                        <TooltipWrapper text="Go Back">
+                          <button type="button" onClick={() => ahk.call('PlayerGoBack')} className="p-0.5 hover:urlbar-icon-hover transition-colors"><ChevronLeft size={14} /></button>
+                        </TooltipWrapper>
+                      )}
+                      {navButtons.forward && !showInterfaces && (
+                        <TooltipWrapper text="Go Forward">
+                          <button type="button" onClick={() => ahk.call('PlayerGoForward')} className="p-0.5 hover:urlbar-icon-hover transition-colors"><ChevronRight size={14} /></button>
+                        </TooltipWrapper>
+                      )}
+                      {navButtons.reload && !showInterfaces && (
+                        <TooltipWrapper text="Refresh">
+                          <button type="button" onClick={() => ahk.call('PlayerReload')} className="p-0.5 hover:urlbar-icon-hover transition-colors"><RotateCw size={12} /></button>
+                        </TooltipWrapper>
+                      )}
+                    </div>
+
+
+                    {!showInterfaces && (
+                      <div className="w-px h-3 bg-zinc-800 mx-1 flex-shrink-0" />
+                    )}
+
+                    <div className="flex-1 flex items-center px-2 gap-2 overflow-hidden">
+                      {showInterfaces ? (
+                        <div className="flex items-center gap-1.5 w-full overflow-x-auto no-scrollbar py-0.5 animate-in fade-in slide-in-from-left-2 duration-200">
+                          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider mr-1">Interfaces</span>
+                          {installedInterfaces.map(inf => (
+                            <button
+                              key={inf}
+                              type="button"
+                              onClick={() => {
+                                setShowInterfaces(false);
+                                setUrl(`interface:${inf}`);
+                                setInputUrl(`interface:${inf}`);
+                              }}
+                              className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
+                            >
+                              {inf}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                          <Search size={12} className="urlbar-icon flex-shrink-0" />
+                          <input
+                            type="text"
+                            value={inputUrl}
+                            onChange={(e) => setInputUrl(e.target.value)}
+                            placeholder="Search streams or enter URL..."
+                            spellCheck={false}
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
+                          />
+                        </>
+                      )}
+                    </div>
+
+                    {!showInterfaces && (
                       <>
-                        <Search size={12} className="text-zinc-500 flex-shrink-0" />
-                        <input
-                          type="text"
-                          value={inputUrl}
-                          onChange={(e) => setInputUrl(e.target.value)}
-                          placeholder="Search streams or enter URL..."
-                          className="w-full bg-transparent border-none outline-none text-xs text-zinc-200 placeholder:text-zinc-600 font-medium"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!bookmarks.find(b => b.url === url)) {
+                              setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
+                            }
+                          }}
+                          className="px-2 urlbar-icon hover:urlbar-icon-hover transition-colors flex-shrink-0"
+                          title="Bookmark"
+                        >
+                          <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!watchLater.find(w => w.url === url)) {
+                              setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
+                            }
+                          }}
+                          className="px-2 urlbar-icon hover:urlbar-icon-hover transition-colors flex-shrink-0"
+                          title="Watch Later"
+                        >
+                          <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
+                        </button>
                       </>
                     )}
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* Window Controls (Normal titlebar only) */}
+            {!isMultiTabEnabled && (
+              <div className="flex items-center no-drag ml-auto">
+                {isPlaying && (
+                  <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                  </button>
+                )}
+                {activeTab === 'player' && (
+                  <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
+                  </button>
+                )}
+                {activeTab === 'player' && (
+                  <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
+                    <button
+                      onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
+                      className={`px-5 h-[39px] transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}
+                    >
+                      <Zap size={14} />
+                    </button>
+                  </TooltipWrapper>
+                )}
+                <TooltipWrapper text="Minimize">
+                  <button onClick={() => ahk.call('Minimize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
+                    <Minus size={14} />
+                  </button>
+                </TooltipWrapper>
+                <TooltipWrapper text="Maximize">
+                  <button onClick={() => ahk.call('Maximize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
+                    <Square size={12} />
+                  </button>
+                </TooltipWrapper>
+                <TooltipWrapper text="Close">
+                  <button onClick={() => ahk.call('Close')} className="px-5 h-[39px] text-zinc-500 hover:text-white hover:bg-red-500/90 transition-colors">
+                    <X size={14} />
+                  </button>
+                </TooltipWrapper>
+              </div>
+            )}
+
+            {/* Quick controls that always show */}
+            {isMultiTabEnabled && activeTab === 'player' && (
+              <div className="flex items-center no-drag ml-auto">
+                {/* Layout Controls */}
+                {browserTabs.length > 1 && (
+                  <div className="flex items-center mx-2 gap-1 bg-zinc-900 rounded p-0.5">
+                    <TooltipWrapper text="Single View">
+                      <button onClick={() => setTilingMode('none')} className={`p-1 rounded ${tilingMode === 'none' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Square size={14} /></button>
+                    </TooltipWrapper>
+                    <TooltipWrapper text="Split Vertical">
+                      <button onClick={() => setTilingMode('split-vt')} className={`p-1 rounded ${tilingMode === 'split-vt' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Columns size={14} /></button>
+                    </TooltipWrapper>
+                    <TooltipWrapper text="Split Horizontal">
+                      <button onClick={() => setTilingMode('split-hz')} className={`p-1 rounded ${tilingMode === 'split-hz' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Rows size={14} /></button>
+                    </TooltipWrapper>
+                    <TooltipWrapper text="Grid View">
+                      <button onClick={() => setTilingMode('grid')} className={`p-1 rounded ${tilingMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><LayoutGrid size={14} /></button>
+                    </TooltipWrapper>
                   </div>
+                )}
 
-                  {!showInterfaces && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!bookmarks.find(b => b.url === url)) {
-                            setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
-                          }
-                        }}
-                        className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
-                        title="Bookmark"
-                      >
-                        <Bookmark size={12} className={bookmarks.find(b => b.url === url) ? "fill-indigo-400 text-indigo-400" : ""} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!watchLater.find(w => w.url === url)) {
-                            setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
-                          }
-                        }}
-                        className="px-2 text-zinc-500 hover:text-indigo-400 transition-colors flex-shrink-0"
-                        title="Watch Later"
-                      >
-                        <Clock size={12} className={watchLater.find(w => w.url === url) ? "text-indigo-400" : ""} />
-                      </button>
-                    </>
-                  )}
-                </form>
-              )}
-            </div>
-          )}
-
-          {/* Window Controls (Normal titlebar only) */}
-          {!isMultiTabEnabled && (
-            <div className="flex items-center no-drag ml-auto">
-              {isPlaying && (
-                <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
-                  </svg>
-                </button>
-              )}
-              {activeTab === 'player' && (
+                {isPlaying && (
+                  <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
+                    </svg>
+                  </button>
+                )}
                 <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
                 </button>
-              )}
-              {activeTab === 'player' && (
                 <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
                   <button
                     onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
@@ -511,67 +595,10 @@ const MainLayout = () => {
                     <Zap size={14} />
                   </button>
                 </TooltipWrapper>
-              )}
-              <TooltipWrapper text="Minimize">
-                <button onClick={() => ahk.call('Minimize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
-                  <Minus size={14} />
-                </button>
-              </TooltipWrapper>
-              <TooltipWrapper text="Maximize">
-                <button onClick={() => ahk.call('Maximize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
-                  <Square size={12} />
-                </button>
-              </TooltipWrapper>
-              <TooltipWrapper text="Close">
-                <button onClick={() => ahk.call('Close')} className="px-5 h-[39px] text-zinc-500 hover:text-white hover:bg-red-500/90 transition-colors">
-                  <X size={14} />
-                </button>
-              </TooltipWrapper>
-            </div>
-          )}
-
-          {/* Quick controls that always show */}
-          {isMultiTabEnabled && activeTab === 'player' && (
-            <div className="flex items-center no-drag ml-auto">
-              {/* Layout Controls */}
-              {browserTabs.length > 1 && (
-                <div className="flex items-center mx-2 gap-1 bg-zinc-900 rounded p-0.5">
-                  <TooltipWrapper text="Single View">
-                    <button onClick={() => setTilingMode('none')} className={`p-1 rounded ${tilingMode === 'none' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Square size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Split Vertical">
-                    <button onClick={() => setTilingMode('split-vt')} className={`p-1 rounded ${tilingMode === 'split-vt' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Columns size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Split Horizontal">
-                    <button onClick={() => setTilingMode('split-hz')} className={`p-1 rounded ${tilingMode === 'split-hz' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Rows size={14} /></button>
-                  </TooltipWrapper>
-                  <TooltipWrapper text="Grid View">
-                    <button onClick={() => setTilingMode('grid')} className={`p-1 rounded ${tilingMode === 'grid' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><LayoutGrid size={14} /></button>
-                  </TooltipWrapper>
-                </div>
-              )}
-
-              {isPlaying && (
-                <button title="Pause Media" onClick={() => ahk.call('ToggleMedia')} className="px-5 h-[39px] transition-colors text-indigo-500 hover:text-indigo-400 hover:bg-indigo-500/10">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>
-                  </svg>
-                </button>
-              )}
-              <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
-              </button>
-              <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
-                <button
-                  onClick={() => setIsQuickOptionsHidden(!isQuickOptionsHidden)}
-                  className={`px-5 h-[39px] transition-colors ${!isQuickOptionsHidden ? 'text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20' : 'text-zinc-500 hover:bg-zinc-800'}`}
-                >
-                  <Zap size={14} />
-                </button>
-              </TooltipWrapper>
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* --- Main Content Area --- */}

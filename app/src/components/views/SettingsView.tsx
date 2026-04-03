@@ -386,6 +386,8 @@ export const SettingsView = () => {
                 {renderColorInput('Main Text', 'textMain')}
                 {renderColorInput('Secondary Text', 'textSec')}
                 {renderColorInput('URL Bar Background', 'urlbarBg')}
+                {renderColorInput('URL Bar Text', 'urlbarText')}
+                {renderColorInput('URL Bar Icons', 'urlbarIcon')}
                 {renderColorInput('Sidebar Text', 'sidebarText')}
                 {renderColorInput('Titlebar Text', 'titlebarText')}
                 {renderColorInput('Titlebar Text Hover', 'titlebarTextHover')}
@@ -403,7 +405,7 @@ export const SettingsView = () => {
 
                   {/* Two-Tone Presets */}
                   <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#1e1b4b', sidebarBg: '#0b0a1f', mainBg: '#09090b', border: '#312e81', accent: '#818cf8', textMain: '#fafafa', textSec: '#a1a1aa', titlebarText: '#a5b4fc', titlebarTextHover: '#e0e7ff', titlebarAccent: '#818cf8', titlebarAlt: '#312e81', titlebarAlt2: '#3730a3', sidebarText: '#a5b4fc', urlbarBg: 'color-mix(in srgb, #312e81 80%, #1e1b4b)' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Dark</button>
-                  <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#4f46e5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#4f46e5', textMain: '#18181b', textSec: '#52525b', titlebarText: '#c7d2fe', titlebarTextHover: '#ffffff', titlebarAccent: '#ffffff', titlebarAlt: '#4338ca', titlebarAlt2: '#3730a3', sidebarText: '#474747', urlbarBg: 'color-mix(in srgb, #4338ca 80%, #4f46e5)' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Light</button>
+                  <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#4f46e5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#4f46e5', textMain: '#18181b', textSec: '#52525b', titlebarText: '#c7d2fe', titlebarTextHover: '#ffffff', titlebarAccent: '#ffffff', titlebarAlt: '#4338ca', titlebarAlt2: '#3730a3', sidebarText: '#474747', urlbarBg: 'color-mix(in srgb, #4338ca 80%, #4f46e5)', urlbarText: '#ffffff', urlbarIcon: '#c7d2fe' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Light</button>
                 </div>
               </div>
             </div>
