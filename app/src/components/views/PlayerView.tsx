@@ -437,7 +437,7 @@ export const PlayerView = () => {
           )}
           <button
             title="Inject Login Credentials"
-            onClick={() => {
+            onClick={async () => {
               const plugin = plugins.find(p => url.includes(p.baseUrl));
               if (plugin && plugin.auth.usernameValue && plugin.auth.passwordValue) {
                 const js = `
@@ -463,9 +463,11 @@ export const PlayerView = () => {
                 const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
                 if (cred) {
                   // Basic injection for standard forms if no plugin matches
+                  const plainPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64);
+                  const parsedPass = plainPass ? plainPass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
                   const js = `
                               (function() {
-                                const pass = atob("${cred.passwordBase64}");
+                                const pass = "${parsedPass}";
                                 const userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"]');
                                 const passInputs = document.querySelectorAll('input[type="password"]');
                                 if (userInputs.length > 0) { userInputs[0].value = "${cred.username}"; userInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }

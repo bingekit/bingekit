@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import { HistoryItem } from '../types';
+import { HistoryItem, CredentialItem } from '../types';
 
 interface BingeKitDB extends DBSchema {
   history: {
@@ -7,17 +7,26 @@ interface BingeKitDB extends DBSchema {
     value: HistoryItem;
     indexes: { 'by-timestamp': number };
   };
+  credentials: {
+    key: string;
+    value: CredentialItem;
+    indexes: { 'by-domain': string };
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<BingeKitDB>>;
 
 export function initDB() {
   if (!dbPromise) {
-    dbPromise = openDB<BingeKitDB>('BingeKitDB', 1, {
-      upgrade(db) {
+    dbPromise = openDB<BingeKitDB>('BingeKitDB', 2, {
+      upgrade(db, oldVersion, newVersion, transaction) {
         if (!db.objectStoreNames.contains('history')) {
           const store = db.createObjectStore('history', { keyPath: 'id' });
           store.createIndex('by-timestamp', 'timestamp');
+        }
+        if (!db.objectStoreNames.contains('credentials')) {
+          const store = db.createObjectStore('credentials', { keyPath: 'id' });
+          store.createIndex('by-domain', 'domain');
         }
       },
     });
@@ -77,6 +86,21 @@ export async function clearBrowsedHistoryDB() {
 export async function deleteHistoryItemDB(id: string) {
   const db = await initDB();
   await db.delete('history', id);
+}
+
+export async function getCredentialsDB(): Promise<CredentialItem[]> {
+  const db = await initDB();
+  return db.getAll('credentials');
+}
+
+export async function addCredentialDB(item: CredentialItem) {
+  const db = await initDB();
+  await db.put('credentials', item);
+}
+
+export async function deleteCredentialDB(id: string) {
+  const db = await initDB();
+  await db.delete('credentials', id);
 }
 
 // Ensure the db is initialized in the background on import

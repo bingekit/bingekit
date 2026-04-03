@@ -22,6 +22,8 @@ InitEnvironment()
 #Include src\App.ahk
 InitAppGui()
 
+#Include src\Crypto.ahk
+
 #Include src\FNS.ahk
 
 ; 3. Core App Sections

@@ -11,6 +11,8 @@ WV.AddHostObjectToScript("ahk", {
     SaveData: AHK_SaveData,
     LoadData: AHK_LoadData,
     DeleteData: AHK_DeleteData,
+    EncryptCredential: AHK_EncryptCredential,
+    DecryptCredential: AHK_DecryptCredential,
     CacheSet: AHK_CacheSet,
     CacheGet: AHK_CacheGet,
     CacheClear: AHK_CacheClear,

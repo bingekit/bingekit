@@ -69,3 +69,12 @@ The ad-blocking pipeline acts across multiple scopes to ensure sites remain pris
 
 ## 5. Adaptation & Open Source
 While BingeKit was initially focused on organizing and controlling media streams seamlessly, the foundation is completely agnostic. The heavy lifting—bridging AHK2 with WebView2, network interception, automated hidden flows, userscript injection, and IPC logic—has effectively created a framework for building highly capable desktop utilities, scrapers, and local-first software. This architecture can easily be adapted into entirely different projects needing granular web automation and a native desktop experience.
+
+## 6. Secure Credential Storage (DPAPI & IndexedDB)
+
+BingeKit manages an internal credential subsystem to enable automated login flows (e.g., bypassing repetitive streaming site authentications).
+
+Because storing passwords in plain text or simple base64 `.json` files is insecure, BingeKit utilizes a highly-privileged, host-driven encryption mechanism:
+*   **Windows DPAPI (Data Protection API):** Whenever a credential is saved, the React frontend passes the plaintext to the AutoHotkey host via a private IPC command. The AHK host securely encrypts the payload using `Crypt32.dll` (`CryptProtectData`), cryptographically binding the password to the current Windows User account profile and hardware.
+*   **Sandboxed IndexedDB Persistence:** The encrypted DPAPI payloads are managed transparently alongside viewing history in the WebView2's sandboxed `BingeKitDB` IndexedDB container. This neatly isolates passwords across independent BingeKit Workspaces.
+*   **Internal Access Only:** To prevent malicious scraping pipelines or third-party userscripts from harvesting your connected accounts, the `EncryptCredential` and `DecryptCredential` host methods are strictly sequestered to core BingeKit execution hooks (such as `authHelper.ts`). These methods are completely insulated and **cannot** be queried by Userscripts or open `Deep Scan` evaluators.

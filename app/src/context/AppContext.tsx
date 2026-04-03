@@ -4,7 +4,7 @@ import {
   BookmarkItem, WatchLaterItem, CredentialItem,
   FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem, ActiveDownload
 } from '../types';
-import { bulkAddHistory, getHistory } from '../lib/db';
+import { bulkAddHistory, getHistory, getCredentialsDB, addCredentialDB } from '../lib/db';
 
 import { useGeneralState } from '../hooks/useGeneralState';
 import { useSettingsState } from '../hooks/useSettingsState';
@@ -310,8 +310,32 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedWatchLater = ahk.call('LoadData', 'watchlater.json');
     if (savedWatchLater) { try { history.setWatchLater(JSON.parse(savedWatchLater)); } catch (e) { } }
 
-    const savedCreds = ahk.call('LoadData', 'credentials.json');
-    if (savedCreds) { try { history.setCredentials(JSON.parse(savedCreds)); } catch (e) { } }
+    const initCredentialsSystem = async () => {
+      const savedCreds = ahk.call('LoadData', 'credentials.json');
+      if (savedCreds) {
+        try {
+          const legacyParsed = JSON.parse(savedCreds);
+          if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+            for (const cred of legacyParsed) {
+              if (cred.passwordBase64) {
+                try {
+                  const plainPass = atob(cred.passwordBase64);
+                  const encPass = await ahk.asyncCall('EncryptCredential', plainPass);
+                  cred.passwordBase64 = encPass;
+                } catch (e) { }
+              }
+              await addCredentialDB(cred);
+            }
+          }
+          ahk.call('DeleteData', 'credentials.json');
+        } catch (e) { }
+      }
+      try {
+        const idbCreds = await getCredentialsDB();
+        history.setCredentials(idbCreds);
+      } catch (e) { }
+    };
+    initCredentialsSystem();
 
     const savedFilters = ahk.call('LoadData', 'network_filters.json');
     if (savedFilters) {

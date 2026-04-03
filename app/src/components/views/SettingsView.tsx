@@ -12,6 +12,7 @@ import _Editor from 'react-simple-code-editor';
 const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
+import { addCredentialDB, deleteCredentialDB } from '../../lib/db';
 
 export const SettingsView = () => {
   const {
@@ -574,7 +575,10 @@ export const SettingsView = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => setCredentials(credentials.filter(x => x.id !== c.id))}
+                        onClick={async () => {
+                          await deleteCredentialDB(c.id);
+                          setCredentials(credentials.filter(x => x.id !== c.id));
+                        }}
                         className="opacity-0 group-hover:opacity-100 text-[var(--theme-text-sec)] hover:text-red-500 transition-all p-1.5 bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] rounded-lg"
                       >
                         <Trash2 size={16} />
@@ -728,14 +732,17 @@ export const SettingsView = () => {
 
           <div className="mt-6 flex justify-end pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
             <button
-              onClick={() => {
+              onClick={async () => {
                 if (newCred.domain && newCred.username && newCred.password) {
-                  setCredentials([...credentials, {
+                  const encrypted = await ahk.asyncCall('EncryptCredential', newCred.password);
+                  const credItem = {
                     id: Date.now().toString(),
                     domain: newCred.domain,
                     username: newCred.username,
-                    passwordBase64: btoa(newCred.password)
-                  }]);
+                    passwordBase64: encrypted
+                  };
+                  await addCredentialDB(credItem);
+                  setCredentials([...credentials, credItem]);
                   setNewCred({ domain: '', username: '', password: '' });
                   setShowCredModal(false);
                 }

@@ -59,14 +59,7 @@ export function useHistoryState(
     });
   };
 
-  const [credentials, _setCredentials] = useState<CredentialItem[]>([]);
-  const setCredentials = (val: React.SetStateAction<CredentialItem[]>) => {
-    _setCredentials(prev => {
-      const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('SaveData', 'credentials.json', JSON.stringify(next)); } catch (e) { }
-      return next;
-    });
-  };
+  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
   const [newCred, setNewCred] = useState({ domain: '', username: '', password: '' });
   const [bookmarkSearchQuery, setBookmarkSearchQuery] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);

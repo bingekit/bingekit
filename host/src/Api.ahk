@@ -66,6 +66,14 @@ AHK_HideSplash(*) {
     }
 }
 
+AHK_EncryptCredential(str) {
+    return DPAPIProtect(str)
+}
+
+AHK_DecryptCredential(b64) {
+    return DPAPIUnprotect(b64)
+}
+
 AHK_ExecuteSearch(query, engine) {
     Run(engine . query)
 }

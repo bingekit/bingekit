@@ -1,5 +1,6 @@
 import { SitePlugin, CredentialItem } from '../types';
 import { resolvePluginUrl } from './urlHelper';
+import { ahk } from './ahk';
 
 export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: CredentialItem[]) => {
   if (!plugin.auth?.checkAuthJs || !plugin.auth?.loginUrl || !window.SmartFetch) return true;
@@ -16,7 +17,7 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
   });
   if (!cred || (!cred.username && !cred.passwordBase64)) return false; // Missing creds, can't auto-login
 
-  const rawPass = atob(cred.passwordBase64);
+  const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
   const loginJs = `
       return new Promise(resolve => {
           let limit = 0;
