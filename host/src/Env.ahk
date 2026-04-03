@@ -8,6 +8,7 @@ InitEnvironment() {
 
     aboutConf := AHK_GetAboutConfig()
     disableWebSec := false
+    disableGPU := false
     showFetcher := false
     allowRightClick := true
     allowDevtools := false
@@ -16,6 +17,8 @@ InitEnvironment() {
         parsedConf := JSON.parse(aboutConf)
         if (parsedConf.Has("DisableWebSecurity"))
             disableWebSec := parsedConf["DisableWebSecurity"]
+        if (parsedConf.Has("DisableGPU"))
+            disableGPU := parsedConf["DisableGPU"]
         if (parsedConf.Has("ShowHiddenFetcherWindows"))
             showFetcher := parsedConf["ShowHiddenFetcherWindows"]
         if (parsedConf.Has("AllowRightClick"))
@@ -26,13 +29,11 @@ InitEnvironment() {
             debugMode := parsedConf["DebugMode"]
     } catch {
     }
-    
+
     global AboutConfig_ShowFetcher := showFetcher
     global AboutConfig_DebugMode := debugMode
 
-    browserArgs := "--edge-webview-no-dpi-workaround " .
-        "--disable-gpu " .
-        "--msWebView2CodeCache " .
+    browserArgs := "--msWebView2CodeCache " .
         "--no-first-run " .
         "--msWebView2CancelInitialNavigation " .
         "--disable-features=OverscrollHistoryNavigation " .
@@ -44,6 +45,11 @@ InitEnvironment() {
         "--disable-sync " .
         "--IsSwipeNavigationEnabled=0 "
 
+    if (disableGPU) {
+        browserArgs .= "--edge-webview-no-dpi-workaround "
+        browserArgs .= "--disable-gpu "
+    }
+
     if (disableWebSec) {
         browserArgs .= "--disable-web-security "
     }
@@ -52,7 +58,7 @@ InitEnvironment() {
 
     if (A_IsCompiled) {
         WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
-        WebViewSettings := { 
+        WebViewSettings := {
             DllPath: WebViewCtrl.TempDir "\" (A_PtrSize * 8) "bit\WebView2Loader.dll",
             DataDir: WorkspaceDir "\webview"
         }

@@ -80,6 +80,7 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     value: false,
     requiresRestart: true,
   },
+  /*
   {
     id: 'DebugMode',
     name: 'Debug Mode',
@@ -87,7 +88,7 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     description: 'Enable comprehensive verbose logging across the application environment.',
     default: false,
     value: false,
-  },
+  },*/
   {
     id: 'ShowHiddenFetcherWindows',
     name: 'Show Fetcher Windows',
@@ -105,6 +106,15 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     default: false,
     value: false,
     warning: 'DANGER: Disabling web security exposes your system to severe vulnerabilities. Use only in isolated, trusted environments.',
+    requiresRestart: true,
+  },
+  {
+    id: 'DisableGPU',
+    name: 'Disable GPU',
+    type: 'boolean',
+    description: 'Disables GPU acceleration. Use this if you are experiencing graphical glitches or crashes.',
+    default: false,
+    value: false,
     requiresRestart: true,
   },
   {
