@@ -118,7 +118,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange] = useState(true);
   const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
-  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/' }]);
+  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string, favicon?: string, isPlaying?: boolean, isMuted?: boolean }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/' }]);
   const [activeBrowserTabId, setActiveBrowserTabId] = useState('main');
   const [tilingMode, setTilingMode] = useState<'none' | 'split-hz' | 'split-vt' | 'grid'>('none');
   const activeBrowserTabIdRef = useRef('main');
@@ -446,6 +446,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const handlePlayState = (e: any) => {
       if (e.detail && e.detail.isPlaying !== undefined) {
         const now = Date.now();
+        setBrowserTabs(prev => {
+          const newTabs = [...prev];
+          const tabIdx = newTabs.findIndex(t => t.id === (e.detail.tabId || 'main'));
+          if (tabIdx >= 0) {
+            newTabs[tabIdx] = { ...newTabs[tabIdx], isPlaying: e.detail.isPlaying };
+          }
+          return newTabs;
+        });
+
         if (!(window as any)._svGlobalPipMode) {
           setIsFocusedMode(e.detail.isPlaying); // Update global UI focus context
         }

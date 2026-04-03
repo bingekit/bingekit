@@ -76,6 +76,7 @@ WV.AddHostObjectToScript("ahk", {
     DragMove: AHK_DragMove,
     ResizeEdge: AHK_ResizeEdge,
     ToggleMedia: AHK_ToggleMedia,
+    MutePlayer: AHK_MutePlayer,
     CheckForUpdates: AHK_CheckForUpdates,
     InstallUpdate: AHK_InstallUpdate,
     GetAppVersion: AHK_GetAppVersion,

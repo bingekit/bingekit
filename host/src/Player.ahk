@@ -315,6 +315,17 @@ AHK_PlayerReload(id := "main") {
     }
 }
 
+AHK_MutePlayer(muted, id := "main") {
+    global PlayerWVs, ActiveTabId
+    id := id ? id : ActiveTabId
+    if (PlayerWVs.Has(id)) {
+        try {
+            PlayerWVs[id].wv.IsMuted := (muted = "true" || muted = 1 || muted = true) ? 1 : 0
+        } catch {
+        }
+    }
+}
+
 AHK_UpdateNetworkFilters(jsonStr) {
     global NetworkFilters
     NetworkFilters.Clear()
