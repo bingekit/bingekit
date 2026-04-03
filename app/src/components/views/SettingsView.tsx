@@ -40,22 +40,10 @@ export const SettingsView = () => {
   }, [activeTab, setActiveSettingsTab]);
 
   React.useEffect(() => {
-    const handleFolderSelected = (e: any) => {
-      if (e.detail.id === 'downloadsLoc') {
-        setDownloadsLoc(e.detail.dir);
-        ahk.call('SaveData', 'downloads_loc.txt', e.detail.dir);
-      } else if (e.detail.id === 'downloadsTemp') {
-        setDownloadsTemp(e.detail.dir);
-        ahk.call('SaveData', 'downloads_temp.txt', e.detail.dir);
-      }
-    };
-    window.addEventListener('bk-folder-selected', handleFolderSelected);
-    return () => window.removeEventListener('bk-folder-selected', handleFolderSelected);
-  }, []);
-
-  React.useEffect(() => {
-    ahk.call('SaveData', 'blocked_exts.json', JSON.stringify(blockedExts));
-  }, [blockedExts]);
+    if (activeTab === 'config') {
+      setActiveSettingsTab('advanced');
+    }
+  }, [activeTab, setActiveSettingsTab]);
 
   const [workspaces, setWorkspaces] = useState<string[]>([]);
   const [currentWs, setCurrentWs] = useState<string>('default');
@@ -407,7 +395,8 @@ export const SettingsView = () => {
 
                   {/* Two-Tone Presets */}
                   <button onClick={() => setTheme({ mode: 'dark', titlebarBg: '#1e1b4b', sidebarBg: '#0b0a1f', mainBg: '#09090b', border: '#312e81', accent: '#818cf8', textMain: '#fafafa', textSec: '#a1a1aa', titlebarText: '#a5b4fc', titlebarTextHover: '#e0e7ff', titlebarAccent: '#818cf8', titlebarAlt: '#312e81', titlebarAlt2: '#3730a3', sidebarText: '#a5b4fc', urlbarBg: 'color-mix(in srgb, #312e81 80%, #1e1b4b)' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Dark</button>
-                  <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#4f46e5', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#4f46e5', textMain: '#18181b', textSec: '#52525b', titlebarText: '#c7d2fe', titlebarTextHover: '#ffffff', titlebarAccent: '#ffffff', titlebarAlt: '#4338ca', titlebarAlt2: '#3730a3', sidebarText: '#474747', urlbarBg: 'color-mix(in srgb, #4338ca 80%, #4f46e5)', urlbarText: '#ffffff', urlbarIcon: '#c7d2fe' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Light</button>
+
+                  <button onClick={() => setTheme({ mode: 'light', titlebarBg: '#4c73e6', sidebarBg: '#eaeaea', mainBg: '#f4f4f5', border: '#d4d4d8', accent: '#4c57e6', textMain: '#18181b', textSec: '#52525b', titlebarText: '#c7d2fe', titlebarTextHover: '#ffffff', titlebarAccent: '#ffffff', titlebarAlt: '#f2f2f2', titlebarAlt2: '#ffffff33', sidebarText: '#474747', urlbarBg: '#ffffff', urlbarText: '#525252', urlbarIcon: '#4d4d4d' })} className="px-3 py-1.5 text-xs bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors text-[var(--theme-text-main)] border border-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]">Two-Tone Light</button>
                 </div>
               </div>
             </div>
@@ -453,17 +442,17 @@ export const SettingsView = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium text-[var(--theme-text-main)]">Downloads Folder</h4>
-                  <p className="text-xs text-[var(--theme-text-sec)] mt-1 cursor-pointer hover:text-[var(--theme-accent)] transition-colors truncate max-w-[300px] md:max-w-md" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch (e) { } }}>{downloadsLoc || 'Not Set'}</p>
+                  <p className="text-xs text-[var(--theme-text-sec)] mt-1 cursor-pointer hover:text-[var(--theme-accent)] transition-colors truncate max-w-[300px] md:max-w-md" onClick={() => { try { ahk.call('PromptSelectFolder', 'downloadsLoc'); } catch (e) { } }}>{downloadsLoc || 'Not Set'}</p>
                 </div>
-                <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsLoc'); } catch (e) { } }} className="px-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] text-[var(--theme-text-main)] rounded-lg text-xs hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors">Change</button>
+                <button type="button" onClick={() => { try { ahk.call('PromptSelectFolder', 'downloadsLoc'); } catch (e) { } }} className="px-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] text-[var(--theme-text-main)] rounded-lg text-xs hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors">Change</button>
               </div>
 
               <div className="flex items-center justify-between mt-4">
                 <div>
                   <h4 className="text-sm font-medium text-[var(--theme-text-main)]">Temporary Muxing Location</h4>
-                  <p className="text-xs text-[var(--theme-text-sec)] mt-1 cursor-pointer hover:text-[var(--theme-accent)] transition-colors truncate max-w-[300px] md:max-w-md" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch (e) { } }}>{downloadsTemp || 'Not Set'}</p>
+                  <p className="text-xs text-[var(--theme-text-sec)] mt-1 cursor-pointer hover:text-[var(--theme-accent)] transition-colors truncate max-w-[300px] md:max-w-md" onClick={() => { try { ahk.call('PromptSelectFolder', 'downloadsTemp'); } catch (e) { } }}>{downloadsTemp || 'Not Set'}</p>
                 </div>
-                <button type="button" onClick={() => { try { ahk.call('SelectFolder', 'downloadsTemp'); } catch (e) { } }} className="px-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] text-[var(--theme-text-main)] rounded-lg text-xs hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors">Change</button>
+                <button type="button" onClick={() => { try { ahk.call('PromptSelectFolder', 'downloadsTemp'); } catch (e) { } }} className="px-4 py-2 bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] text-[var(--theme-text-main)] rounded-lg text-xs hover:bg-[color-mix(in_srgb,var(--theme-text-main)_12%,transparent)] transition-colors">Change</button>
               </div>
             </div>
 
@@ -849,12 +838,12 @@ export const SettingsView = () => {
                 onClick={() => {
                   const activeTabOrMain = browserTabs.find(t => t.id === activeBrowserTabId) || browserTabs[0];
                   setBrowserTabs([activeTabOrMain]);
-                  
+
                   // Clean up running webview instances in host except the active one
                   browserTabs.forEach(t => {
                     if (t.id !== activeTabOrMain.id) ahk.call('ClosePlayer', t.id);
                   });
-                  
+
                   setIsMultiTabEnabled(false);
                   ahk.call('SaveData', 'multi_tab_enabled.txt', 'false');
                   setShowMultiTabDialog(false);

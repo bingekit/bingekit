@@ -1,31 +1,36 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ahk } from '../lib/ahk';
 import { ActiveDownload } from '../types';
 
 export function useDownloadsState() {
-  const [downloadsLoc, setDownloadsLoc] = useState('');
-  const [downloadsTemp, setDownloadsTemp] = useState('');
-  const [blockedExts, setBlockedExts] = useState<string[]>(['.exe', '.msi', '.bat', '.cmd', '.scr', '.vbs']);
   const [activeDownloads, setActiveDownloads] = useState<Record<string, ActiveDownload>>({});
 
-  const isInitialDlLocMount = useRef(true);
-  const isInitialDlTempMount = useRef(true);
-  const isInitialBlockedExtsMount = useRef(true);
+  const [downloadsLoc, _setDownloadsLoc] = useState('');
+  const setDownloadsLoc = (val: React.SetStateAction<string>) => {
+    _setDownloadsLoc(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'downloads_loc.txt', next); } catch (e) { }
+      return next;
+    });
+  };
 
-  useEffect(() => {
-    if (isInitialDlLocMount.current) { isInitialDlLocMount.current = false; return; }
-    ahk.call('SaveData', 'downloads_loc.txt', downloadsLoc);
-  }, [downloadsLoc]);
+  const [downloadsTemp, _setDownloadsTemp] = useState('');
+  const setDownloadsTemp = (val: React.SetStateAction<string>) => {
+    _setDownloadsTemp(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'downloads_temp.txt', next); } catch (e) { }
+      return next;
+    });
+  };
 
-  useEffect(() => {
-    if (isInitialDlTempMount.current) { isInitialDlTempMount.current = false; return; }
-    ahk.call('SaveData', 'downloads_temp.txt', downloadsTemp);
-  }, [downloadsTemp]);
-
-  useEffect(() => {
-    if (isInitialBlockedExtsMount.current) { isInitialBlockedExtsMount.current = false; return; }
-    ahk.call('SaveData', 'blocked_exts.json', JSON.stringify(blockedExts));
-  }, [blockedExts]);
+  const [blockedExts, _setBlockedExts] = useState<string[]>(['.exe', '.msi', '.bat', '.cmd', '.scr', '.vbs']);
+  const setBlockedExts = (val: React.SetStateAction<string[]>) => {
+    _setBlockedExts(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'blocked_exts.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const handleSVDlStarted = (e: any) => {

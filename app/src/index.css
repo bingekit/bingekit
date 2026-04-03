@@ -94,6 +94,7 @@ button {
   z-index: 9;
   margin-left: 50px;
   width: calc(100% - 52px);
+  app-region: no-drag;
 }
 
 #titlebar-region:has(.multi-tab-toolbar)+div>div#main-region {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ahk } from '../lib/ahk';
 
 type NavButtonsConfig = { home: boolean; back: boolean; forward: boolean; reload: boolean };
@@ -13,7 +13,16 @@ export function useSettingsState() {
     });
   };
 
-  const [isAdblockEnabled, setIsAdblockEnabled] = useState(true);
+  const [isAdblockEnabled, _setIsAdblockEnabled] = useState(true);
+  const setIsAdblockEnabled = (val: React.SetStateAction<boolean>) => {
+    _setIsAdblockEnabled(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('UpdateAdblockStatus', next ? 'true' : 'false'); } catch (e) { }
+      try { ahk.call('SaveData', 'adblock_enabled.txt', next ? 'true' : 'false'); } catch (e) { }
+      return next;
+    });
+  };
+
   const [adblockWhitelist, _setAdblockWhitelist] = useState<string[]>([]);
   const setAdblockWhitelist = (val: React.SetStateAction<string[]>) => {
     _setAdblockWhitelist(prev => {
@@ -64,9 +73,6 @@ export function useSettingsState() {
   const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [autoFocusVideo, setAutoFocusVideo] = useState(true);
 
-  useEffect(() => {
-    try { ahk.call('UpdateAdblockStatus', isAdblockEnabled ? 'true' : 'false'); } catch (e) { }
-  }, [isAdblockEnabled]);
 
   return {
     navButtons, setNavButtons,

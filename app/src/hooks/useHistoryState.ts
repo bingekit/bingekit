@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, MutableRefObject } from 'react';
+import React, { useState, useRef, useEffect, MutableRefObject } from 'react';
 import { ahk } from '../lib/ahk';
 import { addHistoryItem, getHistory } from '../lib/db';
 import { BookmarkItem, HistoryItem, DiscoveryItem, WatchLaterItem, CredentialItem, FollowedItem, SitePlugin } from '../types';
@@ -11,14 +11,62 @@ export function useHistoryState(
   setBrowserTabs: any,
   playerNavSignal: number
 ) {
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [bookmarks, _setBookmarks] = useState<BookmarkItem[]>([]);
+  const setBookmarks = (val: React.SetStateAction<BookmarkItem[]>) => {
+    _setBookmarks(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'bookmarks.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [isHistoryEnabled, setIsHistoryEnabled] = useState(true);
-  const [discoveryItems, setDiscoveryItems] = useState<DiscoveryItem[]>([]);
+  
+  const [isHistoryEnabled, _setIsHistoryEnabled] = useState(true);
+  const setIsHistoryEnabled = (val: React.SetStateAction<boolean>) => {
+    _setIsHistoryEnabled(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'history_enabled.txt', next ? 'true' : 'false'); } catch (e) { }
+      return next;
+    });
+  };
+
+  const [discoveryItems, _setDiscoveryItems] = useState<DiscoveryItem[]>([]);
+  const setDiscoveryItems = (val: React.SetStateAction<DiscoveryItem[]>) => {
+    _setDiscoveryItems(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
+
   const [selectedBookmarks, setSelectedBookmarks] = useState<string[]>([]);
-  const [followedItems, setFollowedItems] = useState<FollowedItem[]>([]);
-  const [watchLater, setWatchLater] = useState<WatchLaterItem[]>([]);
-  const [credentials, setCredentials] = useState<CredentialItem[]>([]);
+
+  const [followedItems, _setFollowedItems] = useState<FollowedItem[]>([]);
+  const setFollowedItems = (val: React.SetStateAction<FollowedItem[]>) => {
+    _setFollowedItems(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'followed.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
+
+  const [watchLater, _setWatchLater] = useState<WatchLaterItem[]>([]);
+  const setWatchLater = (val: React.SetStateAction<WatchLaterItem[]>) => {
+    _setWatchLater(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'watchlater.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
+
+  const [credentials, _setCredentials] = useState<CredentialItem[]>([]);
+  const setCredentials = (val: React.SetStateAction<CredentialItem[]>) => {
+    _setCredentials(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('SaveData', 'credentials.json', JSON.stringify(next)); } catch (e) { }
+      return next;
+    });
+  };
   const [newCred, setNewCred] = useState({ domain: '', username: '', password: '' });
   const [bookmarkSearchQuery, setBookmarkSearchQuery] = useState('');
   const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
@@ -215,19 +263,7 @@ export function useHistoryState(
     };
   }, [url, activeTab, isHistoryEnabled, plugins, setBrowserTabs, pageTitleRef, playerNavSignal]);
 
-  // Sync to disks
-  useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
-  useEffect(() => {
-    if (isInitialDiscoveryMount.current) { isInitialDiscoveryMount.current = false; return; }
-    ahk.call('SaveData', 'discovery_cache.json', JSON.stringify(discoveryItems));
-  }, [discoveryItems]);
-  useEffect(() => {
-    if (isInitialHistoryEnabledMount.current) { isInitialHistoryEnabledMount.current = false; return; }
-    ahk.call('SaveData', 'history_enabled.txt', isHistoryEnabled ? 'true' : 'false');
-  }, [isHistoryEnabled]);
-  useEffect(() => { if (watchLater.length > 0) ahk.call('SaveData', 'watchlater.json', JSON.stringify(watchLater)); }, [watchLater]);
-  useEffect(() => { if (credentials.length > 0) ahk.call('SaveData', 'credentials.json', JSON.stringify(credentials)); }, [credentials]);
-  useEffect(() => { if (followedItems.length > 0) ahk.call('SaveData', 'followed.json', JSON.stringify(followedItems)); }, [followedItems]);
+
 
   return {
     bookmarks, setBookmarks,

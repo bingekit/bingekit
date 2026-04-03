@@ -1,4 +1,5 @@
 #Requires AutoHotkey v2.0
+#SingleInstance Force
 
 DllCall("SetThreadDpiAwarenessContext", "ptr", -3, "ptr")
 

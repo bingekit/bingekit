@@ -335,6 +335,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (e) { }
     }
 
+    const savedAdblockEnabled = ahk.call('LoadData', 'adblock_enabled.txt');
+    if (savedAdblockEnabled) {
+      settings.setIsAdblockEnabled(savedAdblockEnabled === 'true');
+    }
+
     const loadUserscripts = () => {
       const filesStr = ahk.call('ListScripts');
       const loadedScripts: Userscript[] = [];
@@ -429,6 +434,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedBlockedExts) {
       try { downloads.setBlockedExts(JSON.parse(savedBlockedExts)); } catch (e) { }
     }
+
+    const savedUrlBarMode = ahk.call('LoadData', 'url_bar_mode.txt');
+    if (savedUrlBarMode) general.setUrlBarMode(savedUrlBarMode as any);
+
+    const savedSettingsTab = ahk.call('LoadData', 'active_settings_tab.txt');
+    if (savedSettingsTab) general.setActiveSettingsTab(savedSettingsTab as any);
+
+    const savedOptionsHidden = ahk.call('LoadData', 'quick_options_hidden.txt');
+    if (savedOptionsHidden) general.setIsQuickOptionsHidden(savedOptionsHidden === 'true');
+
+    const savedFocusedMode = ahk.call('LoadData', 'focused_mode.txt');
+    if (savedFocusedMode) general.setIsFocusedMode(savedFocusedMode === 'true');
+
+    const savedSearchParamMode = ahk.call('LoadData', 'search_param_mode.txt');
+    if (savedSearchParamMode) general.setSearchParamMode(savedSearchParamMode as any);
 
     try {
       const mode = ahk.call('GetStorageMode');

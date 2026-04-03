@@ -2,10 +2,12 @@
 
 #Include src\const.ahk
 
+#Include src\Splash.ahk
+InitSplashGui()
+
 #Include Lib\WebViewToo.ahk
 #Include Lib\Promise.ahk
 #Include Lib\JSON.ahk
-#SingleInstance Force
 
 ; 1. Settings Loading/Saving/Parsing
 #Include src\Config.ahk
@@ -16,6 +18,9 @@ InitWorkspaces()
 ; 2. Environment (WebView2 Settings, Splash/Main UI Init)
 #Include src\Env.ahk
 InitEnvironment()
+
+#Include src\App.ahk
+InitAppGui()
 
 #Include src\FNS.ahk
 
