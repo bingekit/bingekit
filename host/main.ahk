@@ -25,6 +25,7 @@ InitAppGui()
 #Include src\Crypto.ahk
 
 #Include src\FNS.ahk
+#Include src\Toasts.ahk
 
 ; 3. Core App Sections
 #Include src\Api.ahk

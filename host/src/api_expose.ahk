@@ -89,5 +89,6 @@ WV.AddHostObjectToScript("ahk", {
     InstallUpdate: AHK_InstallUpdate,
     GetAppVersion: AHK_GetAppVersion,
     IsCompiled: AHK_IsCompiled,
-    InstallExtensionZip: AHK_InstallExtensionZip
+    InstallExtensionZip: AHK_InstallExtensionZip,
+    ShowToast: AHK_ShowToast
 })

@@ -54,6 +54,13 @@ const ahk = window.chrome.webview.hostObjects.sync.ahk;
 
 // Safely call the native save API directly to disk without Prompt!
 ahk.SaveData("wiki-log.txt", "Harvested Title: " + title);
+
+// And we can even trigger a custom-colored Global Toast!
+ahk.ShowToast("Wikipedia logger successfully extracted: " + title, { 
+    bgC: "#ffffff", 
+    textC: "#000000", 
+    borderC: "#0066cc" 
+});
 ```
 
 ## 4. Debugging & Workarounds

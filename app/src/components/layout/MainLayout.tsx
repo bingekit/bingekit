@@ -6,7 +6,6 @@ import { useAppContext } from '../../context/AppContext';
 import { ThemeStyles } from './ThemeStyles';
 import { Titlebar } from './Titlebar';
 import { Sidebar } from './Sidebar';
-import { Toaster } from '../ui/Toaster';
 import { GlobalPrompt } from '../ui/GlobalPrompt';
 import { GlobalConfirm } from '../ui/GlobalConfirm';
 
@@ -19,6 +18,12 @@ import { ExploreView } from '../views/ExploreView';
 import { ExtensionsView } from '../views/ExtensionsView';
 import { DownloadsView } from '../views/DownloadsView';
 
+declare global {
+  interface Window {
+    showToast: (message: string, arg1?: string | any, arg2?: string, arg3?: string) => void;
+  }
+}
+
 export const MainLayout = () => {
   const {
     theme, activeTab, browserTabs, setBrowserTabs, activeBrowserTabId, 
@@ -26,6 +31,13 @@ export const MainLayout = () => {
   } = useAppContext();
 
   useEffect(() => {
+    window.showToast = (msg: string, arg1: any = 'info', arg2: string = '', arg3: string = '') => {
+      try {
+        if (typeof arg1 === 'object') arg1 = JSON.stringify(arg1);
+        (window as any).chrome.webview.hostObjects.ahk.ShowToast(msg, arg1, arg2, arg3);
+      } catch {}
+    };
+
     const handleCloseActiveTab = () => {
       if (browserTabs.length <= 1) return; // Don't close the last tab
       
@@ -121,7 +133,6 @@ export const MainLayout = () => {
         </div>
       </div>
       
-      <Toaster />
       <GlobalPrompt />
       <GlobalConfirm />
     </div>

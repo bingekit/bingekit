@@ -67,10 +67,23 @@ The ad-blocking pipeline acts across multiple scopes to ensure sites remain pris
 *   **Inline Resource Sanitization:** Capable of sniffing and blocking malicious or intrusive inline `<script>` tags dynamically.
 *   **Cosmetic JS Blocking:** Injects early-execution scripts that set up robust `MutationObserver` listeners. Undesirable DOM nodes (popups, overlays, anti-adblock modals) are instantly caught and removed (`display: none`) the moment they enter the DOM.
 
-## 5. Adaptation & Open Source
+## 5. Native AHK Overlays (Global UI)
+
+Unlike standard electron apps, BingeKit separates its dashboard UI (React) from global notification UI to ensure absolute visibility.
+
+### The Toast System
+If notifications (Toasts) were rendered within the React DOM, they would be trapped inside the Main Menu window boundaries. If the user had a Player view running full-screen or as a PiP element on a secondary monitor, a React-bound toast would be invisible.
+
+To solve this, BingeKit exposes a **Global Native Toast System**:
+- Initiated through JavaScript via the `window.showToast` global alias or directly at `ahk.ShowToast(message, typeOrConfig)`.
+- The AHK host generates a frameless (`-Caption`), always-on-top native Windows GUI.
+- These GUI nodes dynamically track available slots recursively on the Primary Monitor desktop bounds and float cleanly above *all* applications (including full-screen games).
+- The Native COM bridge dynamically parses JSON from the WebView to allow the unprivileged JavaScript environment to theme the system-level popup dynamically.
+
+## 6. Adaptation & Open Source
 While BingeKit was initially focused on organizing and controlling media streams seamlessly, the foundation is completely agnostic. The heavy lifting—bridging AHK2 with WebView2, network interception, automated hidden flows, userscript injection, and IPC logic—has effectively created a framework for building highly capable desktop utilities, scrapers, and local-first software. This architecture can easily be adapted into entirely different projects needing granular web automation and a native desktop experience.
 
-## 6. Secure Credential Storage (DPAPI & IndexedDB)
+## 7. Secure Credential Storage (DPAPI & IndexedDB)
 
 BingeKit manages an internal credential subsystem to enable automated login flows (e.g., bypassing repetitive streaming site authentications).
 

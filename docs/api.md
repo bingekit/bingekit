@@ -50,6 +50,7 @@ For brevity, the rest of this documentation assumes you have mapped the `ahk` ob
 *   **`InstallUpdate(downloadUrl)`**: Initiates an automated update/patch loop using the provided URL.
 *   **`RevealPath(path)`**: Opens Windows Explorer precisely selecting the matched `path`.
 *   **`PromptSelectFolder(id)`**: Triggers a native `FileSelect` (directory mode) and reports the user's choice back via IPC (using the referenced `id`).
+*   **`ShowToast(message, typeOrConfig, textC, borderC)`**: Triggers a native Windows-level modal toast on the bottom right of the primary display. Supports passing `"info" | "success" | "error"`, OR a JSON object `{"bgC": "HEX", "textC": "HEX", "borderC": "HEX"}` to fully customize the window canvas natively from JavaScript!
 
 ---
 
