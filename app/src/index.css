@@ -80,3 +80,23 @@ button {
 .cursor-not-allowed {
   cursor: not-allowed;
 }
+
+/* Fixed Sidebar and URL Bar Layout Tweaks for Multi-tabbed mode */
+#titlebar-region:has(.multi-tab-toolbar)+div>#sidebar-region {
+  position: absolute;
+  top: 80px;
+  bottom: 0px;
+  margin-top: -40px;
+  z-index: 99999999;
+}
+
+.multi-tab-toolbar {
+  z-index: 9;
+  margin-left: 50px;
+  width: calc(100% - 52px);
+}
+
+#titlebar-region:has(.multi-tab-toolbar)+div>div#main-region {
+  width: 100%;
+  margin-left: 56px;
+}

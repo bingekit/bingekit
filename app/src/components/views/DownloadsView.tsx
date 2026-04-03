@@ -161,7 +161,7 @@ export const DownloadsView = () => {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* File List */}
-      <div className="w-1/3 min-w-[300px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar flex flex-col">
+      <div className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">

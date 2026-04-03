@@ -114,6 +114,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [isSearching, setIsSearching] = useState(false);
   const pageTitleRef = useRef<string>('');
   const playerRef = useRef<HTMLDivElement>(null);
+  
+  const navigateQueue = useRef<Array<() => void>>([]);
+  const isNavigatingQueue = useRef(false);
+
+  const processNavigateQueue = async () => {
+    if (isNavigatingQueue.current || navigateQueue.current.length === 0) return;
+    isNavigatingQueue.current = true;
+    
+    while(navigateQueue.current.length > 0) {
+      const task = navigateQueue.current.shift();
+      if (task) {
+         task();
+         // Give host app time to create the COM object and process its event loop
+         await new Promise(r => setTimeout(r, 450)); 
+      }
+    }
+    isNavigatingQueue.current = false;
+  };
 
   const general = useGeneralState();
   const settings = useSettingsState();
@@ -190,15 +208,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (inNewTab) {
-      const newId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9);
-      tabs.setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl }]);
-      tabs.lastSyncUrls.current[newId] = finalUrl;
-      ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
-      if (!isBackground) {
-        tabs.setActiveBrowserTabId(newId);
-        if (settings.autoFocusPlayerOnTabChange) general.setActiveTab('player');
-        setPlayerNavSignal(s => s + 1);
-      }
+      navigateQueue.current.push(() => {
+        const newId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9);
+        tabs.setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl }]);
+        tabs.lastSyncUrls.current[newId] = finalUrl;
+        ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
+        if (!isBackground) {
+          tabs.setActiveBrowserTabId(newId);
+          if (settings.autoFocusPlayerOnTabChange) general.setActiveTab('player');
+          setPlayerNavSignal(s => s + 1);
+        }
+      });
+      processNavigateQueue();
     } else {
       setUrl(finalUrl);
       setInputUrl(finalUrl);
