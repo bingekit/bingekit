@@ -332,10 +332,25 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     };
     window.addEventListener('player-status-update', handleStatusUpdate);
 
+    const handleFaviconUpdate = (e: any) => {
+      if (e.detail && e.detail.favicon !== undefined) {
+        setBrowserTabs(prev => {
+          const newTabs = [...prev];
+          const tabIdx = newTabs.findIndex(t => t.id === (e.detail.tabId || 'main'));
+          if (tabIdx >= 0) {
+            newTabs[tabIdx] = { ...newTabs[tabIdx], favicon: e.detail.favicon };
+          }
+          return newTabs;
+        });
+      }
+    };
+    window.addEventListener('player-favicon-update', handleFaviconUpdate);
+
     return () => {
       window.removeEventListener('player-url-changed', handleEvent);
       window.removeEventListener('message', handleMsg);
       window.removeEventListener('player-status-update', handleStatusUpdate);
+      window.removeEventListener('player-favicon-update', handleFaviconUpdate);
     };
   }, []);
 

@@ -113,6 +113,10 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             } catch {
             }
             try {
+                PlayerWVs[id].wv.add_FaviconChanged(AHK_PlayerFaviconChanged)
+            } catch {
+            }
+            try {
                 PlayerWVs[id].wv.add_DownloadStarting(AHK_DownloadStarting)
             } catch {
             }
@@ -241,6 +245,37 @@ AHK_PlayerTitleChanged(ICoreWebView2, *) {
         title := ICoreWebView2.DocumentTitle
         AHK_ReportPlayerStatus("unknown", false, title, foundId)
     } catch {
+    }
+}
+
+AHK_PlayerFaviconChanged(ICoreWebView2, *) {
+    global PlayerWVs
+    foundId := ""
+    for id, pwv in PlayerWVs {
+        if (pwv.wv.ptr == ICoreWebView2.ptr) {
+            foundId := id
+            break
+        }
+    }
+    if (foundId == "")
+        return
+
+    try {
+        favUri := ICoreWebView2.FaviconUri
+        AHK_ReportPlayerFavicon(favUri, foundId)
+    } catch {
+    }
+}
+
+AHK_ReportPlayerFavicon(favUri, id := "") {
+    global MainGui, ActiveTabId
+    id := id ? id : ActiveTabId
+    if (MainGui) {
+        safeFav := StrReplace(favUri, "'", "\'")
+        safeFav := StrReplace(safeFav, "`n", "")
+        safeFav := StrReplace(safeFav, "`r", "")
+        js := "try { window.dispatchEvent(new CustomEvent('player-favicon-update', { detail: { favicon: '" safeFav "', tabId: '" id "' } })) } catch(e) {}"
+        MainGui.Control.ExecuteScriptAsync(js)
     }
 }
 
