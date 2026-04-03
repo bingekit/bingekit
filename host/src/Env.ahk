@@ -52,9 +52,12 @@ InitEnvironment() {
 
     if (A_IsCompiled) {
         WebViewCtrl.CreateFileFromResource((A_PtrSize * 8) "bit\WebView2Loader.dll", WebViewCtrl.TempDir)
-        WebViewSettings := { DllPath: WebViewCtrl.TempDir "\" (A_PtrSize * 8) "bit\WebView2Loader.dll" }
+        WebViewSettings := { 
+            DllPath: WebViewCtrl.TempDir "\" (A_PtrSize * 8) "bit\WebView2Loader.dll",
+            DataDir: WorkspaceDir "\webview"
+        }
     } else {
-        WebViewSettings := {}
+        WebViewSettings := { DataDir: WorkspaceDir "\webview" }
     }
 
     SplashGui := Gui("-Caption +AlwaysOnTop +ToolWindow", "BingeKit Loading")

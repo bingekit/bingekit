@@ -164,6 +164,16 @@ AHK_LoadData(filename) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
+AHK_DeleteData(filename) {
+    global WorkspaceDir
+    filepath := WorkspaceDir "\" filename
+    if FileExist(filepath) {
+        try FileDelete(filepath)
+        return true
+    }
+    return false
+}
+
 AHK_GetAboutConfig(*) {
     global WorkspaceDir
     filepath := WorkspaceDir "\about_config.json"

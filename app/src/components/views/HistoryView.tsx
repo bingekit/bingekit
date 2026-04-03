@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, PlaySquare, Compass, Filter } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
+import { clearHistoryDB, deleteHistoryItemDB } from '../../lib/db';
 
 export const HistoryView = () => {
   const { history, setHistory, setUrl, setInputUrl, setActiveTab } = useAppContext();
@@ -158,6 +159,7 @@ export const HistoryView = () => {
               onClick={() => {
                 if (confirm('Clear all history?')) {
                   setHistory([]);
+                  clearHistoryDB().catch(console.error);
                 }
               }}
               className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 px-4 py-2 rounded-full transition-colors hidden md:flex"
@@ -226,7 +228,10 @@ export const HistoryView = () => {
                     <ExternalLink size={16} />
                   </button>
                   <button
-                    onClick={() => setHistory(history.filter(h => h.id !== item.id))}
+                    onClick={() => {
+                      setHistory(history.filter(h => h.id !== item.id));
+                      deleteHistoryItemDB(item.id).catch(console.error);
+                    }}
                     className="p-1.5 rounded-md text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <Trash2 size={16} />

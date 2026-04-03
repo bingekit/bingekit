@@ -6,6 +6,7 @@ import {
   BookmarkItem, WatchLaterItem, CredentialItem,
   FollowedItem, CustomFlow, Userscript, SitePlugin, HistoryItem, DiscoveryItem, ActiveDownload
 } from '../types';
+import { addHistoryItem, bulkAddHistory, getHistory } from '../lib/db';
 export type NavButtonsConfig = { home: boolean; back: boolean; forward: boolean; reload: boolean };
 
 interface AppContextType {
@@ -374,7 +375,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             domain: host,
             type: 'browse'
           };
-          return [newItem, ...prev].slice(0, 1000);
+          addHistoryItem(newItem).catch(console.error);
+          return [newItem, ...prev].slice(0, 2000);
         });
       }, 5000);
       return () => clearTimeout(timer);
@@ -423,10 +425,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           if (latestDur > 0) item.duration = latestDur;
           if (tags.length > 0) item.tags = tags;
           newHistory[existingIdx] = item;
+          addHistoryItem(item).catch(console.error);
         } else {
           const rawTitle = pageTitleRef.current || fetchTitleForUrl(currentUrl) || host;
           const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
-          newHistory.unshift({
+          const newItem: HistoryItem = {
             id: Date.now().toString() + 'w',
             url: currentUrl,
             title: cleanTitle,
@@ -437,9 +440,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             currentTime: latestTime > 0 ? latestTime : undefined,
             duration: latestDur > 0 ? latestDur : undefined,
             tags
-          });
+          };
+          newHistory.unshift(newItem);
+          addHistoryItem(newItem).catch(console.error);
         }
-        return newHistory.slice(0, 1000);
+        return newHistory.slice(0, 2000);
       });
     };
 
@@ -535,8 +540,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       ]);
     }
 
-    const savedHistory = ahk.call('LoadData', 'history.json');
-    if (savedHistory) { try { setHistory(JSON.parse(savedHistory)); } catch (e) { } }
+    const initHistorySystem = async () => {
+      const savedHistory = ahk.call('LoadData', 'history.json');
+      if (savedHistory) {
+         try {
+           const legacyParsed = JSON.parse(savedHistory);
+           if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+              await bulkAddHistory(legacyParsed);
+           }
+           ahk.call('DeleteData', 'history.json');
+         } catch(e) {}
+      }
+
+      try {
+        const idbHistory = await getHistory(2000);
+        setHistory(idbHistory);
+      } catch (e) {}
+    };
+    initHistorySystem();
 
     const savedFollowed = ahk.call('LoadData', 'followed.json');
     if (savedFollowed) { try { setFollowedItems(JSON.parse(savedFollowed)); } catch (e) { } }
@@ -748,11 +769,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);
-
-  useEffect(() => {
-    if (isInitialHistoryMount.current) { isInitialHistoryMount.current = false; return; }
-    ahk.call('SaveData', 'history.json', JSON.stringify(history));
-  }, [history]);
 
   useEffect(() => {
     if (isInitialDiscoveryMount.current) { isInitialDiscoveryMount.current = false; return; }
