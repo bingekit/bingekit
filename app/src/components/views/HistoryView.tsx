@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, PlaySquare, Compass, Filter } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
-import { clearHistoryDB, deleteHistoryItemDB } from '../../lib/db';
+import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../lib/db';
 
 export const HistoryView = () => {
   const { history, setHistory, setUrl, setInputUrl, setActiveTab } = useAppContext();
@@ -155,17 +155,31 @@ export const HistoryView = () => {
           </div>
 
           {(history.length > 0) && (
-            <button
-              onClick={() => {
-                if (confirm('Clear all history?')) {
-                  setHistory([]);
-                  clearHistoryDB().catch(console.error);
-                }
-              }}
-              className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 px-4 py-2 rounded-full transition-colors hidden md:flex"
-            >
-              <Trash2 size={16} /> Clear
-            </button>
+            <div className="flex items-center gap-2 hidden md:flex">
+                <button
+                onClick={() => {
+                    if (confirm('Clear non-watched browsing history?')) {
+                    setHistory(history.filter(h => h.type === 'watch'));
+                    clearBrowsedHistoryDB().catch(console.error);
+                    }
+                }}
+                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 px-3 py-2 rounded-full transition-colors"
+                title="Clear Browsed"
+                >
+                <Trash2 size={16} /> <span className="hidden lg:inline">Browsed</span>
+                </button>
+                <button
+                onClick={() => {
+                    if (confirm('Clear all history?')) {
+                    setHistory([]);
+                    clearHistoryDB().catch(console.error);
+                    }
+                }}
+                className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300 bg-red-500/10 px-4 py-2 rounded-full transition-colors"
+                >
+                <Trash2 size={16} /> <span className="hidden lg:inline">All</span>
+                </button>
+            </div>
           )}
         </div>
       </div>

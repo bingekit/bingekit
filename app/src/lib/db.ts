@@ -60,6 +60,20 @@ export async function clearHistoryDB() {
   await db.clear('history');
 }
 
+export async function clearBrowsedHistoryDB() {
+  const db = await initDB();
+  const tx = db.transaction('history', 'readwrite');
+  const store = tx.store;
+  let cursor = await store.openCursor();
+  while (cursor) {
+    if (cursor.value.type === 'browse') {
+      await cursor.delete();
+    }
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
 export async function deleteHistoryItemDB(id: string) {
   const db = await initDB();
   await db.delete('history', id);

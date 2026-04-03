@@ -3,6 +3,7 @@ OnMessage(0x0005, AHK_OnMove) ; WM_SIZE
 OnMessage(0x0083, WM_NCCALCSIZE) ; WM_NCCALCSIZE
 OnMessage(0x0084, WM_NCHITTEST) ; WM_NCHITTEST
 
+ScreenSizeFull := FN_MonitorGet(FN_MonitorGetPrimary())
 ScreenSize := FN_MonitorGetWorking(FN_MonitorGetPrimary())
 
 AHK_OnMove(wParam, lParam, msg, hwnd) {
@@ -44,5 +45,11 @@ MainGui_OnSize(*) {
     }
     if (wW >= ScreenSize.width) {
         MainGui.Move(, , ScreenSize.width,)
+    }
+    if ((wY + wH) > (ScreenSizeFull.height - wY)) {
+        MainGui.Move(, , , ScreenSizeFull.height - wY)
+    }
+    if ((wX + wW) > (ScreenSizeFull.width - wX)) {
+        MainGui.Move(, , ScreenSizeFull.width - wX,)
     }
 }
