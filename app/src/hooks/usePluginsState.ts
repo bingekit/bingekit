@@ -30,6 +30,30 @@ export function usePluginsState(
 
   const isInitialPluginCheck = useRef(false);
 
+  // Sync plugin blockers to global network filters
+  useEffect(() => {
+    if (plugins.length === 0) return;
+    setNetworkFilters((prev: Record<string, boolean> | undefined) => {
+      const safePrev = prev || {};
+      let changed = false;
+      const newFilters = { ...safePrev };
+      plugins.forEach(p => {
+        if (p.enabled === false) return;
+        ['networkBlockers'].forEach(key => {
+          const blockers = p[key as keyof SitePlugin] as string[];
+          if (Array.isArray(blockers)) {
+            blockers.forEach(b => {
+               if (b && typeof b === 'string' && !newFilters[b]) {
+                 newFilters[b] = true;
+                 changed = true;
+               }
+            });
+          }
+        });
+      });
+      return changed ? newFilters : safePrev;
+    });
+  }, [plugins, setNetworkFilters]);
   const loadPlugins = () => {
     const filesStr = ahk.call('ListSites');
     if (filesStr) {

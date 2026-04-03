@@ -55,6 +55,7 @@ WV.AddHostObjectToScript("ahk", {
     UpdateNetworkFilters: AHK_UpdateNetworkFilters,
     AddNetworkFilter: AHK_AddNetworkFilter,
     UpdateAdblockStatus: AHK_UpdateAdblockStatus,
+    UpdateAdblockWhitelist: AHK_UpdateAdblockWhitelist,
     UpdateSiteBlockers: AHK_UpdateSiteBlockers,
     ListScripts: AHK_ListScripts,
     SaveScript: AHK_SaveScript,

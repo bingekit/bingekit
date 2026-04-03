@@ -19,6 +19,7 @@ interface AppContextType {
   url: string; setUrl: React.Dispatch<React.SetStateAction<string>>;
   inputUrl: string; setInputUrl: React.Dispatch<React.SetStateAction<string>>;
   isAdblockEnabled: boolean; setIsAdblockEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  adblockWhitelist: string[]; setAdblockWhitelist: React.Dispatch<React.SetStateAction<string[]>>;
   urlBarMode: 'full' | 'title' | 'hidden'; setUrlBarMode: React.Dispatch<React.SetStateAction<'full' | 'title' | 'hidden'>>;
   theme: any; setTheme: React.Dispatch<React.SetStateAction<any>>;
   bookmarks: BookmarkItem[]; setBookmarks: React.Dispatch<React.SetStateAction<BookmarkItem[]>>;
@@ -326,6 +327,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       settings.setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
     }
 
+    const savedAdblockWhitelist = ahk.call('LoadData', 'adblock_whitelist.json');
+    if (savedAdblockWhitelist) {
+      try {
+        const parsed = JSON.parse(savedAdblockWhitelist);
+        if (Array.isArray(parsed)) settings.setAdblockWhitelist(parsed);
+      } catch (e) { }
+    }
+
     const loadUserscripts = () => {
       const filesStr = ahk.call('ListScripts');
       const loadedScripts: Userscript[] = [];
@@ -440,7 +449,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (e) { }
 
-    setTimeout(() => ahk.call('HideSplash'), 500);
+    setTimeout(() => ahk.call('HideSplash'), 1500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

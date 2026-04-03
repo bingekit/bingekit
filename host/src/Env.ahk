@@ -34,6 +34,7 @@ InitEnvironment() {
     global AboutConfig_DebugMode := debugMode
 
     browserArgs := "--msWebView2CodeCache " .
+        "--edge-webview-no-dpi-workaround " .
         "--no-first-run " .
         "--msWebView2CancelInitialNavigation " .
         "--disable-features=OverscrollHistoryNavigation " .
@@ -46,7 +47,6 @@ InitEnvironment() {
         "--IsSwipeNavigationEnabled=0 "
 
     if (disableGPU) {
-        browserArgs .= "--edge-webview-no-dpi-workaround "
         browserArgs .= "--disable-gpu "
     }
 

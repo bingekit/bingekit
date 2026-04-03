@@ -24,7 +24,7 @@ export const SettingsView = () => {
     searchResults, setSearchResults, isSearching, setIsSearching, watchLater, setWatchLater, credentials, setCredentials,
     newCred, setNewCred, bookmarkSearchQuery, setBookmarkSearchQuery, editingBookmarkId, setEditingBookmarkId,
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
-    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, networkFilters, setNetworkFilters, navButtons, setNavButtons,
+    history, setHistory, isHistoryEnabled, setIsHistoryEnabled, adblockWhitelist, setAdblockWhitelist, networkFilters, setNetworkFilters, navButtons, setNavButtons,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp,
     activeSettingsTab, setActiveSettingsTab, isMultiTabEnabled, setIsMultiTabEnabled,
@@ -548,6 +548,12 @@ export const SettingsView = () => {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="pt-4 mt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
+                <label className="block text-sm font-medium text-[var(--theme-text-main)] mb-1.5">Site Whitelist</label>
+                <p className="text-xs text-[var(--theme-text-sec)] mb-4">Adblocker will be disabled entirely on these domains (e.g. google.com)</p>
+                <TagsInput tags={adblockWhitelist} onChange={setAdblockWhitelist} />
               </div>
             </div>
 

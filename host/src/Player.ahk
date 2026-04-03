@@ -6,6 +6,7 @@ global PlayerRects := Map()
 
 global NetworkFilters := Map()
 global NetworkAdblockEnabled := true
+global AdblockWhitelist := []
 global SiteBlockersMap := "{}"
 
 global ActiveTabId := "main"
@@ -91,6 +92,8 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             PlayerWVs[id].AddHostObjectToScript("ahk", {
                 UpdateURL: (url) => AHK_UpdateURL(url, id),
                 GetUserscriptPayload: AHK_GetUserscriptPayload,
+                GetAdblockStatus: AHK_GetAdblockStatus,
+                GetAdblockWhitelist: AHK_GetAdblockWhitelist,
                 CacheSet: AHK_CacheSet,
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
@@ -379,6 +382,38 @@ AHK_UpdateAdblockStatus(status) {
     NetworkAdblockEnabled := (status = "true")
 }
 
+AHK_GetAdblockStatus() {
+    global NetworkAdblockEnabled
+    return NetworkAdblockEnabled ? 1 : 0
+}
+
+AHK_UpdateAdblockWhitelist(jsonStr) {
+    global AdblockWhitelist
+    AdblockWhitelist := []
+    try {
+        str := Trim(jsonStr, "[]")
+        arr := StrSplit(str, ",")
+        for item in arr {
+            clean := StrReplace(item, '"', '')
+            clean := Trim(clean)
+            if (clean != "")
+                AdblockWhitelist.Push(clean)
+        }
+    } catch {
+    }
+}
+
+AHK_GetAdblockWhitelist() {
+    global AdblockWhitelist
+    res := "["
+    for item in AdblockWhitelist {
+        res .= '"' item '",'
+    }
+    res := RTrim(res, ",")
+    res .= "]"
+    return res
+}
+
 AHK_GetActiveMedia() {
     global ActiveTabId, ActiveMediaStreams
     if (ActiveMediaStreams.Has(ActiveTabId))
@@ -407,7 +442,18 @@ AHK_PlayerResourceRequested(sender, args) {
         }
     }
 
-    if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
+    isWhitelisted := false
+    if (PlayerCurrentUrls.Has(foundId)) {
+        siteUrl := PlayerCurrentUrls[foundId]
+        for w in AdblockWhitelist {
+            if (InStr(siteUrl, w)) {
+                isWhitelisted := true
+                break
+            }
+        }
+    }
+
+    if (!NetworkAdblockEnabled || isWhitelisted || NetworkFilters.Count = 0) {
         ; Still do media checking
     }
 
@@ -437,7 +483,7 @@ AHK_PlayerResourceRequested(sender, args) {
         }
     }
 
-    if (!NetworkAdblockEnabled || NetworkFilters.Count = 0) {
+    if (!NetworkAdblockEnabled || isWhitelisted || NetworkFilters.Count = 0) {
         return
     }
 

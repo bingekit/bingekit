@@ -5,6 +5,16 @@
 // It runs before the page loads to block ads and inject custom behaviors.
 
 (function () {
+    try {
+        if (!window.chrome.webview.hostObjects.sync.ahk.GetAdblockStatus()) return;
+
+        const whitelistStr = window.chrome.webview.hostObjects.sync.ahk.GetAdblockWhitelist();
+        if (whitelistStr) {
+            const whitelist = JSON.parse(whitelistStr);
+            const currentHost = location.href || location.hostname;
+            if (whitelist.some(w => currentHost.includes(w))) return;
+        }
+    } catch (e) { }
 
     let adKeywords = ['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'];
     let redirectKeywords = ['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'];
