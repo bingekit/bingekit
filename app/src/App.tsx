@@ -40,15 +40,8 @@ const MainLayout = () => {
 
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [showInterfaces, setShowInterfaces] = React.useState(false);
-  const [tabContextMenu, setTabContextMenu] = React.useState<{id: string, x: number, y: number} | null>(null);
 
   const activeDownloadsCount = Object.values(activeDownloads || {}).filter((dl: any) => dl.state !== 2).length;
-
-  React.useEffect(() => {
-    const handleGlobalClick = () => setTabContextMenu(null);
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
-  }, []);
 
   React.useEffect(() => {
     const handlePlayState = (e: any) => {
@@ -71,13 +64,34 @@ const MainLayout = () => {
       navigateUrl(homePage || 'https://bingekit.app/start/', true);
     };
 
+    const handleContextAction = (e: any) => {
+      const { action, tabId } = e.detail;
+      if (action === 'close') handleCloseTab(tabId);
+      if (action === 'closeRight') handleCloseTabsToRight(tabId);
+      if (action === 'closeOthers') handleCloseOtherTabs(tabId);
+      if (action === 'toggleMute') {
+        setBrowserTabs(prev => {
+          const newTabs = [...prev];
+          const idx = newTabs.findIndex(t => t.id === tabId);
+          if (idx >= 0) {
+            const newMuteState = !newTabs[idx].isMuted;
+            newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
+            try { ahk.call('MutePlayer', newMuteState ? 1 : 0, tabId); } catch (err) { }
+          }
+          return newTabs;
+        });
+      }
+    };
+
     window.addEventListener('bk-close-active-tab', handleCloseActiveTab);
     window.addEventListener('bk-new-tab', handleNewTabEvent);
+    window.addEventListener('bk-tab-context-action', handleContextAction);
 
     return () => {
       window.removeEventListener('player-play-state', handlePlayState as any);
       window.removeEventListener('bk-close-active-tab', handleCloseActiveTab);
       window.removeEventListener('bk-new-tab', handleNewTabEvent);
+      window.removeEventListener('bk-tab-context-action', handleContextAction);
     };
   }, [activeBrowserTabId, homePage]);
 
@@ -106,7 +120,7 @@ const MainLayout = () => {
       if (idx >= 0) {
         const newMuteState = !newTabs[idx].isMuted;
         newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
-        try { ahk.call('MutePlayer', newMuteState ? 1 : 0, tabId); } catch(err) {}
+        try { ahk.call('MutePlayer', newMuteState ? 1 : 0, tabId); } catch (err) { }
       }
       return newTabs;
     });
@@ -119,14 +133,13 @@ const MainLayout = () => {
       const tabsToKeep = prev.slice(0, idx + 1);
       const tabsToClose = prev.slice(idx + 1);
       tabsToClose.forEach(t => {
-        try { ahk.call('ClosePlayer', t.id); } catch(err) {}
+        try { ahk.call('ClosePlayer', t.id); } catch (err) { }
       });
       if (tabsToClose.some(t => t.id === activeBrowserTabId)) {
         setActiveBrowserTabId(targetId);
       }
       return tabsToKeep;
     });
-    setTabContextMenu(null);
   };
 
   const handleCloseOtherTabs = (targetId: string) => {
@@ -134,12 +147,11 @@ const MainLayout = () => {
       const tabsToKeep = prev.filter(t => t.id === targetId);
       const tabsToClose = prev.filter(t => t.id !== targetId);
       tabsToClose.forEach(t => {
-        try { ahk.call('ClosePlayer', t.id); } catch(err) {}
+        try { ahk.call('ClosePlayer', t.id); } catch (err) { }
       });
       setActiveBrowserTabId(targetId);
       return tabsToKeep;
     });
-    setTabContextMenu(null);
   };
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>
@@ -272,16 +284,18 @@ const MainLayout = () => {
                   }}
                   onContextMenu={(e) => {
                     e.preventDefault();
-                    setTabContextMenu({ id: tab.id, x: e.clientX, y: e.clientY });
+                    const screenX = window.screenX + (e.clientX || 0);
+                    const screenY = window.screenY + (e.clientY || 0);
+                    ahk.call('ShowTabContextMenu', tab.id, screenX, screenY, tab.isMuted === true ? 1 : 0, theme.sidebarBg || '#27272a', theme.mainBg || '#18181b', theme.border || '#3f3f46', theme.textSec || '#a1a1aa', theme.textMain || '#ffffff', browserTabs.length);
                   }}
-                  className={`h-[32px] max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
-                      ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'
-                      : 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border-transparent text-[var(--theme-titlebar-text)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] hover:text-[var(--theme-text-main)]'
+                  className={`h-[32px] titlebarTab no-drag max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
+                    ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'
+                    : 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border-transparent text-[var(--theme-titlebar-text)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] hover:text-[var(--theme-text-main)]'
                     }`}
                 >
                   <div className="flex items-center gap-2 truncate opacity-90 pr-2">
                     {tab.isPlaying ? (
-                      <div 
+                      <div
                         className={`no-drag p-[1px] rounded transition-colors group-hover:bg-indigo-500/20 hover:text-indigo-400 ${tab.isMuted ? 'text-red-400' : 'text-indigo-500'}`}
                         onClick={(e) => handleToggleMute(tab.id, e)}
                         title={tab.isMuted ? "Unmute Tab" : "Mute Tab"}
@@ -654,57 +668,6 @@ const MainLayout = () => {
           </div>
         </div>
       </div>
-
-      {tabContextMenu && (
-        <div 
-          className="fixed z-[9999] rounded-lg shadow-xl border overflow-hidden py-1 min-w-[180px] text-xs font-semibold backdrop-blur-md"
-          style={{ 
-            left: Math.min(tabContextMenu.x, window.innerWidth - 200), 
-            top: Math.min(tabContextMenu.y, window.innerHeight - 200),
-            backgroundColor: 'color-mix(in srgb, var(--theme-titlebar-alt2) 90%, transparent)',
-            borderColor: 'color-mix(in srgb, var(--theme-border) 40%, transparent)',
-            color: 'var(--theme-titlebar-text-hover)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {browserTabs.length > 1 && (
-            <button 
-              className="w-full text-left px-4 py-2 hover:bg-white/10 transition-colors"
-              onClick={() => handleCloseTab(tabContextMenu.id)}
-            >
-              Close Tab
-            </button>
-          )}
-          {browserTabs.length > 1 && browserTabs.findIndex(t => t.id === tabContextMenu.id) < browserTabs.length - 1 && (
-            <button 
-              className="w-full text-left px-4 py-2 hover:bg-white/10 transition-colors"
-              onClick={() => handleCloseTabsToRight(tabContextMenu.id)}
-            >
-              Close Tabs to the Right
-            </button>
-          )}
-          {browserTabs.length > 1 && (
-            <button 
-              className="w-full text-left px-4 py-2 hover:bg-white/10 transition-colors"
-              onClick={() => handleCloseOtherTabs(tabContextMenu.id)}
-            >
-              Close Other Tabs
-            </button>
-          )}
-          <div className="h-px bg-white/10 my-1 mx-2" />
-          <button 
-            className="w-full text-left px-4 py-2 hover:bg-white/10 transition-colors flex items-center justify-between"
-            onClick={(e) => {
-              const tab = browserTabs.find(t => t.id === tabContextMenu.id);
-              if (tab) handleToggleMute(tab.id, e as any);
-              setTabContextMenu(null);
-            }}
-          >
-            <span>{browserTabs.find(t => t.id === tabContextMenu.id)?.isMuted ? 'Unmute Tab' : 'Mute Tab'}</span>
-            {browserTabs.find(t => t.id === tabContextMenu.id)?.isMuted ? <VolumeX size={14}/> : <Music size={14}/>}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

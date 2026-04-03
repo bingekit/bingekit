@@ -436,3 +436,134 @@ AHK_ToggleMedia() {
         PlayerWVs[ActiveTabId].wv.ExecuteScriptAsync("window.top.postMessage('bk-toggle-play', '*');")
     }
 }
+
+global TabMenuGui := ""
+global TabMenuHoverColor := ""
+global TabMenuBgColor := ""
+global TabMenuTextCtrls := []
+global TabMenuCallbacks := []
+
+
+global TabMenuTextColor := ""
+global TabMenuTextHoverColor := ""
+
+AHK_ShowTabContextMenu(tabId, x, y, isMuted, bgC, hoverC, borderC, textC, textHoverC, tabCount := 2) {
+    global TabMenuGui, MainGui, TabMenuHoverColor, TabMenuBgColor, TabMenuTextCtrls, TabMenuCallbacks, TabMenuTextColor, TabMenuTextHoverColor
+    
+    if (TabMenuGui) {
+        try TabMenuGui.Destroy()
+    }
+    
+    TabMenuBgColor := StrReplace(bgC, "#", "")
+    TabMenuHoverColor := StrReplace(hoverC, "#", "")
+    borderHex := StrReplace(borderC, "#", "")
+    TabMenuTextColor := StrReplace(textC, "#", "")
+    TabMenuTextHoverColor := StrReplace(textHoverC, "#", "")
+    
+    TabMenuGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" MainGui.Hwnd " +Border")
+    TabMenuGui.MarginX := 0
+    TabMenuGui.MarginY := 4
+    TabMenuGui.BackColor := TabMenuBgColor
+    
+    TabMenuTextCtrls := []
+    TabMenuCallbacks := []
+    
+    if (tabCount > 1) {
+        AddTabMenuItem(TabMenuTextColor, "  Close Tab", "close", tabId)
+        AddTabMenuItem(TabMenuTextColor, "  Close Tabs to the Right", "closeRight", tabId)
+        AddTabMenuItem(TabMenuTextColor, "  Close Other Tabs", "closeOthers", tabId)
+        TabMenuGui.Add("Text", "w180 h1 x0 y+4 Background" borderHex, "")
+    }
+    
+    AddTabMenuItem(TabMenuTextColor, (isMuted = "true" || isMuted = 1 || isMuted = true) ? "  Unmute Tab" : "  Mute Tab", "toggleMute", tabId)
+    
+    OnMessage(0x0200, TabMenuHoverHandler)
+    
+    ; Adjust Y to not spawn directly under cursor, preventing accidental clicks
+    TabMenuGui.Show("x" x " y" y " w180 NoActivate")
+    
+    SetTimer(CheckTabMenuClickOutside, 50)
+}
+
+AddTabMenuItem(textC, txt, action, tabId) {
+    global TabMenuGui, TabMenuBgColor, TabMenuTextCtrls, TabMenuCallbacks
+    hText := TabMenuGui.Add("Text", "w180 h28 x0 y+0 c" textC " Background" TabMenuBgColor " +0x200", txt)
+    hText.SetFont("s9", "Segoe UI")
+    TabMenuTextCtrls.Push(hText)
+    
+    idx := TabMenuCallbacks.Length + 1
+    TabMenuCallbacks.Push(() => SendTabContextAction(action, tabId))
+    hText.OnEvent("Click", ((i, *) => ExecuteTabMenuAction(i)).Bind(idx))
+}
+
+TabMenuHoverHandler(wParam, lParam, msg, hwnd) {
+    global TabMenuGui, TabMenuTextCtrls, TabMenuBgColor, TabMenuHoverColor, TabMenuTextColor, TabMenuTextHoverColor
+    if (!TabMenuGui)
+        return
+        
+    static lastHoverHwnd := 0
+    if (hwnd == lastHoverHwnd)
+        return
+        
+    lastHoverHwnd := hwnd
+    
+    for ctrl in TabMenuTextCtrls {
+        if (ctrl.Hwnd == hwnd) {
+            ctrl.Opt("Background" TabMenuHoverColor)
+            ctrl.SetFont("c" TabMenuTextHoverColor)
+            ctrl.Redraw()
+        } else {
+            ctrl.Opt("Background" TabMenuBgColor)
+            ctrl.SetFont("c" TabMenuTextColor)
+            ctrl.Redraw()
+        }
+    }
+}
+
+ExecuteTabMenuAction(idx) {
+    global TabMenuCallbacks, TabMenuGui
+    try TabMenuCallbacks[idx]()
+    
+    if (TabMenuGui) {
+        try TabMenuGui.Destroy()
+        TabMenuGui := ""
+    }
+    SetTimer(CheckTabMenuClickOutside, 0)
+    OnMessage(0x0200, TabMenuHoverHandler, 0)
+}
+
+SendTabContextAction(action, tabId) {
+    global MainGui
+    if (MainGui) {
+        js := "try { window.dispatchEvent(new CustomEvent('bk-tab-context-action', { detail: { action: '" action "', tabId: '" tabId "' } })); } catch(e){}"
+        MainGui.Control.ExecuteScriptAsync(js)
+    }
+}
+
+CheckTabMenuClickOutside() {
+    global TabMenuGui, MainGui
+    if (!TabMenuGui) {
+        SetTimer(CheckTabMenuClickOutside, 0)
+        OnMessage(0x0200, TabMenuHoverHandler, 0)
+        return
+    }
+    
+    ; Check if window lost focus
+    if (!WinActive("ahk_id " MainGui.Hwnd) && !WinActive("ahk_id " TabMenuGui.Hwnd)) {
+        try TabMenuGui.Destroy()
+        TabMenuGui := ""
+        SetTimer(CheckTabMenuClickOutside, 0)
+        OnMessage(0x0200, TabMenuHoverHandler, 0)
+        return
+    }
+
+    if (GetKeyState("LButton", "P") || GetKeyState("RButton", "P")) {
+        MouseGetPos(,, &hWnd)
+        if (hWnd != TabMenuGui.Hwnd) {
+            try TabMenuGui.Destroy()
+            TabMenuGui := ""
+            SetTimer(CheckTabMenuClickOutside, 0)
+            OnMessage(0x0200, TabMenuHoverHandler, 0)
+        }
+    }
+}

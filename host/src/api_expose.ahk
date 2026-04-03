@@ -58,6 +58,7 @@ WV.AddHostObjectToScript("ahk", {
     ListScripts: AHK_ListScripts,
     SaveScript: AHK_SaveScript,
     LoadScript: AHK_LoadScript,
+    ShowTabContextMenu: AHK_ShowTabContextMenu,
     DeleteScript: AHK_DeleteScript,
     ListFlows: AHK_ListFlows,
     SaveFlow: AHK_SaveFlow,
