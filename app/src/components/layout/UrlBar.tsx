@@ -7,7 +7,7 @@ import { TooltipWrapper } from '../ui/TooltipWrapper';
 export const UrlBar = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, urlBarMode, setUrlBarMode, pageTitle,
-    navButtons, installedInterfaces, handleNavigate, bookmarks, setBookmarks,
+    navButtons, installedInterfaces, handleNavigate, navigateUrl, bookmarks, setBookmarks,
     watchLater, setWatchLater, fetchTitleForUrl, homePage, isMultiTabEnabled
   } = useAppContext();
 
@@ -78,8 +78,7 @@ export const UrlBar = () => {
                 type="button"
                 onClick={() => {
                   setShowInterfaces(false);
-                  setUrl(`interface:${inf}`);
-                  setInputUrl(`interface:${inf}`);
+                  navigateUrl(`interface:${inf}`);
                 }}
                 className="px-2 py-0.5 text-[11px] font-medium bg-zinc-800 hover:bg-indigo-500/20 text-zinc-300 hover:text-indigo-400 border border-zinc-700/50 hover:border-indigo-500/30 rounded flex-shrink-0 transition-colors"
               >

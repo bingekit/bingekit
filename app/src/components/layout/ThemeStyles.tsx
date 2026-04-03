@@ -102,8 +102,6 @@ export const ThemeStyles = () => {
       #sidebar-region button.text-zinc-500 { color: var(--theme-sidebar-text) !important; }
       #sidebar-region button.hover\\:text-zinc-200:hover { color: color-mix(in srgb, var(--theme-sidebar-text) 50%, var(--theme-text-main)) !important; }
 
-      #titlebar-region .text-indigo-400, #titlebar-region .text-indigo-500 { color: var(--theme-titlebar-accent) !important; }
-      #titlebar-region .fill-indigo-400 { fill: var(--theme-titlebar-accent) !important; }
       #titlebar-region .border-indigo-500\\/50 { border-color: var(--theme-titlebar-accent) !important; }
       #titlebar-region .hover\\:text-indigo-400:hover { color: var(--theme-titlebar-accent) !important; }
       
