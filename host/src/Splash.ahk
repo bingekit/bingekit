@@ -18,11 +18,12 @@ CheckSplashTimeout() {
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
-        MsgBox("Critical Error: BingeKit UI did not respond within 10 seconds.`n`nThis usually indicates the frontend development server/URL is not available. Please verify the URL.", "BingeKit Timeout", 16)
+        MsgBox("Critical Error: BingeKit UI did not respond within 30 seconds.`n`nThis usually indicates the frontend development server/URL is not available. Please verify the URL.", "BingeKit Timeout", 16)
         ExitApp()
     }
 }
-SetTimer(CheckSplashTimeout, -10000)
+; Wait 30 seconds for React frontend to reply (Vite cold starts)
+SetTimer(CheckSplashTimeout, -30000)
 
 FileMD5(filePath) {
     if !FileExist(filePath)
@@ -56,6 +57,7 @@ if (InStr(AppStartupUrl, "gui.localhost")) {
     
     if (AppHash != "") {
         SplashStatus.Text := "VERIFYING APPLICATION INTEGRITY"
+        Sleep(-1) ; Yield for repaint
         calculatedHash := FileMD5(guiPath)
         if (calculatedHash != AppHash) {
             if (SplashGui) {
@@ -68,7 +70,9 @@ if (InStr(AppStartupUrl, "gui.localhost")) {
     }
 }
 
-SplashStatus.Text := "LOADING USER INTERFACE"
+SplashStatus.Text := A_IsCompiled ? "LOADING COMPILED UI BUNDLE" : "WAITING FOR FRONTEND BUILDER (MAY TAKE 10s)"
+Sleep(-1) ; Yield for repaint
+
 if (guiPath != "") {
     appSrc := FileRead(guiPath)
     WV.NavigateToString(appSrc)
