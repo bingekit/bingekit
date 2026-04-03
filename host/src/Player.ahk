@@ -73,56 +73,56 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             PlayerRects[id].h := h
         }
 
-        if (visible) {
-            if (!PlayerGuis.Has(id)) {
-                PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
-                PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
-                PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
+        if (!PlayerGuis.Has(id)) {
+            PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+            PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
+            PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
 
-                PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
-                PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0
-                PlayerWVs[id].Settings.IsBuiltInErrorPageEnabled := 0
-                PlayerWVs[id].BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
-                PlayerWVs[id].AddHostObjectToScript("ahk", {
-                    UpdateURL: (url) => AHK_UpdateURL(url, id),
-                    GetUserscriptPayload: AHK_GetUserscriptPayload,
-                    CacheSet: AHK_CacheSet,
-                    CacheGet: AHK_CacheGet,
-                    CacheClear: AHK_CacheClear,
-                    AddNetworkFilter: AHK_AddNetworkFilter,
-                    GetSiteBlockers: AHK_GetSiteBlockers,
-                    TogglePiP: AHK_TogglePiP,
-                    ResizePiP: AHK_ResizePiP,
-                    DragMove: AHK_DragMove,
-                    ResizeEdge: AHK_ResizeEdge,
-                    ReportPlayState: (state, time := 0, dur := 0, src := "") => AHK_ReportPlayState(state, time, dur, src, id),
-                    ToggleMedia: AHK_ToggleMedia,
-                    ReportPlayerStatus: (auth, hasP, title := "") => AHK_ReportPlayerStatus(auth, hasP, title, id),
-                    SetMediaStream: (v, q := "", a := "") => AHK_SetMediaStream(v, q, a, id),
-                    SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id)
-                })
-                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
-                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
-                PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
-                PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
-                try {
-                    PlayerWVs[id].wv.add_DownloadStarting(AHK_DownloadStarting)
-                } catch {
-                }
-                try {
-                    PlayerWVs[id].wv.AddWebResourceRequestedFilter("*", 0)
-                    PlayerWVs[id].wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
-                } catch as e {
-                    OutputDebug(e.Message)
-                }
-                if (PendingPlayerUrls.Has(id) && PendingPlayerUrls[id] != "") {
-                    pendingUrl := PendingPlayerUrls[id]
-                    PendingPlayerUrls.Delete(id)
-                    PlayerCurrentUrls[id] := pendingUrl
-                    PlayerWVs[id].Navigate(pendingUrl)
-                }
+            PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
+            PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0
+            PlayerWVs[id].Settings.IsBuiltInErrorPageEnabled := 0
+            PlayerWVs[id].BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
+            PlayerWVs[id].AddHostObjectToScript("ahk", {
+                UpdateURL: (url) => AHK_UpdateURL(url, id),
+                GetUserscriptPayload: AHK_GetUserscriptPayload,
+                CacheSet: AHK_CacheSet,
+                CacheGet: AHK_CacheGet,
+                CacheClear: AHK_CacheClear,
+                AddNetworkFilter: AHK_AddNetworkFilter,
+                GetSiteBlockers: AHK_GetSiteBlockers,
+                TogglePiP: AHK_TogglePiP,
+                ResizePiP: AHK_ResizePiP,
+                DragMove: AHK_DragMove,
+                ResizeEdge: AHK_ResizeEdge,
+                ReportPlayState: (state, time := 0, dur := 0, src := "") => AHK_ReportPlayState(state, time, dur, src, id),
+                ToggleMedia: AHK_ToggleMedia,
+                ReportPlayerStatus: (auth, hasP, title := "") => AHK_ReportPlayerStatus(auth, hasP, title, id),
+                SetMediaStream: (v, q := "", a := "") => AHK_SetMediaStream(v, q, a, id),
+                SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id)
+            })
+            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
+            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
+            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
+            PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
+            try {
+                PlayerWVs[id].wv.add_DownloadStarting(AHK_DownloadStarting)
+            } catch {
             }
+            try {
+                PlayerWVs[id].wv.AddWebResourceRequestedFilter("*", 0)
+                PlayerWVs[id].wv.add_WebResourceRequested(AHK_PlayerResourceRequested)
+            } catch as e {
+                OutputDebug(e.Message)
+            }
+            if (PendingPlayerUrls.Has(id) && PendingPlayerUrls[id] != "") {
+                pendingUrl := PendingPlayerUrls[id]
+                PendingPlayerUrls.Delete(id)
+                PlayerCurrentUrls[id] := pendingUrl
+                PlayerWVs[id].Navigate(pendingUrl)
+            }
+        }
 
+        if (visible) {
             if (PlayerWVs.Has(id) && PlayerGuis.Has(id)) {
                 WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
                 ScreenX := CX + x

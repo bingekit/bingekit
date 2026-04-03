@@ -462,36 +462,61 @@ export const PlayerView = () => {
       <div className="w-full flex-1 relative bg-zinc-900 border-none overflow-hidden">
         {(() => {
           if (!isMultiTabEnabled || tilingMode === 'none' || browserTabs.length === 1) {
-             return <PlayerSlot tabId={activeBrowserTabId} isVisuallyActive={activeTab === 'player'} className="w-full h-full absolute top-0 left-0" />;
+             return (
+                <div className="w-full h-full relative">
+                   {browserTabs.map(t => (
+                      <PlayerSlot 
+                         key={t.id} 
+                         tabId={t.id} 
+                         isVisuallyActive={activeTab === 'player' && t.id === activeBrowserTabId} 
+                         className={t.id === activeBrowserTabId ? "w-full h-full absolute top-0 left-0 z-10" : "absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none"} 
+                      />
+                   ))}
+                </div>
+             );
           }
           
           if (tilingMode === 'split-vt') {
-             const tab1 = browserTabs[0];
-             const tab2 = browserTabs[1] || tab1; // fallback
+             const visibleIds = [browserTabs[0].id, browserTabs[1].id];
              return (
-                <div className="flex w-full h-full gap-0.5 bg-zinc-800">
-                   <PlayerSlot tabId={tab1.id} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
-                   {browserTabs.length > 1 && <PlayerSlot tabId={tab2.id} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />}
+                <div className="w-full h-full relative">
+                   <div className="flex w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                      <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
+                      <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="flex-1 h-full bg-zinc-900" />
+                   </div>
+                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
+                   ))}
                 </div>
              );
           }
 
           if (tilingMode === 'split-hz') {
-             const tab1 = browserTabs[0];
-             const tab2 = browserTabs[1] || tab1; // fallback
+             const visibleIds = [browserTabs[0].id, browserTabs[1].id];
              return (
-                <div className="flex flex-col w-full h-full gap-0.5 bg-zinc-800">
-                   <PlayerSlot tabId={tab1.id} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
-                   {browserTabs.length > 1 && <PlayerSlot tabId={tab2.id} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />}
+                <div className="w-full h-full relative">
+                   <div className="flex flex-col w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                      <PlayerSlot tabId={visibleIds[0]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
+                      <PlayerSlot tabId={visibleIds[1]} isVisuallyActive={activeTab === 'player'} className="w-full flex-1 bg-zinc-900" />
+                   </div>
+                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
+                   ))}
                 </div>
              );
           }
 
           if (tilingMode === 'grid') {
+             const visibleIds = browserTabs.slice(0, 4).map(t => t.id);
              return (
-                <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-zinc-800">
-                   {browserTabs.slice(0, 4).map((t, idx) => (
-                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={activeTab === 'player'} className={`w-full h-full bg-zinc-900 overflow-hidden ${browserTabs.length === 3 && idx === 2 ? 'col-span-2' : ''}`} />
+                <div className="w-full h-full relative">
+                   <div className="grid grid-cols-2 grid-rows-2 w-full h-full gap-0.5 bg-zinc-800 relative z-10">
+                      {browserTabs.slice(0, 4).map((t, idx) => (
+                         <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={activeTab === 'player'} className={`w-full h-full bg-zinc-900 overflow-hidden ${browserTabs.length === 3 && idx === 2 ? 'col-span-2' : ''}`} />
+                      ))}
+                   </div>
+                   {browserTabs.filter(t => !visibleIds.includes(t.id)).map(t => (
+                      <PlayerSlot key={t.id} tabId={t.id} isVisuallyActive={false} className="absolute top-0 left-0 w-full h-full z-[-1] opacity-0 pointer-events-none" />
                    ))}
                 </div>
              );
