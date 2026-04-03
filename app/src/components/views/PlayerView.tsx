@@ -37,6 +37,7 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
     return () => {
       observer.disconnect();
       lastRectRef.current = '';
+      try { ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch(err) {}
     };
   }, [isVisuallyActive, tabId]);
 

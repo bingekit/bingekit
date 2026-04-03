@@ -69,12 +69,13 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             h := 50
 
         if (!PlayerRects.Has(id)) {
-            PlayerRects[id] := {x: x, y: y, w: w, h: h}
+            PlayerRects[id] := {x: x, y: y, w: w, h: h, visible: visible}
         } else {
             PlayerRects[id].x := x
             PlayerRects[id].y := y
             PlayerRects[id].w := w
             PlayerRects[id].h := h
+            PlayerRects[id].visible := visible
         }
 
         if (!PlayerGuis.Has(id)) {

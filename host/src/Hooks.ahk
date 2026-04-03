@@ -12,6 +12,8 @@ AHK_OnMove(wParam, lParam, msg, hwnd) {
         for id, pGui in PlayerGuis {
             if (PlayerWVs.Has(id) && PlayerWVs[id].wvc.IsVisible && PlayerRects.Has(id)) {
                 rect := PlayerRects[id]
+                if (rect.HasOwnProp("visible") && !rect.visible)
+                    continue
                 pGui.Move(CX + rect.x, CY + rect.y, rect.w, rect.h)
             }
         }
