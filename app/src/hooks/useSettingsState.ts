@@ -43,6 +43,36 @@ export function useSettingsState() {
     });
   };
 
+  const [adKeywords, _setAdKeywords] = useState<Record<string, boolean>>({});
+  const setAdKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
+    _setAdKeywords(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('UpdateAdKeywords', JSON.stringify(next)); } catch(e) {}
+      ahk.call('SaveData', 'ad_keywords.json', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [redirectKeywords, _setRedirectKeywords] = useState<Record<string, boolean>>({});
+  const setRedirectKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
+    _setRedirectKeywords(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('UpdateRedirectKeywords', JSON.stringify(next)); } catch(e) {}
+      ahk.call('SaveData', 'redirect_keywords.json', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [inlineKeywords, _setInlineKeywords] = useState<Record<string, boolean>>({});
+  const setInlineKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
+    _setInlineKeywords(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('UpdateInlineKeywords', JSON.stringify(next)); } catch(e) {}
+      ahk.call('SaveData', 'inline_keywords.json', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [isCompiledApp, setIsCompiledApp] = useState(true);
   const [isPortableApp, setIsPortableApp] = useState(false);
   const [ffmpegStatusApp, setFfmpegStatusApp] = useState('checking...');
@@ -79,6 +109,9 @@ export function useSettingsState() {
     isAdblockEnabled, setIsAdblockEnabled,
     adblockWhitelist, setAdblockWhitelist,
     networkFilters, setNetworkFilters,
+    adKeywords, setAdKeywords,
+    redirectKeywords, setRedirectKeywords,
+    inlineKeywords, setInlineKeywords,
     isCompiledApp, setIsCompiledApp,
     isPortableApp, setIsPortableApp,
     ffmpegStatusApp, setFfmpegStatusApp,

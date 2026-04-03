@@ -69,6 +69,9 @@ import {
 
 import { MetadataEditor } from "./MetadataEditor";
 
+let pluginsSidebarScrollPos = 0;
+let pluginsGalleryScrollPos = 0;
+let pluginsEditorScrollPos = 0;
 let cachedPluginsEditTab: "general" | "auth" | "search" | "media" | "tracking" | "functions" | "metadata" = "general";
 
 export const PluginsView = () => {
@@ -165,6 +168,16 @@ export const PluginsView = () => {
   const [installingItems, setInstallingItems] = React.useState<string[]>([]);
   const [repoTab, setRepoTab] = React.useState<"plugins" | "packs">("plugins");
 
+  const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
+  const galleryScrollRef = React.useRef<HTMLDivElement>(null);
+  const editorScrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = pluginsSidebarScrollPos;
+    if (galleryScrollRef.current) galleryScrollRef.current.scrollTop = pluginsGalleryScrollPos;
+    if (editorScrollRef.current) editorScrollRef.current.scrollTop = pluginsEditorScrollPos;
+  }, [viewMode, editTab, editingPlugin]);
+
   const loadRepo = () => {
     if (!pluginRepoUrl) return;
     setIsRepoLoading(true);
@@ -223,7 +236,11 @@ export const PluginsView = () => {
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Plugins List */}
-      <div className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar">
+      <div 
+        ref={sidebarScrollRef}
+        onScroll={(e) => pluginsSidebarScrollPos = e.currentTarget.scrollTop}
+        className="w-1/4 min-w-[250px] border-r border-zinc-800/50 bg-zinc-950/50 p-6 overflow-y-auto no-scrollbar"
+      >
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
@@ -389,7 +406,11 @@ export const PluginsView = () => {
               </button>
             </div>
 
-            <div className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4">
+            <div 
+              ref={galleryScrollRef}
+              onScroll={(e) => pluginsGalleryScrollPos = e.currentTarget.scrollTop}
+              className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
+            >
               {isRepoLoading && !repoData ? (
                  <div className="flex flex-col items-center justify-center py-20 text-indigo-400">
                     <RefreshCw size={32} className="animate-spin mb-4" />
@@ -548,7 +569,11 @@ export const PluginsView = () => {
               })}
             </div>
 
-            <div className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4">
+            <div 
+              ref={editorScrollRef}
+              onScroll={(e) => pluginsEditorScrollPos = e.currentTarget.scrollTop}
+              className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
+            >
               {editTab === "general" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <div className="grid grid-cols-2 gap-4">

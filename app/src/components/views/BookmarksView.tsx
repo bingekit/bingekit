@@ -11,6 +11,8 @@ const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
+let bookmarksScrollPos = 0;
+
 export const BookmarksView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -26,9 +28,17 @@ export const BookmarksView = () => {
     navigateUrl, ctrlClickBackgroundTab
   } = useAppContext();
 
-  return (
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = bookmarksScrollPos;
+  }, []);
 
-    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
+  return (
+    <div 
+      ref={scrollRef}
+      onScroll={(e) => bookmarksScrollPos = e.currentTarget.scrollTop}
+      className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative"
+    >
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-light tracking-tight text-zinc-100">Bookmarks</h2>
         <div className="flex items-center gap-3">

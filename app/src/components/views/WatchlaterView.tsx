@@ -11,6 +11,8 @@ const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
+let watchlaterScrollPos = 0;
+
 export const WatchlaterView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -25,9 +27,18 @@ export const WatchlaterView = () => {
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins, navigateUrl, ctrlClickBackgroundTab
   } = useAppContext();
 
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = watchlaterScrollPos;
+  }, []);
+
   return (
 
-    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar">
+    <div 
+      ref={scrollRef}
+      onScroll={(e) => watchlaterScrollPos = e.currentTarget.scrollTop}
+      className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar"
+    >
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-light tracking-tight text-zinc-100">Watch Later</h2>
       </div>

@@ -3,9 +3,16 @@ import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, Play
 import { useAppContext } from '../../context/AppContext';
 import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../lib/db';
 
+let historyScrollPos = 0;
+
 export const HistoryView = () => {
   const { history, setHistory, navigateUrl, ctrlClickBackgroundTab } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = historyScrollPos;
+  }, []);
   const [filterType, setFilterType] = useState<'all' | 'browse' | 'watch'>('all');
   const [groupBy, setGroupBy] = useState<'time' | 'site' | 'length'>('time');
 
@@ -108,7 +115,11 @@ export const HistoryView = () => {
       : Object.keys(groups).sort();
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
+    <div 
+      ref={scrollRef}
+      onScroll={(e) => historyScrollPos = e.currentTarget.scrollTop}
+      className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative"
+    >
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
           <Clock size={24} className="text-indigo-400" />

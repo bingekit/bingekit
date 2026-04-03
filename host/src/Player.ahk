@@ -7,6 +7,9 @@ global PlayerRects := Map()
 global NetworkFilters := Map()
 global NetworkAdblockEnabled := true
 global AdblockWhitelist := []
+global AdKeywords := '["disable", "devtool", "antiad", "adblock", "detect", "/ads/", "tracker", "analytics", "popunder", "adsystem", "gamble", "evasivelimnite", "umommy", "gtag", "googletag", "doubleclick"]'
+global RedirectKeywords := '["casino", "gamble", "betting", "crypto", "slot", "poker", "bitcoin", "roulette"]'
+global InlineKeywords := '["debugger", "eval", "gtag"]'
 global SiteBlockersMap := "{}"
 
 global ActiveTabId := "main"
@@ -94,6 +97,9 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
                 GetUserscriptPayload: AHK_GetUserscriptPayload,
                 GetAdblockStatus: AHK_GetAdblockStatus,
                 GetAdblockWhitelist: AHK_GetAdblockWhitelist,
+                GetAdKeywords: AHK_GetAdKeywords,
+                GetRedirectKeywords: AHK_GetRedirectKeywords,
+                GetInlineKeywords: AHK_GetInlineKeywords,
                 CacheSet: AHK_CacheSet,
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
@@ -412,6 +418,36 @@ AHK_GetAdblockWhitelist() {
     res := RTrim(res, ",")
     res .= "]"
     return res
+}
+
+AHK_UpdateAdKeywords(jsonStr) {
+    global AdKeywords
+    AdKeywords := jsonStr
+}
+
+AHK_GetAdKeywords() {
+    global AdKeywords
+    return AdKeywords
+}
+
+AHK_UpdateRedirectKeywords(jsonStr) {
+    global RedirectKeywords
+    RedirectKeywords := jsonStr
+}
+
+AHK_GetRedirectKeywords() {
+    global RedirectKeywords
+    return RedirectKeywords
+}
+
+AHK_UpdateInlineKeywords(jsonStr) {
+    global InlineKeywords
+    InlineKeywords := jsonStr
+}
+
+AHK_GetInlineKeywords() {
+    global InlineKeywords
+    return InlineKeywords
 }
 
 AHK_GetActiveMedia() {

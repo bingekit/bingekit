@@ -21,6 +21,15 @@
     let inlineKeywords = ['debugger', 'eval', 'gtag'];
 
     try {
+        const globalAdk = window.chrome.webview.hostObjects.sync.ahk.GetAdKeywords();
+        if (globalAdk) { let p = JSON.parse(globalAdk); adKeywords = Array.isArray(p) ? p : Object.keys(p).filter(k => p[k]); }
+        const globalRdk = window.chrome.webview.hostObjects.sync.ahk.GetRedirectKeywords();
+        if (globalRdk) { let p = JSON.parse(globalRdk); redirectKeywords = Array.isArray(p) ? p : Object.keys(p).filter(k => p[k]); }
+        const globalInk = window.chrome.webview.hostObjects.sync.ahk.GetInlineKeywords();
+        if (globalInk) { let p = JSON.parse(globalInk); inlineKeywords = Array.isArray(p) ? p : Object.keys(p).filter(k => p[k]); }
+    } catch (e) { }
+
+    try {
         const customRulesStr = window.chrome.webview.hostObjects.sync.ahk.GetSiteBlockers();
         if (customRulesStr) {
             const rulesMap = JSON.parse(customRulesStr);

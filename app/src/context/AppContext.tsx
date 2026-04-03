@@ -40,8 +40,8 @@ interface AppContextType {
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
   activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
-  activeSettingsTab: 'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced';
-  setActiveSettingsTab: React.Dispatch<React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced'>>;
+  activeSettingsTab: 'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced';
+  setActiveSettingsTab: React.Dispatch<React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>>;
   multiSearchQuery: string; setMultiSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   searchResults: any[]; setSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
   isSearching: boolean; setIsSearching: React.Dispatch<React.SetStateAction<boolean>>;
@@ -70,6 +70,9 @@ interface AppContextType {
   playerNavSignal: number;
   networkFilters: Record<string, boolean>;
   setNetworkFilters: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  adKeywords: Record<string, boolean>; setAdKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  redirectKeywords: Record<string, boolean>; setRedirectKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  inlineKeywords: Record<string, boolean>; setInlineKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
@@ -362,6 +365,27 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const savedAdblockEnabled = ahk.call('LoadData', 'adblock_enabled.txt');
     if (savedAdblockEnabled) {
       settings.setIsAdblockEnabled(savedAdblockEnabled === 'true');
+    }
+
+    const savedAdKeywords = ahk.call('LoadData', 'ad_keywords.json');
+    if (savedAdKeywords) {
+      try { const p = JSON.parse(savedAdKeywords); settings.setAdKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+    } else {
+        settings.setAdKeywords(Object.fromEntries(['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'].map(k => [k, true])));
+    }
+
+    const savedRedirectKeywords = ahk.call('LoadData', 'redirect_keywords.json');
+    if (savedRedirectKeywords) {
+      try { const p = JSON.parse(savedRedirectKeywords); settings.setRedirectKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+    } else {
+        settings.setRedirectKeywords(Object.fromEntries(['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'].map(k => [k, true])));
+    }
+
+    const savedInlineKeywords = ahk.call('LoadData', 'inline_keywords.json');
+    if (savedInlineKeywords) {
+      try { const p = JSON.parse(savedInlineKeywords); settings.setInlineKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+    } else {
+        settings.setInlineKeywords(Object.fromEntries(['debugger', 'eval', 'gtag'].map(k => [k, true])));
     }
 
     const loadUserscripts = () => {

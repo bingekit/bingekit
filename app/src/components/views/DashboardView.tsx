@@ -12,6 +12,8 @@ const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
 
+let dashboardScrollPos = 0;
+
 export const DashboardView = () => {
   const {
     url, setUrl, inputUrl, setInputUrl, isAdblockEnabled, setIsAdblockEnabled, urlBarMode, setUrlBarMode,
@@ -27,6 +29,11 @@ export const DashboardView = () => {
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, navigateUrl, loadPlugins
   } = useAppContext();
 
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = dashboardScrollPos;
+  }, []);
+
   const [activeSearchTags, setActiveSearchTags] = useState<string[]>([]);
   const [isDeepSearch, setIsDeepSearch] = useState(false);
   const [searchProgress, setSearchProgress] = useState({ current: 0, total: 0, startTime: 0, isActive: false });
@@ -37,8 +44,11 @@ export const DashboardView = () => {
   }))).sort();
 
   return (
-
-    <div className="w-full h-full bg-zinc-950 flex flex-col items-center px-8 pt-[15vh] pb-24 overflow-y-auto custom-scrollbar">
+    <div 
+      ref={scrollRef}
+      onScroll={(e) => dashboardScrollPos = e.currentTarget.scrollTop}
+      className="w-full h-full bg-zinc-950 flex flex-col items-center px-8 pt-[15vh] pb-24 overflow-y-auto custom-scrollbar"
+    >
       <div className="flex items-center gap-3 mb-8 shrink-0">
         <Film size={48} className="text-indigo-500" />
         <h1 className="text-5xl font-light tracking-tight text-zinc-100">BingeKit</h1>

@@ -2,9 +2,16 @@ import React, { useState } from 'react';
 import { Search, Compass, EyeOff, Play, Clock, Sparkles } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 
+let discoveryScrollPos = 0;
+
 export const DiscoveryView = () => {
   const { discoveryItems, setDiscoveryItems, setUrl, setInputUrl, setActiveTab, watchLater, setWatchLater, plugins } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = discoveryScrollPos;
+  }, []);
 
   const activeItems = discoveryItems.filter(i => !i.dismissed && (
     i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -28,7 +35,11 @@ export const DiscoveryView = () => {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative">
+    <div 
+      ref={scrollRef}
+      onScroll={(e) => discoveryScrollPos = e.currentTarget.scrollTop}
+      className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative"
+    >
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">

@@ -3,6 +3,8 @@ import { Download, Play, Pause, FileVideo, HardDrive, Trash2, FolderOpen, X, Edi
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 
+let downloadsScrollPos = 0;
+
 const formatDownloadDate = (timeStr: string) => {
   if (!timeStr || timeStr.length < 14) return "";
   const y = timeStr.slice(0, 4);
@@ -89,6 +91,11 @@ export const DownloadsView = () => {
   const [deletePrompt, setDeletePrompt] = useState<any>(null);
   const [deleteSubsChecked, setDeleteSubsChecked] = useState(true);
   const [renamePrompt, setRenamePrompt] = useState<any>(null);
+
+  const listScrollRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (listScrollRef.current) listScrollRef.current.scrollTop = downloadsScrollPos;
+  }, []);
 
   const toggleSubtitles = () => {
     if (videoRef.current && videoRef.current.textTracks.length > 0) {
@@ -234,7 +241,11 @@ export const DownloadsView = () => {
                 </div>
               </div>
             </div>
-            <div className="space-y-2 flex-1 overflow-y-auto no-scrollbar">
+            <div 
+              ref={listScrollRef}
+              onScroll={(e) => downloadsScrollPos = e.currentTarget.scrollTop}
+              className="space-y-2 flex-1 overflow-y-auto no-scrollbar"
+            >
               {completedFiles.filter(f => !activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase()) && (showSubList ? true : !f.name.match(/\.(vtt|srt)$/i))).length === 0 && (
                 <div className="text-center p-8 text-sm text-zinc-600 border border-dashed border-zinc-800/50 rounded-xl">
                   No completed downloads.

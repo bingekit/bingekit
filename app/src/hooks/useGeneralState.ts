@@ -23,8 +23,8 @@ export function useGeneralState() {
   };
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config'>('dashboard');
-  const [activeSettingsTab, _setActiveSettingsTab] = useState<'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced'>('general');
-  const setActiveSettingsTab = (val: React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'advanced'>) => {
+  const [activeSettingsTab, _setActiveSettingsTab] = useState<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>('general');
+  const setActiveSettingsTab = (val: React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>) => {
     _setActiveSettingsTab(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
       try { ahk.call('SaveData', 'active_settings_tab.txt', next); } catch (e) { }
