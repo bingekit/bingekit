@@ -8,7 +8,8 @@ export function useHistoryState(
   activeTab: string,
   plugins: SitePlugin[],
   pageTitleRef: MutableRefObject<string>,
-  setBrowserTabs: any
+  setBrowserTabs: any,
+  playerNavSignal: number
 ) {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -82,9 +83,15 @@ export function useHistoryState(
 
     const recordWatchSegment = () => {
       const now = Date.now();
+      let addedMs = 0;
       if (isCurrentlyPlaying) {
-        totalWatchMs += (now - lastPlayTime);
+        addedMs = (now - lastPlayTime);
+        totalWatchMs += addedMs;
         lastPlayTime = now;
+        
+        if (latestTime > 0) {
+          latestTime += (addedMs / 1000);
+        }
       }
 
       if (totalWatchMs < 2000) return; // Ignore < 2 seconds of play
@@ -106,7 +113,14 @@ export function useHistoryState(
           const item = { ...newHistory[existingIdx] };
           item.watchDuration = (item.watchDuration || 0) + timeToSave;
           item.timestamp = Date.now();
-          if (latestTime > 0) item.currentTime = latestTime;
+          if (latestTime > 0) {
+            if (item.currentTime && item.currentTime > 15 && latestTime < 5) {
+              // DB Drop Shield: Skip writing early page-load progress (<5s) if DB already has a mature playtime (>15s).
+              // This gives auto-resume time to catch up without permanently wiping progress.
+            } else {
+              item.currentTime = latestTime;
+            }
+          }
           if (latestDur > 0) item.duration = latestDur;
           if (tags.length > 0) item.tags = tags;
           newHistory[existingIdx] = item;
@@ -145,7 +159,14 @@ export function useHistoryState(
           return newTabs;
         });
 
-        if (e.detail.currentTime !== undefined) latestTime = e.detail.currentTime;
+        if (e.detail.currentTime !== undefined) {
+           // Drop Shield: If time dramatically drops (e.g. >10s) we only accept it if it's not suspiciously exactly ~0s during a recent nav/reload
+           if (latestTime > 15 && e.detail.currentTime < 5) {
+             // Block suspicious page-load 0s drops
+           } else {
+             latestTime = e.detail.currentTime;
+           }
+        }
         if (e.detail.duration !== undefined) latestDur = e.detail.duration;
 
         if (e.detail.isPlaying && !isCurrentlyPlaying) {
@@ -173,7 +194,7 @@ export function useHistoryState(
         recordWatchSegment();
       }
     };
-  }, [url, activeTab, isHistoryEnabled, plugins, setBrowserTabs, pageTitleRef]);
+  }, [url, activeTab, isHistoryEnabled, plugins, setBrowserTabs, pageTitleRef, playerNavSignal]);
 
   // Sync to disks
   useEffect(() => { if (bookmarks.length > 0) ahk.call('SaveData', 'bookmarks.json', JSON.stringify(bookmarks)); }, [bookmarks]);

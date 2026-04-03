@@ -66,6 +66,7 @@ interface AppContextType {
   deletePlugin: (plugin: SitePlugin) => void;
   updateEditingPlugin: (section: keyof SitePlugin | 'root', field: string, value: any) => void;
   fetchTitleForUrl: (targetUrl: string) => string;
+  playerNavSignal: number;
   networkFilters: Record<string, boolean>;
   setNetworkFilters: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
@@ -103,7 +104,8 @@ export const useAppContext = () => {
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [url, setUrl] = useState('https://bingekit.app/start/');
-  const [inputUrl, setInputUrl] = useState(url);
+  const [inputUrl, setInputUrl] = useState('');
+  const [playerNavSignal, setPlayerNavSignal] = useState(0);
   const [authStatus, setAuthStatus] = useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
   const [playerStatus, setPlayerStatus] = useState<'notFound' | 'found'>('notFound');
   const [pageTitle, setPageTitle] = useState<string>('');
@@ -163,13 +165,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     computeNavUrl
   );
 
-  const history = useHistoryState(
-    url,
-    general.activeTab,
-    plugins.plugins,
-    pageTitleRef,
-    tabs.setBrowserTabs
-  );
+  const history = useHistoryState(url, general.activeTab, plugins.plugins, pageTitleRef, tabs.setBrowserTabs, playerNavSignal);
 
   // Patch references
   useEffect(() => {
@@ -200,6 +196,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       if (!isBackground) {
         tabs.setActiveBrowserTabId(newId);
         if (settings.autoFocusPlayerOnTabChange) general.setActiveTab('player');
+        setPlayerNavSignal(s => s + 1);
       }
     } else {
       setUrl(finalUrl);
@@ -217,6 +214,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       tabs.lastSyncUrls.current[tabs.activeBrowserTabId] = finalUrl;
       ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), tabs.activeBrowserTabId);
       ahk.call('UpdateURL', finalUrl, tabs.activeBrowserTabId);
+      setPlayerNavSignal(s => s + 1);
     }
   };
 
@@ -431,6 +429,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     authStatus, setAuthStatus, playerStatus, setPlayerStatus, pageTitle, playerRef,
     multiSearchQuery, setMultiSearchQuery, searchResults, setSearchResults, isSearching, setIsSearching,
     navigateUrl, handleNavigate, fetchTitleForUrl: history.fetchTitleForUrl,
+    playerNavSignal,
     runFlow: runFlowWithDefaults,
     ...general,
     ...settings,

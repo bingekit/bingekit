@@ -58,7 +58,7 @@ export const PlayerView = () => {
     playerRef, savePlugin, deletePlugin, updateEditingPlugin, fetchTitleForUrl, runFlow, checkForUpdates, handleNavigate, loadPlugins,
     discoveryItems, setDiscoveryItems, history,
     isFocusedMode, setIsFocusedMode, authStatus, playerStatus, pageTitle,
-    isMultiTabEnabled, tilingMode, browserTabs, activeBrowserTabId
+    isMultiTabEnabled, tilingMode, browserTabs, activeBrowserTabId, playerNavSignal
   } = useAppContext();
 
   const [activeMediaUrl, setActiveMediaUrl] = React.useState<string | null>(null);
@@ -187,6 +187,10 @@ export const PlayerView = () => {
   }, [url, activeTab, plugins]);
 
   React.useEffect(() => {
+    lastResumeUrl.current = '';
+  }, [playerNavSignal]);
+
+  React.useEffect(() => {
     if (activeTab !== 'player' || playerStatus !== 'found') return;
     if (url === lastResumeUrl.current) return;
 
@@ -196,7 +200,11 @@ export const PlayerView = () => {
       // Only resume if we are past the first 5 seconds and not in the last 10% 
       if (hItem.currentTime > 5 && hItem.currentTime < (hItem.duration * 0.9)) {
         lastResumeUrl.current = url;
-        ahk.call('InjectJS', `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`);
+        const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
+        ahk.call('InjectJS', cmd);
+        setTimeout(() => ahk.call('InjectJS', cmd), 1500);
+        setTimeout(() => ahk.call('InjectJS', cmd), 3500);
+        setTimeout(() => ahk.call('InjectJS', cmd), 5500);
       }
     }
   }, [url, activeTab, playerStatus, history]);
@@ -246,6 +254,31 @@ export const PlayerView = () => {
       clearInterval(intv);
     };
   }, [activeMediaUrl, activeMediaQualities, activeSubtitleUrl]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'player' || playerStatus !== 'found') return;
+    
+    // Auto-Polling Heartbeat:
+    // If the plugin scripts omit crucial seek/timeupdate events, this heartbeat forcefully
+    // polls the native video element every 3 seconds to guarantee accurate tracking persistence.
+    ahk.call('InjectJS', `
+      (function() {
+         if (window.__bk_heartbeat) return;
+         window.__bk_heartbeat = true;
+         setInterval(function() {
+            var v = document.querySelector('video');
+            if (v && !v.paused) {
+               window.top.postMessage({
+                  type: 'player-play-state',
+                  isPlaying: true,
+                  currentTime: v.currentTime,
+                  duration: v.duration
+               }, '*');
+            }
+         }, 3000);
+      })();
+    `);
+  }, [activeTab, playerStatus]);
 
   return (
 
