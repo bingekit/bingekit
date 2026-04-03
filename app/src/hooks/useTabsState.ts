@@ -72,6 +72,7 @@ export function useTabsState(
           setInputUrl(reportedUrl);
           setPageTitle('');
           pageTitleRef.current = '';
+          setPlayerStatus('notFound'); // Force re-triggering of auto-resume when new video actually spawns
           setPlayerNavSignal((s: number) => s + 1);
         }
       }
