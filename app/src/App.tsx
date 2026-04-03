@@ -581,13 +581,15 @@ const MainLayout = () => {
         <div id="main-region" className="flex-1 flex flex-col relative">
           <div className="flex-1 w-full h-full relative">
             {activeTab === 'dashboard' && <DashboardView />}
-            {activeTab === 'player' && <PlayerView />}
             {activeTab === 'explore' && <ExploreView />}
             {activeTab === 'library' && <LibraryView />}
             {activeTab === 'extensions' && <ExtensionsView />}
             {activeTab === 'downloads' && <DownloadsView />}
             {activeTab === 'settings' && <SettingsView />}
             {activeTab === 'config' && <SettingsView />}
+            <div className={`w-full h-full absolute inset-0 ${activeTab === 'player' ? 'z-0' : 'pointer-events-none opacity-0 z-[-1]'}`}>
+               <PlayerView />
+            </div>
           </div>
         </div>
       </div>

@@ -63,6 +63,10 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
 
         w := w - 3
         h := h - 3
+        if (w < 50)
+            w := 50
+        if (h < 50)
+            h := 50
 
         if (!PlayerRects.Has(id)) {
             PlayerRects[id] := {x: x, y: y, w: w, h: h}
@@ -136,9 +140,12 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             }
         } else {
             if (PlayerGuis.Has(id)) {
-                if (PlayerWVs.Has(id))
-                    PlayerWVs[id].wvc.IsVisible := 0
-                PlayerGuis[id].Hide()
+                if (PlayerWVs.Has(id)) {
+                    PlayerWVs[id].wvc.IsVisible := 1
+                    PlayerWVs[id].Move(0, 0, w, h)
+                    PlayerWVs[id].wvc.Fill()
+                }
+                PlayerGuis[id].Show("x-9999 y-9999 w" w " h" h " NA")
             }
         }
     }

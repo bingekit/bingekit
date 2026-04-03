@@ -226,7 +226,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return navUrl;
   };
 
+  const previousTabIdRef = useRef(activeBrowserTabId);
+
   useEffect(() => {
+    if (previousTabIdRef.current !== activeBrowserTabId) {
+      previousTabIdRef.current = activeBrowserTabId;
+      return; 
+    }
+
     if (activeTab === 'player') {
       const currentLast = lastSyncUrls.current[activeBrowserTabId];
       if (currentLast !== url) {
