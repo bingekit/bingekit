@@ -23,7 +23,7 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
         const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
         if (lastRectRef.current !== rectStr) {
           lastRectRef.current = rectStr;
-          ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+          ahk.asyncCall('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
         }
       }
     });
@@ -32,12 +32,12 @@ const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className
     const rect = slotRef.current.getBoundingClientRect();
     const rectStr = `${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)},${Math.round(rect.height)},${isVisuallyActive}`;
     lastRectRef.current = rectStr;
-    ahk.call('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
+    ahk.asyncCall('UpdatePlayerRect', Math.round(rect.left), Math.round(rect.top), Math.round(rect.width), Math.round(rect.height), isVisuallyActive, tabId);
 
     return () => {
       observer.disconnect();
       lastRectRef.current = '';
-      try { ahk.call('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch (err) { }
+      try { ahk.asyncCall('UpdatePlayerRect', 0, 0, 0, 0, false, tabId); } catch (err) { }
     };
   }, [isVisuallyActive, tabId]);
 
@@ -152,7 +152,7 @@ export const PlayerView = () => {
               `;
         const fullCss = defaultCssBlock + "\\n" + customCssBlock;
 
-        ahk.call('InjectJS', `
+        ahk.asyncCall('InjectJS', `
                  (function() {
                     const styleId = 'bk-focus-style';
                     let existingStyle = document.getElementById(styleId);
@@ -168,7 +168,7 @@ export const PlayerView = () => {
                  })();
               `);
       } else {
-        ahk.call('InjectJS', `
+        ahk.asyncCall('InjectJS', `
                  (function() {
                     let existingStyle = document.getElementById('bk-focus-style');
                     if (existingStyle) existingStyle.parentNode.removeChild(existingStyle);
@@ -183,7 +183,7 @@ export const PlayerView = () => {
     if (activeTab !== 'player') return;
     const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
     const { ignoreVideoUrls, ignoreVideoCSS } = plugin?.player || {};
-    ahk.call('InjectJS', `window.top.postMessage({ type: 'bk-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
+    ahk.asyncCall('InjectJS', `window.top.postMessage({ type: 'bk-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
   }, [url, activeTab, plugins]);
 
   React.useEffect(() => {
@@ -204,8 +204,8 @@ export const PlayerView = () => {
       
       lastResumeUrl.current = url;
       const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
-      ahk.call('InjectJS', cmd);
-      setTimeout(() => ahk.call('InjectJS', cmd), 1500); // 1 lightweight retry
+      ahk.asyncCall('InjectJS', cmd);
+      setTimeout(() => ahk.asyncCall('InjectJS', cmd), 1500); // 1 lightweight retry
     } else {
       // The video is completely new to BingeKit (or functionally unwatched at <15s).
       // Many SPA sites (like icefy) lazily recycle the exact same HTML5 <video> element 
@@ -214,8 +214,8 @@ export const PlayerView = () => {
       // We must violently wipe the timeline to 0s to obliterate the site's cached bleed!
       lastResumeUrl.current = url;
       const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: 0, mainUrl: "${url}" }, '*');`;
-      ahk.call('InjectJS', cmd);
-      setTimeout(() => ahk.call('InjectJS', cmd), 1500);
+      ahk.asyncCall('InjectJS', cmd);
+      setTimeout(() => ahk.asyncCall('InjectJS', cmd), 1500);
     }
   }, [url, activeTab, playerStatus]);
 
@@ -232,9 +232,12 @@ export const PlayerView = () => {
     };
     window.addEventListener('bk-media-detected', handleMediaDetect);
 
-    const intv = setInterval(() => {
+    let isPolling = false;
+    const intv = setInterval(async () => {
+      if (isPolling) return;
+      isPolling = true;
       try {
-        const m = ahk.call('GetActiveMedia');
+        const m = await ahk.asyncCall('GetActiveMedia');
         if (m && typeof m === 'string' && m.length > 5 && m !== activeMediaUrl) {
           lastUrl = m;
           setActiveMediaUrl(m);
@@ -244,7 +247,7 @@ export const PlayerView = () => {
         }
 
         try {
-          const qStr = ahk.call('GetActiveMediaQualities');
+          const qStr = await ahk.asyncCall('GetActiveMediaQualities');
           if (qStr && typeof qStr === 'string' && qStr.length > 5) {
             const qParsed = JSON.parse(qStr);
             if (JSON.stringify(qParsed) !== JSON.stringify(activeMediaQualities)) setActiveMediaQualities(qParsed);
@@ -252,11 +255,12 @@ export const PlayerView = () => {
         } catch (e) { }
 
         try {
-          const sub = ahk.call('GetActiveSubtitle');
+          const sub = await ahk.asyncCall('GetActiveSubtitle');
           if (sub && sub !== activeSubtitleUrl) setActiveSubtitleUrl(sub);
           else if (!sub && activeSubtitleUrl) setActiveSubtitleUrl(null);
         } catch (e) { }
       } catch (e) { }
+      isPolling = false;
     }, 2000);
 
     return () => {
@@ -374,7 +378,7 @@ export const PlayerView = () => {
                     onChange={(e) => {
                       if (e.target.value === "") return;
                       let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
-                      ahk.call('DownloadActiveVideo', e.target.value, dName, activeSubtitleUrl || "");
+                      ahk.asyncCall('DownloadActiveVideo', e.target.value, dName, activeSubtitleUrl || "");
                       e.target.value = "";
                     }}
                     value=""
@@ -392,7 +396,7 @@ export const PlayerView = () => {
                 <button
                   onClick={() => {
                     let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.mp4') : `ActiveStream_${Date.now()}.mp4`;
-                    ahk.call('DownloadActiveVideo', activeMediaUrl, dName, activeSubtitleUrl || "");
+                    ahk.asyncCall('DownloadActiveVideo', activeMediaUrl, dName, activeSubtitleUrl || "");
                   }}
                   className="text-xs font-medium text-emerald-400 animate-pulse hover:text-emerald-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 py-1 rounded"
                 >
@@ -405,7 +409,7 @@ export const PlayerView = () => {
             <button
               onClick={() => {
                 let dName = pageTitle ? (pageTitle.replace(/[^a-z0-9]/gi, '_').replace(/_+/g, '_') + '.vtt') : `sub_${Date.now()}.vtt`;
-                ahk.call('DownloadSubtitle', activeSubtitleUrl, dName);
+                ahk.asyncCall('DownloadSubtitle', activeSubtitleUrl, dName);
               }}
               className="ml-2 text-xs font-medium text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors shrink-0 px-2 bg-amber-500/10 hover:bg-amber-500/20 py-1 rounded"
             >
@@ -465,7 +469,7 @@ export const PlayerView = () => {
                                 if (passInputs.length > 0) { passInputs[0].value = pass; passInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
                               })();
                             `;
-                  ahk.call('InjectJS', js);
+                  ahk.asyncCall('InjectJS', js);
                 } else {
                   alert('No matching plugin or saved credentials found.');
                 }

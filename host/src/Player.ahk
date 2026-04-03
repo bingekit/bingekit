@@ -162,23 +162,26 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
 }
 
 AHK_ClosePlayer(id) {
-    global PlayerGuis, PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls, PlayerRects, ActiveMediaStreams, ActiveMediaSubtitles
-    if (PlayerGuis.Has(id)) {
-        try PlayerWVs[id].wvc.IsVisible := 0
-        try PlayerGuis[id].Destroy()
-        PlayerGuis.Delete(id)
-        PlayerWVs.Delete(id)
-        if (PlayerCurrentUrls.Has(id))
-            PlayerCurrentUrls.Delete(id)
-        if (PendingPlayerUrls.Has(id))
-            PendingPlayerUrls.Delete(id)
-        if (PlayerRects.Has(id))
-            PlayerRects.Delete(id)
-        if (ActiveMediaStreams.Has(id))
-            ActiveMediaStreams.Delete(id)
-        if (ActiveMediaSubtitles.Has(id))
-            ActiveMediaSubtitles.Delete(id)
+    DoClose() {
+        global PlayerGuis, PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls, PlayerRects, ActiveMediaStreams, ActiveMediaSubtitles
+        if (PlayerGuis.Has(id)) {
+            try PlayerWVs[id].wvc.IsVisible := 0
+            try PlayerGuis[id].Destroy()
+            PlayerGuis.Delete(id)
+            PlayerWVs.Delete(id)
+            if (PlayerCurrentUrls.Has(id))
+                PlayerCurrentUrls.Delete(id)
+            if (PendingPlayerUrls.Has(id))
+                PendingPlayerUrls.Delete(id)
+            if (PlayerRects.Has(id))
+                PlayerRects.Delete(id)
+            if (ActiveMediaStreams.Has(id))
+                ActiveMediaStreams.Delete(id)
+            if (ActiveMediaSubtitles.Has(id))
+                ActiveMediaSubtitles.Delete(id)
+        }
     }
+    SetTimer(DoClose, -1)
 }
 
 AHK_PlayerGuiResized(guiObj, minMax, width, height) {

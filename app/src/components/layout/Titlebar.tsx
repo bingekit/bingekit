@@ -30,30 +30,31 @@ export const Titlebar = () => {
   const handleNewTab = () => navigateUrl(homePage || 'https://bingekit.app/start/', true);
 
   const handleCloseTab = (id: string) => {
-    ahk.call('ClosePlayer', id);
-    setBrowserTabs(prev => {
-      if (prev.length <= 1) return prev;
-      const idx = prev.findIndex(t => t.id === id);
-      const newTabs = prev.filter(t => t.id !== id);
-      if (activeBrowserTabId === id && newTabs.length > 0) {
-        setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
-      }
-      return newTabs;
-    });
+    if (browserTabs.length <= 1) return;
+    
+    ahk.asyncCall('ClosePlayer', id);
+    
+    const idx = browserTabs.findIndex(t => t.id === id);
+    const newTabs = browserTabs.filter(t => t.id !== id);
+    if (activeBrowserTabId === id && newTabs.length > 0) {
+      setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
+    }
+    setBrowserTabs(newTabs);
   };
 
   const handleToggleMute = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setBrowserTabs(prev => {
-      const newTabs = [...prev];
-      const idx = newTabs.findIndex(t => t.id === tabId);
-      if (idx >= 0) {
-        const newMuteState = !newTabs[idx].isMuted;
-        newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
-        try { ahk.call('MutePlayer', newMuteState ? 1 : 0, tabId); } catch (err) { }
-      }
-      return newTabs;
-    });
+    
+    const idx = browserTabs.findIndex(t => t.id === tabId);
+    if (idx >= 0) {
+      const newMuteState = !browserTabs[idx].isMuted;
+      
+      ahk.asyncCall('MutePlayer', newMuteState ? 1 : 0, tabId);
+      
+      const newTabs = [...browserTabs];
+      newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
+      setBrowserTabs(newTabs);
+    }
   };
 
   return (

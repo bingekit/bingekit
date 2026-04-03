@@ -27,7 +27,7 @@ export function useTabsState(
   useEffect(() => {
     if (activeBrowserTabIdRef.current !== activeBrowserTabId) {
       activeBrowserTabIdRef.current = activeBrowserTabId;
-      try { ahk.call('SetActiveTabId', activeBrowserTabId); } catch (e) { }
+      ahk.asyncCall('SetActiveTabId', activeBrowserTabId);
 
       const activeTabObj = browserTabs.find(t => t.id === activeBrowserTabId);
       if (activeTabObj) {

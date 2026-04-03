@@ -24,61 +24,63 @@ export const MainLayout = () => {
 
   useEffect(() => {
     const handleCloseActiveTab = () => {
-      ahk.call('ClosePlayer', activeBrowserTabId);
-      setBrowserTabs(prev => {
-        if (prev.length <= 1) return prev; // Don't close the last tab
-        const idx = prev.findIndex(t => t.id === activeBrowserTabId);
-        const newTabs = prev.filter(t => t.id !== activeBrowserTabId);
-        if (newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
-        return newTabs;
-      });
+      if (browserTabs.length <= 1) return; // Don't close the last tab
+      
+      const tabIdToClose = activeBrowserTabId;
+      ahk.asyncCall('ClosePlayer', tabIdToClose);
+      
+      const idx = browserTabs.findIndex(t => t.id === tabIdToClose);
+      const newTabs = browserTabs.filter(t => t.id !== tabIdToClose);
+      if (newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
+      setBrowserTabs(newTabs);
     };
 
     const handleNewTabEvent = () => navigateUrl(homePage || 'https://bingekit.app/start/', true);
 
     const handleContextAction = (e: any) => {
       const { action, tabId } = e.detail;
+      
       if (action === 'close') {
-        ahk.call('ClosePlayer', tabId);
-        setBrowserTabs(prev => {
-          if (prev.length <= 1) return prev;
-          const idx = prev.findIndex(t => t.id === tabId);
-          const newTabs = prev.filter(t => t.id !== tabId);
-          if (activeBrowserTabId === tabId && newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
-          return newTabs;
-        });
+        if (browserTabs.length <= 1) return;
+        
+        ahk.asyncCall('ClosePlayer', tabId);
+        
+        const idx = browserTabs.findIndex(t => t.id === tabId);
+        const newTabs = browserTabs.filter(t => t.id !== tabId);
+        if (activeBrowserTabId === tabId && newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
+        setBrowserTabs(newTabs);
       }
-      if (action === 'closeRight') {
-        setBrowserTabs(prev => {
-          const idx = prev.findIndex(t => t.id === tabId);
-          if (idx === -1) return prev;
-          const tabsToKeep = prev.slice(0, idx + 1);
-          const tabsToClose = prev.slice(idx + 1);
-          tabsToClose.forEach(t => { try { ahk.call('ClosePlayer', t.id); } catch (err) { } });
-          if (tabsToClose.some(t => t.id === activeBrowserTabId)) setActiveBrowserTabId(tabId);
-          return tabsToKeep;
-        });
+      else if (action === 'closeRight') {
+        const idx = browserTabs.findIndex(t => t.id === tabId);
+        if (idx === -1) return;
+        
+        const tabsToKeep = browserTabs.slice(0, idx + 1);
+        const tabsToClose = browserTabs.slice(idx + 1);
+        
+        tabsToClose.forEach(t => { ahk.asyncCall('ClosePlayer', t.id); });
+        
+        if (tabsToClose.some(t => t.id === activeBrowserTabId)) setActiveBrowserTabId(tabId);
+        setBrowserTabs(tabsToKeep);
       }
-      if (action === 'closeOthers') {
-        setBrowserTabs(prev => {
-          const tabsToKeep = prev.filter(t => t.id === tabId);
-          const tabsToClose = prev.filter(t => t.id !== tabId);
-          tabsToClose.forEach(t => { try { ahk.call('ClosePlayer', t.id); } catch (err) { } });
-          setActiveBrowserTabId(tabId);
-          return tabsToKeep;
-        });
+      else if (action === 'closeOthers') {
+        const tabsToKeep = browserTabs.filter(t => t.id === tabId);
+        const tabsToClose = browserTabs.filter(t => t.id !== tabId);
+        
+        tabsToClose.forEach(t => { ahk.asyncCall('ClosePlayer', t.id); });
+        
+        setActiveBrowserTabId(tabId);
+        setBrowserTabs(tabsToKeep);
       }
-      if (action === 'toggleMute') {
-        setBrowserTabs(prev => {
-          const newTabs = [...prev];
-          const idx = newTabs.findIndex(t => t.id === tabId);
-          if (idx >= 0) {
-            const newMuteState = !newTabs[idx].isMuted;
-            newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
-            try { ahk.call('MutePlayer', newMuteState ? 1 : 0, tabId); } catch (err) { }
-          }
-          return newTabs;
-        });
+      else if (action === 'toggleMute') {
+        const idx = browserTabs.findIndex(t => t.id === tabId);
+        if (idx >= 0) {
+          const newMuteState = !browserTabs[idx].isMuted;
+          ahk.asyncCall('MutePlayer', newMuteState ? 1 : 0, tabId);
+          
+          const newTabs = [...browserTabs];
+          newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
+          setBrowserTabs(newTabs);
+        }
       }
     };
 
@@ -91,7 +93,7 @@ export const MainLayout = () => {
       window.removeEventListener('bk-new-tab', handleNewTabEvent);
       window.removeEventListener('bk-tab-context-action', handleContextAction);
     };
-  }, [activeBrowserTabId, homePage, navigateUrl, setBrowserTabs, setActiveBrowserTabId]);
+  }, [activeBrowserTabId, browserTabs, homePage, navigateUrl, setBrowserTabs, setActiveBrowserTabId]);
 
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>

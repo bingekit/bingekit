@@ -190,10 +190,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     if (inNewTab) {
-      const newId = Date.now().toString();
+      const newId = Date.now().toString() + '_' + Math.random().toString(36).substring(2, 9);
       tabs.setBrowserTabs(prev => [...prev, { id: newId, url: finalUrl, inputUrl: finalUrl }]);
       tabs.lastSyncUrls.current[newId] = finalUrl;
-      ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
+      ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(finalUrl), newId);
       if (!isBackground) {
         tabs.setActiveBrowserTabId(newId);
         if (settings.autoFocusPlayerOnTabChange) general.setActiveTab('player');
@@ -213,8 +213,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         return newTabs;
       });
       tabs.lastSyncUrls.current[tabs.activeBrowserTabId] = finalUrl;
-      ahk.call('UpdatePlayerUrl', computeNavUrl(finalUrl), tabs.activeBrowserTabId);
-      ahk.call('UpdateURL', finalUrl, tabs.activeBrowserTabId);
+      ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(finalUrl), tabs.activeBrowserTabId);
+      ahk.asyncCall('UpdateURL', finalUrl, tabs.activeBrowserTabId);
       setPlayerNavSignal(s => s + 1);
     }
   };
