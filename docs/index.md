@@ -8,6 +8,7 @@ Below is a map of the different technical areas within the project:
 
 | Documentation Topic | Description |
 | ------------------- | ----------- |
+| [**Initial Setup and build**](setup_and_build.md) | How to set up and build the project. |
 | [**Architecture Overview**](architecture.md) | The core design logic: why we bridge AHK with WebView2, how multi-tiered blocking works, and the project's foundational ethos. |
 | [**The API Reference**](api.md) | A comprehensive guide to the massive `window.chrome.webview.hostObjects.sync.ahk` API used to bridge the React frontend and AHK backend. Groups APIs by their usage scope (Main App vs. Player vs. Hidden fetchers). |
 | [**Site Plugins Configuration**](plugins.md) | How to build plugins. Explains the configuration structures for domains containing targeted userscripts, block rules, generic element selectors, and metadata trackers. |
