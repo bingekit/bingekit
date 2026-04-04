@@ -43,10 +43,10 @@ export function usePluginsState(
           const blockers = p[key as keyof SitePlugin] as string[];
           if (Array.isArray(blockers)) {
             blockers.forEach(b => {
-               if (b && typeof b === 'string' && !newFilters[b]) {
-                 newFilters[b] = true;
-                 changed = true;
-               }
+              if (b && typeof b === 'string' && !newFilters[b]) {
+                newFilters[b] = true;
+                changed = true;
+              }
             });
           }
         });
@@ -219,11 +219,11 @@ export function usePluginsState(
           }
 
           var playerPlugins = ${JSON.stringify(plugins.filter(p => p.player?.playerSel || p.auth?.checkAuthJs || p.details?.titleSel).map(p => ({
-            baseUrl: p.baseUrl,
-            playerSel: p.player?.playerSel || '',
-            checkAuthJs: p.auth?.checkAuthJs || '',
-            titleSel: p.details?.titleSel || ''
-          })))};
+        baseUrl: p.baseUrl,
+        playerSel: p.player?.playerSel || '',
+        checkAuthJs: p.auth?.checkAuthJs || '',
+        titleSel: p.details?.titleSel || ''
+      })))};
 
           if (!window._svPlayerStatusPoller) {
             window._svPlayerStatusPoller = setInterval(() => {
@@ -375,7 +375,7 @@ export function usePluginsState(
           `;
           const results = await (window as any).SmartFetch(item.url, js);
           if (Array.isArray(results) && results.length > 0) {
-            const newLatest = results[0]?.id || ''; 
+            const newLatest = results[0]?.id || '';
             if (item.latestAvailable !== newLatest) {
               item.hasUpdate = true;
               item.latestAvailable = newLatest;
@@ -408,7 +408,7 @@ export function usePluginsState(
     setIsCheckingUpdates(false);
   };
 
-  const runFlow = async (flow: CustomFlow, multiSearchQuery: string, initialUrl: string = url, customVars: Record<string, string> = {}) => {
+  const runFlow = async (flow: CustomFlow, multiSearchQuery: string, initialUrl: string = url, customVars: Record<string, string> = {}, _visitedFlows: string[] = []) => {
     let currentVar = initialUrl;
     let actualVars = { ...customVars };
 
@@ -424,6 +424,11 @@ export function usePluginsState(
         }
       }
     }
+
+    if (_visitedFlows.includes(flow.id)) {
+      throw new Error(`Recursive flow calling detected. Flow cannot call itself: ${flow.name}`);
+    }
+    _visitedFlows.push(flow.id);
 
     console.log('Running flow:', flow.name, 'with inputs:', actualVars);
 
@@ -454,25 +459,25 @@ export function usePluginsState(
     try {
       for (let i = 0; i < flow.steps.length; i++) {
         const step = flow.steps[i];
-        
+
         console.log(`[Flow Evaluator] Executing step ${i + 1}/${flow.steps.length}: [${step.type}]`, step);
-        
+
         try {
           if (step.type === 'navigate') {
-        const dest = await resolveVars(step.params.url || '');
-        let navUrl = computeNavUrl(dest);
-        ahk.call('UpdatePlayerUrl', navUrl);
-        currentVar = dest;
-        await new Promise(r => setTimeout(r, 1500));
-      } else if (step.type === 'inject') {
-        const code = await resolveVars(step.params.code || '');
-        ahk.call('InjectJS', code);
-      } else if (step.type === 'waitForElement') {
-        const selector = await resolveVars(step.params.selector || '');
-        let found = false;
-        let attempts = 0;
-        while (!found && attempts < 50) { // Max 5 seconds
-          const js = `
+            const dest = await resolveVars(step.params.url || '');
+            let navUrl = computeNavUrl(dest);
+            ahk.call('UpdatePlayerUrl', navUrl);
+            currentVar = dest;
+            await new Promise(r => setTimeout(r, 1500));
+          } else if (step.type === 'inject') {
+            const code = await resolveVars(step.params.code || '');
+            ahk.call('InjectJS', code);
+          } else if (step.type === 'waitForElement') {
+            const selector = await resolveVars(step.params.selector || '');
+            let found = false;
+            let attempts = 0;
+            while (!found && attempts < 50) { // Max 5 seconds
+              const js = `
              (function() {
                 try {
                    return !!document.querySelector('${selector.replace(/'/g, "\\\\'")}');
@@ -481,22 +486,22 @@ export function usePluginsState(
                 }
              })()
           `;
-          try {
-            const res = await ahk.call('EvalPlayerJS', js);
-            if (res === 'true') { found = true; break; }
-          } catch (e: any) { 
-            console.error('EvalPlayerJS failed:', e);
-          }
-          await new Promise(r => setTimeout(r, 100)); // Yields to event loop
-          attempts++;
-        }
-        if (!found) throw new Error(`Timeout waiting for element: ${selector}`);
-      } else if (step.type === 'interact') {
-        const selector = await resolveVars(step.params.selector || '');
-        const actionType = step.params.actionType || 'click';
-        const value = await resolveVars(step.params.value || '');
+              try {
+                const res = await ahk.call('EvalPlayerJS', js);
+                if (res === 'true') { found = true; break; }
+              } catch (e: any) {
+                console.error('EvalPlayerJS failed:', e);
+              }
+              await new Promise(r => setTimeout(r, 100)); // Yields to event loop
+              attempts++;
+            }
+            if (!found) throw new Error(`Timeout waiting for element: ${selector}`);
+          } else if (step.type === 'interact') {
+            const selector = await resolveVars(step.params.selector || '');
+            const actionType = step.params.actionType || 'click';
+            const value = await resolveVars(step.params.value || '');
 
-        const jsCode = `
+            const jsCode = `
           (function() {
             try {
               var el = document.querySelector('${selector.replace(/'/g, "\\\\'")}');
@@ -515,47 +520,74 @@ export function usePluginsState(
             }
           })();
         `;
-        ahk.call('InjectJS', jsCode);
-        await new Promise(r => setTimeout(r, 200));
-      } else if (step.type === 'RawFetchHTML') {
-        const fetchUrl = await resolveVars(step.params.url || '');
-        const html = ahk.call('RawFetchHTML', fetchUrl);
-        currentVar = html;
-      } else if (step.type === 'callFlow') {
-        const targetFlowId = await resolveVars(step.params.flowId || '');
-        const targetFlow = flows.find(f => f.id === targetFlowId);
-        if (targetFlow) await runFlow(targetFlow, multiSearchQuery, currentVar);
-      } else if (step.type === 'pluginAction') {
-        const targetPluginId = await resolveVars(step.params.pluginId || '');
-        const actionName = await resolveVars(step.params.actionName || '');
-        try {
-          const res = await (window as any).RunPluginFunction(targetPluginId, actionName, currentVar);
-          currentVar = (typeof res === 'object') ? JSON.stringify(res) : String(res);
-        } catch (e: any) { 
-          throw new Error(`Plugin Action Failed: ${e.message || String(e)}`);
-        }
-      } else if (step.type === 'callPlugin') {
-        const targetPluginId = await resolveVars(step.params.pluginId || '');
-        const targetPlugin = plugins.find(p => p.id === targetPluginId);
-        if (targetPlugin && targetPlugin.search?.urlFormat) {
-          const sq = await resolveVars(step.params.query || currentVar);
-          const resolvedFormat = resolvePluginUrl(targetPlugin.baseUrl, targetPlugin.search.urlFormat);
-          const pUrl = resolvedFormat.replace('{query}', encodeURIComponent(sq));
-          setMultiSearchQuery(sq);
-          setSearchParamMode('fetch');
-          setActiveTab('dashboard');
-          setTimeout(() => {
-            const input = document.getElementById('search-input');
-            if (input) input.focus();
-          }, 100);
-        }
-      } else if (step.type === 'smartFetch') {
-        const targetUrl = await resolveVars(step.params.url || '');
-        const targetPluginId = await resolveVars(step.params.pluginId || '');
-        const targetPlugin = plugins.find(p => p.id === targetPluginId);
+            ahk.call('InjectJS', jsCode);
+            await new Promise(r => setTimeout(r, 200));
+          } else if (step.type === 'RawFetchHTML') {
+            const fetchUrl = await resolveVars(step.params.url || '');
+            const html = ahk.call('RawFetchHTML', fetchUrl);
+            currentVar = html;
+          } else if (step.type === 'parseHtml') {
+            const selector = await resolveVars(step.params.selector || '');
+            if (selector) {
+              try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(currentVar || '', 'text/html');
+                const elements = Array.from(doc.querySelectorAll(selector));
+                if (elements.length === 0) {
+                  console.warn(`[Flow Evaluator] parseHtml: No elements found for selector "${selector}"`);
+                  currentVar = "[]";
+                } else {
+                  const parsed = elements.map(el => ({
+                    text: el.textContent?.trim() || '',
+                    html: el.innerHTML || '',
+                    href: el.getAttribute('href') || (el as any).href || undefined,
+                    src: el.getAttribute('src') || (el as any).src || undefined,
+                    value: el.getAttribute('value') || (el as any).value || undefined
+                  }));
+                  currentVar = JSON.stringify(parsed);
+                }
+              } catch (e: any) {
+                throw new Error(`Parse HTML failed: ${e.message}`);
+              }
+            }
+          } else if (step.type === 'callFlow') {
+            const targetFlowId = await resolveVars(step.params.flowId || '');
+            const targetFlow = flows.find(f => f.id === targetFlowId);
+            if (targetFlow) {
+              const subResult = await runFlow(targetFlow, multiSearchQuery, currentVar, actualVars, [..._visitedFlows]);
+              if (subResult !== undefined && subResult !== null) currentVar = subResult;
+            }
+          } else if (step.type === 'pluginAction') {
+            const targetPluginId = await resolveVars(step.params.pluginId || '');
+            const actionName = await resolveVars(step.params.actionName || '');
+            try {
+              const res = await (window as any).RunPluginFunction(targetPluginId, actionName, currentVar);
+              currentVar = (typeof res === 'object') ? JSON.stringify(res) : String(res);
+            } catch (e: any) {
+              throw new Error(`Plugin Action Failed: ${e.message || String(e)}`);
+            }
+          } else if (step.type === 'callPlugin') {
+            const targetPluginId = await resolveVars(step.params.pluginId || '');
+            const targetPlugin = plugins.find(p => p.id === targetPluginId);
+            if (targetPlugin && targetPlugin.search?.urlFormat) {
+              const sq = await resolveVars(step.params.query || currentVar);
+              const resolvedFormat = resolvePluginUrl(targetPlugin.baseUrl, targetPlugin.search.urlFormat);
+              const pUrl = resolvedFormat.replace('{query}', encodeURIComponent(sq));
+              setMultiSearchQuery(sq);
+              setSearchParamMode('fetch');
+              setActiveTab('dashboard');
+              setTimeout(() => {
+                const input = document.getElementById('search-input');
+                if (input) input.focus();
+              }, 100);
+            }
+          } else if (step.type === 'smartFetch') {
+            const targetUrl = await resolveVars(step.params.url || '');
+            const targetPluginId = await resolveVars(step.params.pluginId || '');
+            const targetPlugin = plugins.find(p => p.id === targetPluginId);
 
-        if (targetPlugin && targetUrl && (window as any).SmartFetch) {
-          const jsQuery = `
+            if (targetPlugin && targetUrl && (window as any).SmartFetch) {
+              const jsQuery = `
               return (function() {
                  try {
                     const items = Array.from(document.querySelectorAll('${targetPlugin.search?.itemSel?.replace(/'/g, "\\\\'") || 'body'}'));
@@ -573,15 +605,15 @@ export function usePluginsState(
                  }
               })();
            `;
-          const res = await (window as any).SmartFetch(targetUrl, jsQuery);
-          if (res) currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
-        }
-      } else if (step.type === 'customSmartFetch') {
-        const targetUrl = await resolveVars(step.params.url || '');
-        const jsCode = await resolveVars(step.params.code || 'return [];');
+              const res = await (window as any).SmartFetch(targetUrl, jsQuery);
+              if (res) currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
+            }
+          } else if (step.type === 'customSmartFetch') {
+            const targetUrl = await resolveVars(step.params.url || '');
+            const jsCode = await resolveVars(step.params.code || 'return [];');
 
-        if (targetUrl && (window as any).SmartFetch) {
-          const jsQuery = `
+            if (targetUrl && (window as any).SmartFetch) {
+              const jsQuery = `
              return new Promise(async (resolve) => {
                try {
                  const res = await (async () => {
@@ -593,30 +625,34 @@ export function usePluginsState(
                }
              });
            `;
-          const res = await (window as any).SmartFetch(targetUrl, jsQuery);
-          currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
-        }
-      } else if (step.type === 'wait') {
-        const msStr = await resolveVars(step.params.ms || '1000');
-        const ms = parseInt(msStr) || 1000;
-        await new Promise(r => setTimeout(r, ms));
-      }
-        
-        // Yield after every single step so React can process updates and UI won't lock!
-        await new Promise(r => setTimeout(r, 10));
+              const res = await (window as any).SmartFetch(targetUrl, jsQuery);
+              currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
+            }
+          } else if (step.type === 'wait') {
+            const msStr = await resolveVars(step.params.ms || '1000');
+            const ms = parseInt(msStr) || 1000;
+            await new Promise(r => setTimeout(r, ms));
+          }
+
+          // Log step result as requested
+          console.log(`[Flow Evaluator] Step ${i + 1} (${step.type}) Result:`, currentVar);
+
+          // Yield after every single step so React can process updates and UI won't lock!
+          await new Promise(r => setTimeout(r, 10));
 
         } catch (stepError: any) {
-             throw new Error(`[Step ${i + 1} - ${step.type}] failed: ${stepError.message}`);
+          throw new Error(`[Step ${i + 1} - ${step.type}] failed: ${stepError.message}`);
         }
+      }
+      console.log(`[Flow Evaluator] Flow "${flow.name}" Final Result:`, currentVar);
+      window.showToast?.(`Flow "${flow.name}" completed successfully.`, "success");
+      return currentVar;
+    } catch (e: any) {
+      console.error(e);
+      window.showToast?.(e.message || "Flow evaluation failed.", "error");
+      return null;
     }
-    window.showToast?.(`Flow "${flow.name}" completed successfully.`, "success");
-    return currentVar;
-  } catch (e: any) {
-    console.error(e);
-    window.showToast?.(e.message || "Flow evaluation failed.", "error");
-    return null;
-  }
-};
+  };
 
   useEffect(() => {
     if (autoCheckPluginUpdates && plugins.length > 0 && !isInitialPluginCheck.current) {
