@@ -40,7 +40,7 @@ AHK_ShowToast(windowId, msg, arg1 := "info", arg2 := "", arg3 := "") {
     
     if (SubStr(LTrim(arg1), 1, 1) = "{") {
         try {
-            cfg := JSON.Load(arg1)
+            cfg := JSON.parse(arg1)
             if (cfg.Has("bgC") && cfg["bgC"] != "")
                 bgC := StrReplace(cfg["bgC"], "#", "")
             if (cfg.Has("textC") && cfg["textC"] != "")

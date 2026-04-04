@@ -2,16 +2,38 @@ global SplashGui := ""
 global SplashStatus := ""
 
 InitSplashGui() {
-    global SplashGui, SplashStatus
+    global SplashGui, SplashStatus, WorkspaceDir
+    
+    bgC := "09090b"
+    accentC := "818cf8"
+    textC := "a1a1aa"
+    borderC := "27272a"
+
+    try {
+        if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
+            themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
+            theme := JSON.parse(themeJson)
+            if (theme.Has("mainBg") && theme["mainBg"] != "")
+                bgC := StrReplace(theme["mainBg"], "#", "")
+            if (theme.Has("accent") && theme["accent"] != "")
+                accentC := StrReplace(theme["accent"], "#", "")
+            if (theme.Has("textSec") && theme["textSec"] != "")
+                textC := StrReplace(theme["textSec"], "#", "")
+            if (theme.Has("border") && theme["border"] != "")
+                borderC := StrReplace(theme["border"], "#", "")
+        }
+    } catch {
+    }
+
     SplashGui := Gui("-Caption +AlwaysOnTop -ToolWindow", "BingeKit Loading")
-    SplashGui.BackColor := "09090b"
+    SplashGui.BackColor := bgC
     SplashGui.MarginX := 0
     SplashGui.MarginY := 0
-    SplashGui.SetFont("s32 c818cf8 bold", "Segoe UI")
+    SplashGui.SetFont("s32 c" accentC " bold", "Segoe UI")
     SplashGui.Add("Text", "x0 y55 w400 center BackgroundTrans", "BingeKit")
-    SplashGui.SetFont("s9 ca1a1aa norm", "Segoe UI")
+    SplashGui.SetFont("s9 c" textC " norm", "Segoe UI")
     SplashStatus := SplashGui.Add("Text", "x0 y120 w400 center BackgroundTrans", "INITIALIZING ENGINE COMPONENTS")
-    SplashGui.Add("Progress", "x0 y0 w400 h5 c818cf8 Background27272a", 100)
+    SplashGui.Add("Progress", "x0 y0 w400 h5 c" accentC " Background" borderC, 100)
     SplashGui.Show("w400 h200 Center NoActivate")
     Try {
         WinSetRegion("0-0 w400 h200 r16-16", "ahk_id " SplashGui.Hwnd)

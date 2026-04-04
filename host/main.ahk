@@ -3,7 +3,6 @@
 #Include src\const.ahk
 
 #Include src\Splash.ahk
-InitSplashGui()
 
 #Include Lib\WebViewToo.ahk
 #Include Lib\Promise.ahk
@@ -14,6 +13,7 @@ InitSplashGui()
 #Include src\appHash.ahk
 LoadAppConfig()
 InitWorkspaces()
+InitSplashGui()
 
 ; 2. Environment (WebView2 Settings, Splash/Main UI Init)
 #Include src\Env.ahk
