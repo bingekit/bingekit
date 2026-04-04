@@ -143,7 +143,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const computeNavUrl = (target: string) => {
     let navUrl = target;
-    if (target === 'about:blank') {
+    if (target.startsWith('edge://')) {
+      navUrl = target;
+    } else if (target === 'about:blank') {
       navUrl = 'http://blank.localhost/';
     } else if (target.startsWith('custom:')) {
       navUrl = `http://blank.localhost/#${target}`;
@@ -248,6 +250,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     e.preventDefault();
     navigateUrl(inputUrl);
   };
+
+  useEffect(() => {
+    const handleRemoteNavigate = (e: any) => {
+      if (e.detail && e.detail.url) {
+        navigateUrl(e.detail.url, e.detail.newTab && tabs.isMultiTabEnabled, e.detail.background);
+      }
+    };
+    window.addEventListener('bk-remote-navigate', handleRemoteNavigate);
+    return () => window.removeEventListener('bk-remote-navigate', handleRemoteNavigate);
+  });
 
   // Initial loads that need ahk
   useEffect(() => {
@@ -369,23 +381,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     const savedAdKeywords = ahk.call('LoadData', 'ad_keywords.json');
     if (savedAdKeywords) {
-      try { const p = JSON.parse(savedAdKeywords); settings.setAdKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+      try { const p = JSON.parse(savedAdKeywords); settings.setAdKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-        settings.setAdKeywords(Object.fromEntries(['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'].map(k => [k, true])));
+      settings.setAdKeywords(Object.fromEntries(['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'].map(k => [k, true])));
     }
 
     const savedRedirectKeywords = ahk.call('LoadData', 'redirect_keywords.json');
     if (savedRedirectKeywords) {
-      try { const p = JSON.parse(savedRedirectKeywords); settings.setRedirectKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+      try { const p = JSON.parse(savedRedirectKeywords); settings.setRedirectKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-        settings.setRedirectKeywords(Object.fromEntries(['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'].map(k => [k, true])));
+      settings.setRedirectKeywords(Object.fromEntries(['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'].map(k => [k, true])));
     }
 
     const savedInlineKeywords = ahk.call('LoadData', 'inline_keywords.json');
     if (savedInlineKeywords) {
-      try { const p = JSON.parse(savedInlineKeywords); settings.setInlineKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch(e) {}
+      try { const p = JSON.parse(savedInlineKeywords); settings.setInlineKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-        settings.setInlineKeywords(Object.fromEntries(['debugger', 'eval', 'gtag'].map(k => [k, true])));
+      settings.setInlineKeywords(Object.fromEntries(['debugger', 'eval', 'gtag'].map(k => [k, true])));
     }
 
     const loadUserscripts = () => {

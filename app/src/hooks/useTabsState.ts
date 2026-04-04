@@ -46,7 +46,8 @@ export function useTabsState(
       if (e.detail && e.detail.url) {
         const eventTabId = e.detail.tabId || 'main';
         const eventLastSync = lastSyncUrls.current[eventTabId];
-        if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('data:text/html')) && (eventLastSync?.startsWith('custom:') || eventLastSync === 'about:blank')) {
+
+        if ((e.detail.url === 'about:blank' || e.detail.url === 'err://' || e.detail.url.startsWith('edge://') || e.detail.url.startsWith('data:text/html')) && (eventLastSync?.startsWith('custom:') || eventLastSync === 'about:blank')) {
           return;
         }
         let reportedUrl = e.detail.url;
@@ -88,7 +89,7 @@ export function useTabsState(
         else {
           if (safeTitle.startsWith('blank.localhost/#')) safeTitle = safeTitle.substring('blank.localhost/#'.length);
           else if (safeTitle.startsWith('http://blank.localhost/#')) safeTitle = safeTitle.substring('http://blank.localhost/#'.length);
-          
+
           if (safeTitle.startsWith('interface.localhost/')) {
             safeTitle = safeTitle.substring('interface.localhost/'.length).replace(/\/index\.html?$/i, '').replace(/\/$/, '');
           }

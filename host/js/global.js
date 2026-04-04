@@ -1,7 +1,7 @@
 (function () {
     console.log("Global Script Loaded", location.href);
     let runSync = true;
-    if (location.href === "chrome-error://chromewebdata/") {
+    window.throwNavigationError = () => {
         window.chrome.webview.hostObjects.sync.ahk.UpdateURL("err://");
         window.addEventListener("DOMContentLoaded", () => {
             var style = document.createElement('style');
@@ -13,6 +13,9 @@
                     <div style='font-size:1rem;margin-top:1rem;color:var(--theme-textSec);'>Request failed.<br><br>Either the site is: down, blocked, fails to load, or fails smartscreen checks.</div>
                 </div>`;
         });
+    };
+    if (location.href === "chrome-error://chromewebdata/") {
+        window.throwNavigationError();
         return;
     } else if ((location.href.startsWith("about:blank#") || location.href.startsWith("http://blank.localhost/#") || location.href.startsWith("data:text/html")) && location.href.includes("#custom:")) {
         const url = location.href.substring(location.href.indexOf("#custom:") + 1);
@@ -26,6 +29,10 @@
         CacheGet: function (k) { return window.chrome.webview.hostObjects.sync.ahk.CacheGet(k); },
         CacheClear: function () { return window.chrome.webview.hostObjects.sync.ahk.CacheClear(); },
         AddNetworkFilter: function (t) { return window.chrome.webview.hostObjects.sync.ahk.AddNetworkFilter(t); }
+    };
+
+    window.showToast = function(msg, type = "info") {
+        try { window.chrome.webview.hostObjects.sync.ahk.ShowToast(msg, type); } catch(e) {}
     };
 
     function syncUrlToAhk() {
@@ -49,7 +56,6 @@
         };
         window.addEventListener('popstate', () => setTimeout(syncUrlToAhk, 50));
     }
-
     window.addEventListener("DOMContentLoaded", async () => {
         syncUrlToAhk();
         console.log({

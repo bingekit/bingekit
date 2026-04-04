@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, PlaySquare, Compass, Filter } from 'lucide-react';
+import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, PlaySquare, Compass, Filter, History } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../lib/db';
 
@@ -13,7 +13,6 @@ export const HistoryView = () => {
   React.useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = historyScrollPos;
   }, []);
-  const [filterType, setFilterType] = useState<'all' | 'browse' | 'watch'>('all');
   const [groupBy, setGroupBy] = useState<'time' | 'site' | 'length'>('time');
 
   const filteredHistory = history.filter(h => {
@@ -21,8 +20,7 @@ export const HistoryView = () => {
       h.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       h.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (h.tags && h.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
-    const typeMatch = filterType === 'all' ? true : (filterType === 'watch' ? h.type === 'watch' : h.type !== 'watch');
-    return searchMatch && typeMatch;
+    return searchMatch && h.type === 'watch';
   });
 
   const deduplicatedHistory = React.useMemo(() => {
@@ -148,10 +146,14 @@ export const HistoryView = () => {
             </button>
           </div>
 
-          <div className="flex items-center bg-zinc-900 rounded-lg p-1 border border-zinc-800">
-            <button onClick={() => setFilterType('all')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterType === 'all' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}`}>All</button>
-            <button onClick={() => setFilterType('browse')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterType === 'browse' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}`}>Browsed</button>
-            <button onClick={() => setFilterType('watch')} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${filterType === 'watch' ? 'bg-zinc-800 text-zinc-200' : 'text-zinc-500 hover:text-zinc-300'}`}>Watched</button>
+          <div className="flex items-center">
+            <button
+              onClick={() => { navigateUrl('about:history', true, false); }}
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-400 bg-zinc-900 border border-zinc-800 hover:border-indigo-500/50 px-4 py-2 rounded-full transition-colors mr-2"
+              title="Open Native Browser History"
+            >
+              <History size={16} /> Native Browser History
+            </button>
           </div>
 
           <div className="relative">
@@ -167,18 +169,6 @@ export const HistoryView = () => {
 
           {(history.length > 0) && (
             <div className="flex items-center gap-2 hidden md:flex">
-              <button
-                onClick={async () => {
-                  if (await window.showConfirm('Clear non-watched browsing history?')) {
-                    setHistory(history.filter(h => h.type === 'watch'));
-                    clearBrowsedHistoryDB().catch(console.error);
-                  }
-                }}
-                className="flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 bg-zinc-900 border border-zinc-700/50 hover:border-zinc-500 px-3 py-2 rounded-full transition-colors"
-                title="Clear Browsed"
-              >
-                <Trash2 size={16} /> <span className="hidden lg:inline">Browsed</span>
-              </button>
               <button
                 onClick={async () => {
                   if (await window.showConfirm('Clear all history?')) {

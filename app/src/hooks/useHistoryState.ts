@@ -82,33 +82,7 @@ export function useHistoryState(
     } catch { return targetUrl; }
   };
 
-  // Browse History Tracking
-  useEffect(() => {
-    if (!isHistoryEnabled) return;
-    if (activeTab === 'player' && url && !url.startsWith('about:blank') && !url.startsWith('data:')) {
-      const timer = setTimeout(() => {
-        setHistory(prev => {
-          if (prev.length > 0 && prev[0].url === url && prev[0].type === 'browse' && (Date.now() - prev[0].timestamp < 5 * 60 * 1000)) {
-            return prev;
-          }
-          const host = (() => { try { return new URL(url).hostname; } catch { return url; } })();
-          const rawTitle = pageTitleRef.current || fetchTitleForUrl(url) || host;
-          const cleanTitle = rawTitle.replace(/[^\x20-\x7E]/g, "").trim();
-          const newItem: HistoryItem = {
-            id: Date.now().toString(),
-            url,
-            title: cleanTitle,
-            timestamp: Date.now(),
-            domain: host,
-            type: 'browse'
-          };
-          addHistoryItem(newItem).catch(console.error);
-          return [newItem, ...prev].slice(0, 2000);
-        });
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [url, activeTab, isHistoryEnabled]);
+  // Browse History Tracking removed as native browser history handles it.
 
   // Watch History Tracking
   useEffect(() => {

@@ -73,7 +73,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             h := 50
 
         if (!PlayerRects.Has(id)) {
-            PlayerRects[id] := {x: x, y: y, w: w, h: h, visible: visible}
+            PlayerRects[id] := { x: x, y: y, w: w, h: h, visible: visible }
         } else {
             PlayerRects[id].x := x
             PlayerRects[id].y := y
@@ -113,12 +113,21 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
                 ToggleMedia: AHK_ToggleMedia,
                 ReportPlayerStatus: (auth, hasP, title := "") => AHK_ReportPlayerStatus(auth, hasP, title, id),
                 SetMediaStream: (v, q := "", a := "") => AHK_SetMediaStream(v, q, a, id),
-                SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id)
+                SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id),
+                ShowToast: AHK_ShowToast
             })
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
             PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
+            try {
+                PlayerWVs[id].wv.add_NavigationStarting(AHK_PlayerNavigationStarting)
+            } catch {
+            }
+            try {
+                PlayerWVs[id].wv.add_NewWindowRequested(AHK_PlayerNewWindowRequested)
+            } catch {
+            }
             try {
                 PlayerWVs[id].wv.add_DocumentTitleChanged(AHK_PlayerTitleChanged)
             } catch {
@@ -469,7 +478,7 @@ AHK_GetActiveSubtitle() {
 
 AHK_PlayerResourceRequested(sender, args) {
     global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStreams, ActiveMediaSubtitles, MainGui, PlayerWVs
-    
+
     foundId := "main"
     for id, pwv in PlayerWVs {
         if (pwv.wv.ptr == sender.ptr) {
@@ -548,5 +557,41 @@ AHK_ReportPlayerStatus(authStatus, hasPlayer, titleStr := "", id := "") {
         safeTitle := StrReplace(safeTitle, "`r", "")
         js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") ", title: '" safeTitle "', tabId: '" id "' } })) } catch(e) {}"
         MainGui.Control.ExecuteScriptAsync(js)
+    }
+}
+global internalBlacklist := ["edge://flags"]
+
+AHK_PlayerNavigationStarting(ICoreWebView2, args) {
+    try {
+        uri := args.Uri
+
+        for _, blockedPrefix in internalBlacklist {
+            ; Check if the URI starts with the blocked string
+            if (InStr(uri, blockedPrefix) == 1) {
+                args.Cancel := True
+                ;AHK_ShowToast("Access to browser flags and settings is disabled.", "error")
+                return ; Exit the function immediately once a match is found
+            }
+        }
+    } catch {
+        ; Silently handle errors
+    }
+}
+
+AHK_PlayerNewWindowRequested(ICoreWebView2, args) {
+    global MainGui
+    try {
+        uri := args.Uri
+        args.Handled := True ; Block the default new window from spawning
+        
+        if (MainGui) {
+            safeUri := StrReplace(uri, "'", "\'")
+            safeUri := StrReplace(safeUri, "`n", "")
+            safeUri := StrReplace(safeUri, "`r", "")
+            js := "try { window.dispatchEvent(new CustomEvent('bk-remote-navigate', { detail: { url: '" safeUri "', newTab: true, background: false } })) } catch(e) {}"
+            MainGui.Control.ExecuteScriptAsync(js)
+        }
+    } catch {
+        try args.Handled := True
     }
 }

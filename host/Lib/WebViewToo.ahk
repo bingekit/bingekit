@@ -650,6 +650,7 @@ class WebViewCtrl extends Gui.Custom {
         ; Register the router to handle requests made against this domain
         this.wv.AddWebResourceRequestedFilter("http://" Host "/*", 0)
         this.wv.AddWebResourceRequestedFilter("https://" Host "/*", 0)
+        this.wv.AddWebResourceRequestedFilter("edge://" Host "/*", 0)
     }
 
     /** Connects requests to target resources */
