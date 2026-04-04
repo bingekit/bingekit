@@ -16,9 +16,9 @@
         }
     } catch (e) { }
 
-    let adKeywords = ['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'];
-    let redirectKeywords = ['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'];
-    let inlineKeywords = ['debugger', 'eval', 'gtag'];
+    let adKeywords = [];
+    let redirectKeywords = [];
+    let inlineKeywords = [];
 
     try {
         const globalAdk = window.chrome.webview.hostObjects.sync.ahk.GetAdKeywords();

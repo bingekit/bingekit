@@ -12,6 +12,7 @@ import { useDownloadsState } from '../hooks/useDownloadsState';
 import { useHistoryState } from '../hooks/useHistoryState';
 import { useTabsState } from '../hooks/useTabsState';
 import { usePluginsState } from '../hooks/usePluginsState';
+import adblockDefaults from '../../../conf/adblock_defaults.json';
 
 export type NavButtonsConfig = { home: boolean; back: boolean; forward: boolean; reload: boolean };
 
@@ -360,11 +361,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
           settings.setNetworkFilters(parsed);
         } else {
-          settings.setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+          settings.setNetworkFilters(adblockDefaults.networkFilters);
         }
       } catch (e) { }
     } else {
-      settings.setNetworkFilters({ "api/stats/qoe": true, "googleads": true, "gtag": true, "doubleclick": true, "disable-devtool.min.js": true, "histats": true });
+      settings.setNetworkFilters(adblockDefaults.networkFilters);
     }
 
     const savedAdblockWhitelist = ahk.call('LoadData', 'adblock_whitelist.json');
@@ -384,28 +385,28 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedAdKeywords) {
       try { const p = JSON.parse(savedAdKeywords); settings.setAdKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-      settings.setAdKeywords(Object.fromEntries(['disable', 'devtool', 'antiad', 'adblock', 'detect', '/ads/', 'tracker', 'analytics', 'popunder', 'adsystem', 'gamble', 'evasivelimnite', 'umommy', 'gtag', 'googletag', 'doubleclick'].map(k => [k, true])));
+      settings.setAdKeywords(Object.fromEntries(adblockDefaults.adKeywords.map(k => [k, true])));
     }
 
     const savedRedirectKeywords = ahk.call('LoadData', 'redirect_keywords.json');
     if (savedRedirectKeywords) {
       try { const p = JSON.parse(savedRedirectKeywords); settings.setRedirectKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-      settings.setRedirectKeywords(Object.fromEntries(['casino', 'gamble', 'betting', 'crypto', 'slot', 'poker', 'bitcoin', 'roulette'].map(k => [k, true])));
+      settings.setRedirectKeywords(Object.fromEntries(adblockDefaults.redirectKeywords.map(k => [k, true])));
     }
 
     const savedInlineKeywords = ahk.call('LoadData', 'inline_keywords.json');
     if (savedInlineKeywords) {
       try { const p = JSON.parse(savedInlineKeywords); settings.setInlineKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-      settings.setInlineKeywords(Object.fromEntries(['debugger', 'eval', 'gtag'].map(k => [k, true])));
+      settings.setInlineKeywords(Object.fromEntries(adblockDefaults.inlineKeywords.map(k => [k, true])));
     }
 
     const savedCssAdblockSelectors = ahk.call('LoadData', 'css_adblock_selectors.json');
     if (savedCssAdblockSelectors) {
       try { const p = JSON.parse(savedCssAdblockSelectors); settings.setCssAdblockSelectors(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
-      settings.setCssAdblockSelectors(Object.fromEntries(['iframe[src*="ads"]', 'iframe[id*="ads"]', '.ad-container', '.sponsored', '[id*="google_ads"]', '[data-testid="consent-banner"]', '[aria-label="Sponsored Content"]', '.video-ads', '.pop-under', '#popad', 'body~*', 'footer', 'footer~*', '.overlay-ad'].map(k => [k, true])));
+      settings.setCssAdblockSelectors(Object.fromEntries(adblockDefaults.cssAdblockSelectors.map(k => [k, true])));
     }
 
     const loadUserscripts = () => {

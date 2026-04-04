@@ -1,0 +1,62 @@
+{
+    "adKeywords": [
+        "disable",
+        "devtool",
+        "antiad",
+        "adblock",
+        "detect",
+        "/ads/",
+        "tracker",
+        "analytics",
+        "popunder",
+        "adsystem",
+        "gamble",
+        "evasivelimnite",
+        "umommy",
+        "gtag",
+        "googletag",
+        "doubleclick",
+        "beacon.min.js"
+    ],
+    "redirectKeywords": [
+        "casino",
+        "gamble",
+        "betting",
+        "crypto",
+        "slot",
+        "poker",
+        "bitcoin",
+        "roulette"
+    ],
+    "inlineKeywords": [
+        "debugger",
+        "eval",
+        "gtag",
+        "cpPropertyId"
+    ],
+    "cssAdblockSelectors": [
+        "iframe[src*=\"ads\"]",
+        "iframe[id*=\"ads\"]",
+        ".ad-container",
+        ".sponsored",
+        "[id*=\"google_ads\"]",
+        "[data-testid=\"consent-banner\"]",
+        "[aria-label=\"Sponsored Content\"]",
+        ".video-ads",
+        ".pop-under",
+        "#popad",
+        "body~*",
+        "footer",
+        "footer~*",
+        ".overlay-ad"
+    ],
+    "networkFilters": {
+        "api/stats/qoe": true,
+        "googleads": true,
+        "gtag": true,
+        "doubleclick": true,
+        "disable-devtool.min.js": true,
+        "histats": true,
+        "beacon.min.js": true
+    }
+}

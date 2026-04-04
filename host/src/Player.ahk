@@ -8,10 +8,10 @@ global PlayerOwners := Map()
 global NetworkFilters := Map()
 global NetworkAdblockEnabled := true
 global AdblockWhitelist := []
-global AdKeywords := '["disable", "devtool", "antiad", "adblock", "detect", "/ads/", "tracker", "analytics", "popunder", "adsystem", "gamble", "evasivelimnite", "umommy", "gtag", "googletag", "doubleclick"]'
-global RedirectKeywords := '["casino", "gamble", "betting", "crypto", "slot", "poker", "bitcoin", "roulette"]'
-global InlineKeywords := '["debugger", "eval", "gtag"]'
-global CssAdblockSelectors := '["iframe[src*=\"ads\"]", "iframe[id*=\"ads\"]", ".ad-container", ".sponsored", "[id*=\"google_ads\"]", "[data-testid=\"consent-banner\"]", "[aria-label=\"Sponsored Content\"]", ".video-ads", ".pop-under", "#popad", "body~*", "footer", "footer~*", ".overlay-ad"]'
+global AdKeywords := '[]'
+global RedirectKeywords := '[]'
+global InlineKeywords := '[]'
+global CssAdblockSelectors := '[]'
 global SiteBlockersMap := "{}"
 
 global ActiveTabId := "main"
