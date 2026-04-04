@@ -11,6 +11,7 @@ global AdblockWhitelist := []
 global AdKeywords := '["disable", "devtool", "antiad", "adblock", "detect", "/ads/", "tracker", "analytics", "popunder", "adsystem", "gamble", "evasivelimnite", "umommy", "gtag", "googletag", "doubleclick"]'
 global RedirectKeywords := '["casino", "gamble", "betting", "crypto", "slot", "poker", "bitcoin", "roulette"]'
 global InlineKeywords := '["debugger", "eval", "gtag"]'
+global CssAdblockSelectors := '["iframe[src*=\"ads\"]", "iframe[id*=\"ads\"]", ".ad-container", ".sponsored", "[id*=\"google_ads\"]", "[data-testid=\"consent-banner\"]", "[aria-label=\"Sponsored Content\"]", ".video-ads", ".pop-under", "#popad", "body~*", "footer", "footer~*", ".overlay-ad"]'
 global SiteBlockersMap := "{}"
 
 global ActiveTabId := "main"
@@ -103,6 +104,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 GetAdKeywords: AHK_GetAdKeywords,
                 GetRedirectKeywords: AHK_GetRedirectKeywords,
                 GetInlineKeywords: AHK_GetInlineKeywords,
+                GetCssAdblockSelectors: AHK_GetCssAdblockSelectors,
                 CacheSet: AHK_CacheSet,
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
@@ -466,6 +468,16 @@ AHK_UpdateInlineKeywords(jsonStr) {
 AHK_GetInlineKeywords() {
     global InlineKeywords
     return InlineKeywords
+}
+
+AHK_UpdateCssAdblockSelectors(jsonStr) {
+    global CssAdblockSelectors
+    CssAdblockSelectors := jsonStr
+}
+
+AHK_GetCssAdblockSelectors() {
+    global CssAdblockSelectors
+    return CssAdblockSelectors
 }
 
 AHK_GetActiveMedia(windowId := "main") {

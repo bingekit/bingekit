@@ -73,6 +73,16 @@ export function useSettingsState() {
     });
   };
 
+  const [cssAdblockSelectors, _setCssAdblockSelectors] = useState<Record<string, boolean>>({});
+  const setCssAdblockSelectors = (val: React.SetStateAction<Record<string, boolean>>) => {
+    _setCssAdblockSelectors(prev => {
+      const next = typeof val === 'function' ? (val as any)(prev) : val;
+      try { ahk.call('UpdateCssAdblockSelectors', JSON.stringify(next)); } catch(e) {}
+      ahk.call('SaveData', 'css_adblock_selectors.json', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [isCompiledApp, setIsCompiledApp] = useState(true);
   const [isPortableApp, setIsPortableApp] = useState(false);
   const [ffmpegStatusApp, setFfmpegStatusApp] = useState('checking...');
@@ -112,6 +122,7 @@ export function useSettingsState() {
     adKeywords, setAdKeywords,
     redirectKeywords, setRedirectKeywords,
     inlineKeywords, setInlineKeywords,
+    cssAdblockSelectors, setCssAdblockSelectors,
     isCompiledApp, setIsCompiledApp,
     isPortableApp, setIsPortableApp,
     ffmpegStatusApp, setFfmpegStatusApp,

@@ -73,6 +73,7 @@ interface AppContextType {
   adKeywords: Record<string, boolean>; setAdKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   redirectKeywords: Record<string, boolean>; setRedirectKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   inlineKeywords: Record<string, boolean>; setInlineKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  cssAdblockSelectors: Record<string, boolean>; setCssAdblockSelectors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
@@ -398,6 +399,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       try { const p = JSON.parse(savedInlineKeywords); settings.setInlineKeywords(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
     } else {
       settings.setInlineKeywords(Object.fromEntries(['debugger', 'eval', 'gtag'].map(k => [k, true])));
+    }
+
+    const savedCssAdblockSelectors = ahk.call('LoadData', 'css_adblock_selectors.json');
+    if (savedCssAdblockSelectors) {
+      try { const p = JSON.parse(savedCssAdblockSelectors); settings.setCssAdblockSelectors(Array.isArray(p) ? Object.fromEntries(p.map(k => [k, true])) : p); } catch (e) { }
+    } else {
+      settings.setCssAdblockSelectors(Object.fromEntries(['iframe[src*="ads"]', 'iframe[id*="ads"]', '.ad-container', '.sponsored', '[id*="google_ads"]', '[data-testid="consent-banner"]', '[aria-label="Sponsored Content"]', '.video-ads', '.pop-under', '#popad', 'body~*', 'footer', 'footer~*', '.overlay-ad'].map(k => [k, true])));
     }
 
     const loadUserscripts = () => {

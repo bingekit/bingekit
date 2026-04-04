@@ -6,7 +6,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     global AboutConfig_AllowRightClick, AboutConfig_AllowDevtools
 
     try {
-        newGui := WebViewGui("+Resize -Caption", "BingeKit", , WebViewSettings)
+        newGui := WebViewGui("+Resize -Caption +ToolWindow", "BingeKit", , WebViewSettings)
         MainGuis[windowId] := newGui
     } catch as err {
         if (SplashGui) {
@@ -26,7 +26,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     ; Initialize WebViewToo
     wvObj := newGui.Control.wv
     WVs[windowId] := wvObj
-    
+
     wvObj.Settings.IsSwipeNavigationEnabled := 0
     wvObj.Settings.IsZoomControlEnabled := 0
     wvObj.Settings.IsPinchZoomEnabled := 0
@@ -61,7 +61,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     if DirExist(downloadsLoc) {
         try newGui.Control.BrowseFolder(downloadsLoc, "downloads.localhost")
     }
-    
+
     return newGui
 }
 
@@ -74,7 +74,7 @@ AHK_CloseWindow(windowId) {
     if (WVs.Has(windowId)) {
         WVs.Delete(windowId)
     }
-    
+
     count := 0
     for id, g in MainGuis {
         count++

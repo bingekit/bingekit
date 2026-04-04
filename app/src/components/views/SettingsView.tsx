@@ -53,7 +53,7 @@ export const SettingsView = () => {
     showCredModal, setShowCredModal, searchParamMode, setSearchParamMode, isQuickOptionsHidden, setIsQuickOptionsHidden, defaultSearchEngine, setDefaultSearchEngine, homePage, setHomePage,
     history, setHistory, isHistoryEnabled, setIsHistoryEnabled, adblockWhitelist, setAdblockWhitelist, networkFilters, setNetworkFilters, navButtons, setNavButtons,
     downloadsLoc, setDownloadsLoc, downloadsTemp, setDownloadsTemp, blockedExts, setBlockedExts,
-    adKeywords, setAdKeywords, redirectKeywords, setRedirectKeywords, inlineKeywords, setInlineKeywords,
+    adKeywords, setAdKeywords, redirectKeywords, setRedirectKeywords, inlineKeywords, setInlineKeywords, cssAdblockSelectors, setCssAdblockSelectors,
     searchThreadLimit, setSearchThreadLimit, isCompiledApp, isPortableApp, ffmpegStatusApp, setFfmpegStatusApp,
     activeSettingsTab, setActiveSettingsTab, isMultiTabEnabled, setIsMultiTabEnabled,
     browserTabs, setBrowserTabs, activeBrowserTabId
@@ -633,6 +633,27 @@ export const SettingsView = () => {
                       <Plus size={14} className="text-[var(--theme-text-sec)]" />
                       <input type="text" placeholder="Add keyword..." className="bg-transparent border-none outline-none text-xs font-mono text-[var(--theme-text-main)] w-full py-1 placeholder:text-[var(--theme-text-sec)] placeholder:opacity-50"
                         onKeyDown={(e) => { if (e.key === 'Enter') { const val = e.currentTarget.value.trim(); if (val) { setInlineKeywords(prev => ({ ...(prev || {}), [val]: true })); e.currentTarget.value = ''; } } }} />
+                    </div>
+                  </div>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="CSS Styling Display None Selectors">
+                  <p className="text-xs text-[var(--theme-text-sec)] mb-3">Dynamically inject global display:none rules to hide annoying ad containers or elements.</p>
+                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                    {Object.entries(cssAdblockSelectors || {}).map(([term, enabled]) => (
+                      <label key={term} className={`group flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${enabled ? 'bg-[color-mix(in_srgb,var(--theme-accent)_10%,transparent)] border-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)]' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] grayscale opacity-70 hover:opacity-100 hover:grayscale-0'}`}>
+                        <div className={`w-4 h-4 rounded flex-shrink-0 flex items-center justify-center border transition-all ${enabled ? 'border-[var(--theme-accent)] bg-[var(--theme-accent)]' : 'border-[color-mix(in_srgb,var(--theme-text-main)_30%,transparent)] bg-transparent'}`}>
+                          {enabled && <div className="w-1.5 h-1.5 bg-white rounded-full scale-100" />}
+                        </div>
+                        <span className={`text-xs font-mono truncate min-w-0 flex-1 transition-colors ${enabled ? 'text-[var(--theme-accent)]' : 'text-[var(--theme-text-main)]'}`}>{term}</span>
+                        <input type="checkbox" className="hidden" checked={enabled} onChange={(e) => { setCssAdblockSelectors(prev => ({ ...prev, [term]: e.target.checked })); }} />
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); const next = { ...cssAdblockSelectors }; delete next[term]; setCssAdblockSelectors(next); }} className="opacity-0 group-hover:opacity-100 text-red-500 hover:bg-red-500/20 p-1 rounded transition-all"><Trash2 size={12} /></button>
+                      </label>
+                    ))}
+                    <div className="flex items-center gap-2 p-1 pl-2 rounded-lg border border-dashed border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] focus-within:border-[var(--theme-accent)] transition-colors">
+                      <Plus size={14} className="text-[var(--theme-text-sec)]" />
+                      <input type="text" placeholder="Add CSS selector..." className="bg-transparent border-none outline-none text-xs font-mono text-[var(--theme-text-main)] w-full py-1 placeholder:text-[var(--theme-text-sec)] placeholder:opacity-50"
+                        onKeyDown={(e) => { if (e.key === 'Enter') { const val = e.currentTarget.value.trim(); if (val) { setCssAdblockSelectors(prev => ({ ...(prev || {}), [val]: true })); e.currentTarget.value = ''; } } }} />
                     </div>
                   </div>
                 </CollapsibleSection>

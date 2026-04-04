@@ -65,6 +65,7 @@ AHK_HideSplash(windowId := "main") {
         SplashGui := ""
     }
     if (MainGuis.Has(windowId)) {
+        MainGuis[windowId].Opt("-ToolWindow")
         MainGuis[windowId].Show("w1280 h800 center")
         MainGuis[windowId].Opt("+MinSize" . MinWidth . "x" . MinHeight)
         WinSetTransparent(255, MainGuis[windowId].Hwnd)

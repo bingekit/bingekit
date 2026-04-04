@@ -65,6 +65,7 @@ BindApiToWindow(wvObj, windowId) {
         UpdateAdKeywords: AHK_UpdateAdKeywords,
         UpdateRedirectKeywords: AHK_UpdateRedirectKeywords,
         UpdateInlineKeywords: AHK_UpdateInlineKeywords,
+        UpdateCssAdblockSelectors: AHK_UpdateCssAdblockSelectors,
         UpdateSiteBlockers: AHK_UpdateSiteBlockers,
         ListScripts: AHK_ListScripts,
         SaveScript: AHK_SaveScript,

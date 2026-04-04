@@ -233,22 +233,24 @@
 
     // 8. Basic CSS Adblocking (Hiding known ad containers and overlays)
     window.addEventListener("DOMContentLoaded", () => {
+        let cssSelectorsStr = '';
+        try {
+            const raw = window.chrome.webview.hostObjects.sync.ahk.GetCssAdblockSelectors();
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                    cssSelectorsStr = parsed.join(',\n');
+                } else {
+                    cssSelectorsStr = Object.keys(parsed).filter(k => parsed[k]).join(',\n');
+                }
+            }
+        } catch(e) {}
+        
+        if (!cssSelectorsStr) return; // if no selectors, do nothing
+
         const style = document.createElement('style');
         style.textContent =
-            `iframe[src*="ads"],
-            iframe[id*="ads"],
-            .ad-container,
-            .sponsored,
-            [id*="google_ads"],
-            [data-testid="consent-banner"],
-            [aria-label="Sponsored Content"],
-            .video-ads,
-            .pop-under,
-            #popad,
-            body~*,
-            footer,
-            footer~*,
-            .overlay-ad {
+            `${cssSelectorsStr} {
                 display: none!important;
                 width: 0!important;
                 height: 0!important;
