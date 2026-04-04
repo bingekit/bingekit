@@ -5,7 +5,7 @@
 		},
 		{
 			"name": "bingekit-repo",
-			"path": "../BingeKit-Repo/bingekit-repo"
+			"path": "../BingeKit-Repo"
 		}
 	],
 	"settings": {}
