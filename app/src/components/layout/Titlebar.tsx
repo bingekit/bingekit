@@ -99,7 +99,7 @@ export const Titlebar = () => {
     return () => window.removeEventListener('player-play-state', handlePlayState as any);
   }, [autoFocusVideo, setIsFocusedMode, activeBrowserTabId]);
 
-  const handleNewTab = () => navigateUrl(homePage || 'https://bingekit.app/start/', true);
+  const handleNewTab = () => navigateUrl(homePage || 'https://bingekit.app/home/', true);
 
   const handleCloseTab = (id: string) => {
     if (browserTabs.length <= 1) return;
@@ -134,13 +134,13 @@ export const Titlebar = () => {
       {isMultiTabEnabled && (
         <div className="flex-1 flex w-full items-end pl-3 pt-2">
           <div className="flex items-end gap-[2px] flex-1 overflow-x-auto no-scrollbar">
-            <DndContext 
+            <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
               modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
             >
-              <SortableContext 
+              <SortableContext
                 items={browserTabs.map(t => t.id)}
                 strategy={horizontalListSortingStrategy}
               >

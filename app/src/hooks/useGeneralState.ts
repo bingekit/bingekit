@@ -53,7 +53,7 @@ export function useGeneralState() {
   const [testSearchQuery, setTestSearchQuery] = useState('matrix');
   const [testSearchResults, setTestSearchResults] = useState<{ status: string, nodesCount: number, results: any[] }>({ status: 'idle', nodesCount: 0, results: [] });
   const [isTestingSearch, setIsTestingSearch] = useState(false);
-  
+
   const [searchParamMode, _setSearchParamMode] = useState<'fetch' | 'navigate'>('fetch');
   const setSearchParamMode = (val: React.SetStateAction<'fetch' | 'navigate'>) => {
     _setSearchParamMode(prev => {
@@ -73,7 +73,7 @@ export function useGeneralState() {
   };
 
   const timerRef = useRef<any>(null);
-  const [homePage, _setHomePage] = useState('https://bingekit.app/start/');
+  const [homePage, _setHomePage] = useState('https://bingekit.app/home/');
   const setHomePage = (val: React.SetStateAction<string>) => {
     _setHomePage(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;

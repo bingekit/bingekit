@@ -15,7 +15,7 @@ export function useTabsState(
   setPlayerNavSignal: any
 ) {
   const [isMultiTabEnabled, setIsMultiTabEnabled] = useState(false);
-  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string, favicon?: string, isPlaying?: boolean, isMuted?: boolean }[]>([{ id: 'main', url: 'https://bingekit.app/start/', inputUrl: 'https://bingekit.app/start/' }]);
+  const [browserTabs, setBrowserTabs] = useState<{ id: string, url: string, inputUrl: string, title?: string, favicon?: string, isPlaying?: boolean, isMuted?: boolean }[]>([{ id: 'main', url: 'https://bingekit.app/home/', inputUrl: 'https://bingekit.app/home/' }]);
   const [activeBrowserTabId, setActiveBrowserTabId] = useState('main');
   const [tilingMode, setTilingMode] = useState<'none' | 'split-hz' | 'split-vt' | 'grid'>('none');
 

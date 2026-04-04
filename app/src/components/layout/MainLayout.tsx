@@ -26,7 +26,7 @@ declare global {
 
 export const MainLayout = () => {
   const {
-    theme, activeTab, browserTabs, setBrowserTabs, activeBrowserTabId, 
+    theme, activeTab, browserTabs, setBrowserTabs, activeBrowserTabId,
     setActiveBrowserTabId, navigateUrl, homePage
   } = useAppContext();
 
@@ -35,31 +35,31 @@ export const MainLayout = () => {
       try {
         if (typeof arg1 === 'object') arg1 = JSON.stringify(arg1);
         (window as any).chrome.webview.hostObjects.ahk.ShowToast(msg, arg1, arg2, arg3);
-      } catch {}
+      } catch { }
     };
 
     const handleCloseActiveTab = () => {
       if (browserTabs.length <= 1) return; // Don't close the last tab
-      
+
       const tabIdToClose = activeBrowserTabId;
       ahk.asyncCall('ClosePlayer', tabIdToClose);
-      
+
       const idx = browserTabs.findIndex(t => t.id === tabIdToClose);
       const newTabs = browserTabs.filter(t => t.id !== tabIdToClose);
       if (newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
       setBrowserTabs(newTabs);
     };
 
-    const handleNewTabEvent = () => navigateUrl(homePage || 'https://bingekit.app/start/', true);
+    const handleNewTabEvent = () => navigateUrl(homePage || 'https://bingekit.app/home/', true);
 
     const handleContextAction = (e: any) => {
       const { action, tabId } = e.detail;
-      
+
       if (action === 'close') {
         if (browserTabs.length <= 1) return;
-        
+
         ahk.asyncCall('ClosePlayer', tabId);
-        
+
         const idx = browserTabs.findIndex(t => t.id === tabId);
         const newTabs = browserTabs.filter(t => t.id !== tabId);
         if (activeBrowserTabId === tabId && newTabs.length > 0) setActiveBrowserTabId(newTabs[Math.max(0, idx - 1)].id);
@@ -68,21 +68,21 @@ export const MainLayout = () => {
       else if (action === 'closeRight') {
         const idx = browserTabs.findIndex(t => t.id === tabId);
         if (idx === -1) return;
-        
+
         const tabsToKeep = browserTabs.slice(0, idx + 1);
         const tabsToClose = browserTabs.slice(idx + 1);
-        
+
         tabsToClose.forEach(t => { ahk.asyncCall('ClosePlayer', t.id); });
-        
+
         if (tabsToClose.some(t => t.id === activeBrowserTabId)) setActiveBrowserTabId(tabId);
         setBrowserTabs(tabsToKeep);
       }
       else if (action === 'closeOthers') {
         const tabsToKeep = browserTabs.filter(t => t.id === tabId);
         const tabsToClose = browserTabs.filter(t => t.id !== tabId);
-        
+
         tabsToClose.forEach(t => { ahk.asyncCall('ClosePlayer', t.id); });
-        
+
         setActiveBrowserTabId(tabId);
         setBrowserTabs(tabsToKeep);
       }
@@ -91,7 +91,7 @@ export const MainLayout = () => {
         if (idx >= 0) {
           const newMuteState = !browserTabs[idx].isMuted;
           ahk.asyncCall('MutePlayer', newMuteState ? 1 : 0, tabId);
-          
+
           const newTabs = [...browserTabs];
           newTabs[idx] = { ...newTabs[idx], isMuted: newMuteState };
           setBrowserTabs(newTabs);
@@ -132,7 +132,7 @@ export const MainLayout = () => {
           </div>
         </div>
       </div>
-      
+
       <GlobalPrompt />
       <GlobalConfirm />
     </div>

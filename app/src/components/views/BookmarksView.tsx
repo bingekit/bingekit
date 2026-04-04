@@ -34,7 +34,7 @@ export const BookmarksView = () => {
   }, []);
 
   return (
-    <div 
+    <div
       ref={scrollRef}
       onScroll={(e) => bookmarksScrollPos = e.currentTarget.scrollTop}
       className="p-8 max-w-6xl mx-auto w-full h-full overflow-y-auto no-scrollbar relative"
@@ -66,7 +66,7 @@ export const BookmarksView = () => {
           <button
             onClick={() => {
               const newId = Date.now().toString();
-              const newUrl = inputUrl && inputUrl !== 'https://bingekit.app/start/' ? inputUrl : 'https://';
+              const newUrl = inputUrl && inputUrl !== 'https://bingekit.app/home/' ? inputUrl : 'https://';
               const urlHostname = (() => { try { return new URL(newUrl).hostname } catch { return 'New Site' } })();
               setBookmarks([{ id: newId, title: urlHostname, url: newUrl, folder: 'General', tags: [urlHostname.split('.')[0]] }, ...bookmarks]);
               setEditingBookmarkId(newId);

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BingeKit</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--theme-mainBg, #09090b);
+            color: var(--theme-textMain, #fafafa);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 500px;
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            background: color-mix(in srgb, var(--theme-border, #27272a) 20%, transparent);
+            border: 1px solid color-mix(in srgb, var(--theme-border, #27272a) 40%, transparent);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 1.5rem;
+            color: var(--theme-accent, #6366f1);
+            filter: drop-shadow(0 0 20px color-mix(in srgb, var(--theme-accent, #6366f1) 40%, transparent));
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin: 0 0 0.75rem 0;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, var(--theme-textMain, #fafafa) 0%, var(--theme-textSec, #a1a1aa) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p {
+            font-size: 1.05rem;
+            color: var(--theme-textSec, #a1a1aa);
+            margin: 0 0 2.5rem 0;
+            line-height: 1.6;
+        }
+
+        .search-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: color-mix(in srgb, var(--theme-accent, #6366f1) 15%, transparent);
+            color: var(--theme-accent, #6366f1);
+            padding: 0.75rem 1.75rem;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 1px solid color-mix(in srgb, var(--theme-accent, #6366f1) 30%, transparent);
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .search-hint:hover {
+            background: color-mix(in srgb, var(--theme-accent, #6366f1) 25%, transparent);
+            transform: scale(1.05);
+        }
+
+        .search-hint svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, color-mix(in srgb, var(--theme-accent, #6366f1) 8%, transparent) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="glow"></div>
+    <div class="container">
+        <!-- Monitor Play Icon -->
+        <svg class="logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <polygon points="10 8 16 10 10 12 10 8" fill="currentColor"></polygon>
+        </svg>
+        
+        <h1>Welcome to BingeKit</h1>
+        <p>Your workspace is open and ready. Enter a URL, query a search engine, or jump to your dashboard.</p>
+        
+        <div class="search-hint">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            Use the top bar to navigate
+        </div>
+    </div>
+</body>
+</html>

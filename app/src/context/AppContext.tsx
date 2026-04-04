@@ -108,7 +108,7 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const [url, setUrl] = useState('https://bingekit.app/start/');
+  const [url, setUrl] = useState('https://bingekit.app/home/');
   const [inputUrl, setInputUrl] = useState('');
   const [playerNavSignal, setPlayerNavSignal] = useState(0);
   const [authStatus, setAuthStatus] = useState<'unknown' | 'loggedIn' | 'loggedOut'>('unknown');
@@ -470,7 +470,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedThreadLimit) { try { settings.setSearchThreadLimit(parseInt(savedThreadLimit) || 5); } catch (e) { } }
 
     const savedHomePage = ahk.call('LoadData', 'home_page.txt');
-    const computedHomeUrl = savedHomePage || 'https://bingekit.app/start/';
+    const computedHomeUrl = savedHomePage || 'https://bingekit.app/home/';
     if (savedHomePage) {
       general.setHomePage(savedHomePage);
     }
