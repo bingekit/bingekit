@@ -18,6 +18,25 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
   if (!cred || (!cred.username && !cred.passwordBase64)) return false; // Missing creds, can't auto-login
 
   const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
+  
+  if (plugin.auth.customLoginJs) {
+      let customJsPayload = plugin.auth.customLoginJs
+          .replace(/\{username\}/g, cred.username.replace(/'/g, "\\'"))
+          .replace(/\{password\}/g, rawPass.replace(/'/g, "\\'"));
+          
+      const evalJs = `
+          return new Promise(resolve => {
+              try {
+                  ${customJsPayload}
+                  setTimeout(() => resolve(true), 3000);
+              } catch(e) {
+                  resolve(false);
+              }
+          });
+      `;
+      return await window.SmartFetch(resolvedLoginUrl, evalJs, plugin.botCheckJs || "").catch(() => false);
+  }
+
   const loginJs = `
       return new Promise(resolve => {
           let limit = 0;
@@ -37,5 +56,5 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
           }, 500);
       });
   `;
-  return await window.SmartFetch(resolvedLoginUrl, loginJs).catch(() => false);
+  return await window.SmartFetch(resolvedLoginUrl, loginJs, plugin.botCheckJs || "").catch(() => false);
 };

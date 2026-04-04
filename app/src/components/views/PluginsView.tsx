@@ -251,9 +251,10 @@ export const PluginsView = () => {
             </p>
           </div>
           <button
-            onClick={() =>
-              setEditingPlugin({ ...DEFAULT_PLUGIN, id: Date.now().toString() })
-            }
+            onClick={() => {
+              setEditingPlugin({ ...DEFAULT_PLUGIN, id: Date.now().toString() });
+              setViewMode("editor");
+            }}
             className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
           >
             <Plus size={18} />
@@ -293,6 +294,7 @@ export const PluginsView = () => {
                 };
                 setEditingPlugin(safePlugin);
                 setEditTab("general");
+                setViewMode("editor");
               }}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${editingPlugin?.id === plugin.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]" : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"}`}
             >
@@ -371,7 +373,7 @@ export const PluginsView = () => {
       <div className="flex-1 bg-zinc-950 p-6 overflow-y-auto no-scrollbar relative flex flex-col">
         {viewMode === "gallery" ? (
           <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex items-center justify-between mb-8 sticky top-0 bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
+            <div className="flex items-center justify-between mb-8 pHeader bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
               <div>
                 <h2 className="text-3xl font-light tracking-tight text-white flex items-center gap-3">
                   <Store size={28} className="text-indigo-400" /> BingeKit Plugin Gallery
@@ -516,7 +518,7 @@ export const PluginsView = () => {
           </div>
         ) : editingPlugin ? (
           <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-8 sticky top-0 bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
+            <div className="flex items-center justify-between mb-8 pHeader bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
               <div>
                 <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
                   {editingPlugin.id ? editingPlugin.name : "New Plugin"}
@@ -722,6 +724,37 @@ export const PluginsView = () => {
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
                     />
                   </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs text-zinc-500">
+                        Bot/Captcha Check JS (SmartFetch bypass)
+                      </label>
+                      <button
+                        onClick={() => {
+                          setIdeTempVal(editingPlugin.botCheckJs || "");
+                          setIdeModalData({
+                            title: "Bot Check JS",
+                            value: editingPlugin.botCheckJs || "",
+                            mode: "javascript",
+                            onChange: (val) => updateEditingPlugin("root", "botCheckJs", val)
+                          });
+                        }}
+                        className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                      >
+                        <Code size={12} /> IDE Editor
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-zinc-600 mb-2">Evaluated regularly in background. Return <code className="bg-zinc-800 px-1 rounded">true</code> if a bot check is detected to auto-reveal the hidden SmartFetch window for manual intervention.</p>
+                    <textarea
+                      value={editingPlugin.botCheckJs || ""}
+                      onChange={(e) =>
+                        updateEditingPlugin("root", "botCheckJs", e.target.value)
+                      }
+                      rows={2}
+                      placeholder="return !!document.querySelector('.cf-browser-verification');"
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -781,6 +814,41 @@ export const PluginsView = () => {
                           )
                         }
                         rows={2}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs text-zinc-500">
+                          Custom Login JS Override
+                        </label>
+                        <button
+                          onClick={() => {
+                            setIdeTempVal(editingPlugin.auth.customLoginJs || "");
+                            setIdeModalData({
+                              title: "Custom Login JS",
+                              value: editingPlugin.auth.customLoginJs || "",
+                              mode: "javascript",
+                              onChange: (val) => updateEditingPlugin("auth", "customLoginJs", val)
+                            });
+                          }}
+                          className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                        >
+                          <Code size={12} /> IDE Editor
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mb-2">Bypasses default selectors. Receives <code className="bg-zinc-800 px-1 rounded">{'{username}'}</code> and <code className="bg-zinc-800 px-1 rounded">{'{password}'}</code> placeholders in code.</p>
+                      <textarea
+                        value={editingPlugin.auth.customLoginJs || ""}
+                        placeholder={`document.querySelector('#u').value = '{username}';\ndocument.querySelector('#p').value = '{password}';\ndocument.querySelector('#btn').click();`}
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "customLoginJs",
+                            e.target.value,
+                          )
+                        }
+                        rows={3}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
                       />
                     </div>

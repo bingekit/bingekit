@@ -295,6 +295,30 @@ export const SearchConfigEditor = ({
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
               />
             </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Cost/Price Selector</label>
+              <input
+                type="text" value={config.costSel || ''} placeholder=".price"
+                onChange={(e) => onChange('costSel', e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Rent/Buy Status Selector</label>
+              <input
+                type="text" value={config.rentBuySel || ''} placeholder=".purchase-type"
+                onChange={(e) => onChange('rentBuySel', e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs text-zinc-500 mb-1.5">Price/Cost JS Extractor (optional)</label>
+              <input
+                type="text" value={config.priceExtractJs || ''} placeholder="return el ? el.textContent.replace('$', '') : '';"
+                onChange={(e) => onChange('priceExtractJs', e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-accent outline-none font-mono"
+              />
+            </div>
           </div>
           <div className="mt-6 pt-6 border-t border-zinc-800/50">
             <h4 className="text-sm font-medium text-zinc-300 mb-3 flex items-center justify-between">
@@ -332,7 +356,9 @@ export const SearchConfigEditor = ({
                     const pluginConfigString = JSON.stringify({
                       itemSel: config.itemSel || '',
                       titleSel: config.titleSel || '',
-                      linkSel: config.linkSel || ''
+                      linkSel: config.linkSel || '',
+                      costSel: config.costSel || '',
+                      rentBuySel: config.rentBuySel || ''
                     });
 
                     const jsQuery = `
@@ -393,12 +419,16 @@ export const SearchConfigEditor = ({
                         const parsed = items.map(item => {
                           let title = extractValue(item, pluginConfig.titleSel, null);
                           let href = extractValue(item, pluginConfig.linkSel, 'href');
+                          let cost = extractValue(item, pluginConfig.costSel, null);
+                          let rentBuy = extractValue(item, pluginConfig.rentBuySel, null);
                           if (href && !href.startsWith('http') && !href.startsWith('ERR:')) {
                             try { href = new URL(href, '${rawUrl}').href; } catch(e) {}
                           }
                           return {
                             title,
                             href,
+                            cost,
+                            rentBuy,
                             htmlPreview: (item && item.nodeType) ? item.outerHTML.substring(0, 150) + '...' : JSON.stringify(item)
                           };
                         });

@@ -373,7 +373,7 @@ export function usePluginsState(
                } catch(e) { return null; }
             }).filter(i => i && i.id);
           `;
-          const results = await (window as any).SmartFetch(item.url, js);
+          const results = await (window as any).SmartFetch(item.url, js, plugin.botCheckJs || "");
           if (Array.isArray(results) && results.length > 0) {
             const newLatest = results[0]?.id || '';
             if (item.latestAvailable !== newLatest) {
@@ -605,7 +605,7 @@ export function usePluginsState(
                  }
               })();
            `;
-              const res = await (window as any).SmartFetch(targetUrl, jsQuery);
+              const res = await (window as any).SmartFetch(targetUrl, jsQuery, targetPlugin?.botCheckJs || "");
               if (res) currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
             }
           } else if (step.type === 'customSmartFetch') {
@@ -625,7 +625,7 @@ export function usePluginsState(
                }
              });
            `;
-              const res = await (window as any).SmartFetch(targetUrl, jsQuery);
+              const res = await (window as any).SmartFetch(targetUrl, jsQuery); // No specific plugin here, leave without botCheckJs or pass empty
               currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
             }
           } else if (step.type === 'wait') {

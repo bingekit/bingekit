@@ -107,14 +107,31 @@ export const DashboardView = () => {
                 let queryTargetSeason = '';
                 let queryTargetEpisode = '';
                 let querySubtitle = '';
+                let maxCost = -1;
+                let requireRent = false;
+                let requireBuy = false;
 
-                const metaMatch = multiSearchQuery.match(/(.*?)(?:\s*-\s*|\s+)s(\d{1,2})(?:e(\d{1,2}))?(?:\s|$)/i);
+                if (baseQuery.includes('--rent')) {
+                   requireRent = true;
+                   baseQuery = baseQuery.replace('--rent', '').trim();
+                }
+                if (baseQuery.includes('--buy')) {
+                   requireBuy = true;
+                   baseQuery = baseQuery.replace('--buy', '').trim();
+                }
+                const costMatch = baseQuery.match(/(?:\s|^)\$(\d+(?:\.\d+)?)(?:\s|$)/);
+                if (costMatch) {
+                   maxCost = parseFloat(costMatch[1]);
+                   baseQuery = baseQuery.replace(costMatch[0], ' ').trim();
+                }
+
+                const metaMatch = baseQuery.match(/(.*?)(?:\s*-\s*|\s+)s(\d{1,2})(?:e(\d{1,2}))?(?:\s|$)/i);
                 if (metaMatch) {
                   baseQuery = metaMatch[1].trim() || metaMatch[0];
                   queryTargetSeason = metaMatch[2];
                   queryTargetEpisode = metaMatch[3] || '';
                 } else {
-                  const dashMatch = multiSearchQuery.match(/(.*?)\s*-\s*(.*)/);
+                  const dashMatch = baseQuery.match(/(.*?)\s*-\s*(.*)/);
                   if (dashMatch) {
                     baseQuery = dashMatch[1].trim();
                     querySubtitle = dashMatch[2].trim();
@@ -197,7 +214,9 @@ export const DashboardView = () => {
                         const pluginConfigString = JSON.stringify({
                           itemSel: cfg.itemSel || '',
                           titleSel: cfg.titleSel || '',
-                          linkSel: cfg.linkSel || ''
+                          linkSel: cfg.linkSel || '',
+                          costSel: cfg.costSel || '',
+                          rentBuySel: cfg.rentBuySel || ''
                         });
 
                         const jsQuery = `
@@ -263,11 +282,13 @@ export const DashboardView = () => {
                                     return items.slice(0, 10).map(item => {
                                       let titleStr = extractValue(item, pluginConfig.titleSel, null);
                                       let linkStr = extractValue(item, pluginConfig.linkSel, 'href');
+                                      let costStr = extractValue(item, pluginConfig.costSel, null);
+                                      let rentBuyStr = extractValue(item, pluginConfig.rentBuySel, null);
                                       
                                       if (linkStr && !linkStr.startsWith('http')) {
                                         try { linkStr = new URL(linkStr, '${plugin.baseUrl}').href; } catch(e) {}
                                       }
-                                      return { title: titleStr, href: linkStr };
+                                      return { title: titleStr, href: linkStr, cost: costStr, rentBuy: rentBuyStr };
                                     });
                                   }
 
@@ -359,15 +380,28 @@ export const DashboardView = () => {
                                   }
                                 `;
 
-                        const fetchResults: any = await window.SmartFetch(searchUrl, jsQuery);
+                        const fetchResults: any = await (window as any).SmartFetch(searchUrl, jsQuery, plugin?.botCheckJs || "");
                         console.log(`[Search] ${opName} returned from SmartFetch:`, fetchResults);
 
                         if (Array.isArray(fetchResults) && fetchResults.length > 0) {
                           const validResults = fetchResults.filter(r => r.title && r.href);
-                          const totalValidCount = validResults.length;
+                          const filteredResults = validResults.filter(r => {
+                            if (maxCost >= 0 || requireRent || requireBuy) {
+                               let cText = r.cost || '';
+                               let rbText = (r.rentBuy || '').toLowerCase();
+                               let cVal = parseFloat(cText.replace(/[^0-9.]/g, ''));
+                               if (isNaN(cVal)) cVal = 0;
 
-                          for (let i = 0; i < validResults.length; i++) {
-                            const res = validResults[i];
+                               if (maxCost >= 0 && cVal > maxCost) return false;
+                               if (requireRent && !rbText.includes('rent')) return false;
+                               if (requireBuy && !rbText.includes('buy') && !rbText.includes('purchase')) return false;
+                            }
+                            return true;
+                          });
+                          const totalValidCount = filteredResults.length;
+
+                          for (let i = 0; i < filteredResults.length; i++) {
+                            const res = filteredResults[i];
                             const cleanStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
                             const isExactMatch = cleanStr(res.title) === cleanStr(baseQuery) || cleanStr(res.title) === cleanStr(multiSearchQuery);
                             let matchedDeep = false;
@@ -459,7 +493,7 @@ export const DashboardView = () => {
                               }
 
                               try {
-                                const deepResults: any = await window.SmartFetch(res.href, deepJsQuery);
+                                const deepResults: any = await (window as any).SmartFetch(res.href, deepJsQuery, plugin?.botCheckJs || "");
                                 if (Array.isArray(deepResults) && deepResults.length > 0) {
                                   matchedDeep = true;
                                   hasDeepMatch = true;

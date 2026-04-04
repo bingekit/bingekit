@@ -6,7 +6,7 @@ declare global {
     _fetchPromises: Record<string, { resolve: Function, reject: Function }>;
     resolveSmartFetch: (id: string, result: any) => void;
     resolveSmartFetchError: (id: string, error: any) => void;
-    SmartFetch: (url: string, jsSelectors: string) => Promise<any>;
+    SmartFetch: (url: string, jsSelectors: string, botCheckJs?: string) => Promise<any>;
     RawParseFetch: (url: string, jsSelectors: string) => Promise<any>;
     RunPluginFunction: (pluginId: string, functionName: string, ...args: any[]) => Promise<any>;
   }
@@ -28,11 +28,11 @@ window.resolveSmartFetchError = (id: string, error: any) => {
   }
 };
 
-window.SmartFetch = (url: string, jsSelectors: string) => {
+window.SmartFetch = (url: string, jsSelectors: string, botCheckJs: string = "") => {
   return new Promise((resolve, reject) => {
     const id = Date.now().toString() + Math.random().toString().slice(2);
     window._fetchPromises[id] = { resolve, reject };
-    ahk.call('StartSmartFetch', url, jsSelectors, id);
+    ahk.call('StartSmartFetch', url, jsSelectors, id, botCheckJs);
   });
 };
 

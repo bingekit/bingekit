@@ -22,6 +22,7 @@ This documentation has been structured linearly. Depending on your goals, choose
 ### Scripting & Customization
 - ⚡ [**Userscripts & Scripting**](userscripts.md) — A practical guide on writing Tampermonkey-style scripts to interact directly with the BingeKit ecosystem. Includes flows for hooking into the universal video tracker.
 - 🤖 [**Custom Macros & Flows**](flows.md) — How to chain powerful multi-context commands. Learn how to sequence clicks, navigations, and extractions natively using JSON piping.
+- 🔍 [**Dashboard Search Commands**](search_commands.md) — Advanced syntax for querying specific episodes, identifying rent/buy statuses, and using price limits directly from the search bar.
 
 ### Other References
 - ⚙️ [**Setup & Build**](setup_and_build.md) — Instructions for cloning and compiling your own BingeKit environment.

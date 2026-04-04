@@ -39,7 +39,7 @@ AHK_UpdateURL(windowId, url, id := "") {
     try {
         PlayerCurrentUrls[id] := url
         js := 'window.dispatchEvent(new CustomEvent("player-url-changed", { detail: { url: "' url '", tabId: "' id '" } }))'
-        if (MainGuis.Has(windowId)) 
+        if (MainGuis.Has(windowId))
             MainGuis[windowId].Control.ExecuteScriptAsync(js)
     } catch {
     }
@@ -611,7 +611,7 @@ AHK_PlayerNewWindowRequested(ICoreWebView2, args) {
     try {
         uri := args.Uri
         args.Handled := True ; Block the default new window from spawning
-        
+
         foundId := "main"
         for id, pwv in PlayerWVs {
             if (pwv.wv.ptr == ICoreWebView2.ptr) {
@@ -619,7 +619,7 @@ AHK_PlayerNewWindowRequested(ICoreWebView2, args) {
                 break
             }
         }
-        
+
         ownerId := PlayerOwners.Has(foundId) ? PlayerOwners[foundId] : "main"
         if (MainGuis.Has(ownerId)) {
             safeUri := StrReplace(uri, "'", "\'")

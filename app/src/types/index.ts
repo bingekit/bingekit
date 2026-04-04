@@ -131,6 +131,9 @@ export interface SearchConfig {
   formExtraActions?: FormExtraAction[];
   delegateFlowId?: string;
   delegateFlowInputs?: Record<string, string>;
+  costSel?: string;
+  rentBuySel?: string;
+  priceExtractJs?: string;
 }
 
 export interface TrackingConfig {
@@ -159,6 +162,7 @@ export interface SitePlugin extends BaseMetadata {
     passwordValue: string;
     encryptCreds: boolean;
     checkAuthJs?: string;
+    customLoginJs?: string;
   };
   search: {
     urlFormat: string;
@@ -176,6 +180,9 @@ export interface SitePlugin extends BaseMetadata {
     formExtraActions?: FormExtraAction[];
     delegateFlowId?: string;
     delegateFlowInputs?: Record<string, string>;
+    costSel?: string;
+    rentBuySel?: string;
+    priceExtractJs?: string;
   };
   additionalSearches?: SearchConfig[];
   networkBlockers?: string[];
@@ -214,6 +221,7 @@ export interface SitePlugin extends BaseMetadata {
   }[];
   customCss?: string;
   customJs?: string;
+  botCheckJs?: string;
   tracking?: TrackingConfig; // Legacy fallback single tracking object
   trackingFlows?: TrackingConfig[]; // Multiple tracking flows for specific URLs
   blockedExts?: string[];
@@ -228,8 +236,8 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   updateUrl: '',
   icon: '',
   baseUrl: 'https://',
-  auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '' },
-  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [] },
+  auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '', customLoginJs: '' },
+  search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [], costSel: '', rentBuySel: '', priceExtractJs: '' },
   additionalSearches: [],
   networkBlockers: [],
   inlineBlockers: [],
@@ -242,6 +250,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   customFunctions: [],
   customCss: '',
   customJs: '',
+  botCheckJs: '',
   tracking: { listSel: '', itemSel: '', idExtractJs: '', titleExtractJs: '', urlExtractJs: '', statusExtractJs: '' },
   trackingFlows: [],
   blockedExts: []

@@ -75,7 +75,7 @@ OnHiddenNavigationCompleted(windowId, callbackId, hiddenGui, sender, args) {
     }
 }
 
-AHK_StartSmartFetch(windowId, url, actionJs, callbackId) {
+AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
     DoSmartFetch() {
         try {
             activeWindow := WinGetID("A")
@@ -107,7 +107,8 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId) {
 
         hostObj := {
             ReturnData: (data, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
-            ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10))
+            ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
+            ShowFetcherWindow: (*) => (WinSetTransparent("Off", hiddenGui), hiddenGui.Show("w800 h600 Center"))
         }
 
         FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
@@ -158,6 +159,18 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId) {
         wrapperJs .= " };"
         wrapperJs .= "}`n"
         wrapperJs .= "window.addEventListener('DOMContentLoaded', function() {`n"
+        wrapperJs .= "    window._svBotInterval = setInterval(function() {`n"
+        wrapperJs .= "        try {`n"
+        wrapperJs .= "            var t = document.title || '';`n"
+        wrapperJs .= "            if(t.includes('Just a moment') || t.includes('Attention Required') || document.querySelector('.cf-browser-verification, #cf-wrapper, #challenges')) {`n"
+        wrapperJs .= "                clearInterval(window._svBotInterval);`n"
+        wrapperJs .= "                window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e));`n"
+        wrapperJs .= "            }`n"
+        if (botCheckJs != "") {
+             wrapperJs .= "            try { var _svBotRes = (function() {" botCheckJs "`n})(); if(_svBotRes) { clearInterval(window._svBotInterval); window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e)); } } catch(e) {}`n"
+        }
+        wrapperJs .= "        } catch(e) {}`n"
+        wrapperJs .= "    }, 1000);`n"
         wrapperJs .= "    console.log('[SmartFetch Debug] DOMContentLoaded triggered. Waiting 1000ms for idle...');`n"
         wrapperJs .= "    requestIdleCallback(()=>setTimeout(function() {`n"
         wrapperJs .= "        console.log('[SmartFetch Debug] Executing your actionJs...');`n"
