@@ -1,48 +1,54 @@
-global MainGui := ""
-global WV := ""
+global MainGuis := Map()
+global WVs := Map()
 
-InitAppGui() {
-    global MainGui, WV, WebViewSettings, SplashGui
+CreateAppWindow(windowId := "main", initialUrl := "") {
+    global MainGuis, WVs, WebViewSettings, SplashGui
     global AboutConfig_AllowRightClick, AboutConfig_AllowDevtools
 
     try {
-        MainGui := WebViewGui("+Resize -Caption", "BingeKit", , WebViewSettings)
+        newGui := WebViewGui("+Resize -Caption", "BingeKit", , WebViewSettings)
+        MainGuis[windowId] := newGui
     } catch as err {
         if (SplashGui) {
             SplashGui.Destroy()
             SplashGui := ""
         }
-        MsgBox("Critical Error: Failed to initialize WebView2 component.`n`nError details:`n" err.Message "`n`nPlease ensure Microsoft Edge WebView2 Runtime is installed.", "BingeKit Initialization Error", 16)
-        ExitApp()
+        MsgBox("Critical Error: Failed to initialize WebView2 component for window " windowId ".`n`nError details:`n" err.Message, "BingeKit Initialization Error", 16)
+        if (windowId == "main")
+            ExitApp()
+        else
+            return
     }
 
-    MainGui.BackColor := "09090b" ; Match the React app's zinc-950 background
-    MainGui.OnEvent("Close", (*) => ExitApp())
+    newGui.BackColor := "09090b" ; Match the React app's zinc-950 background
+    newGui.OnEvent("Close", (*) => AHK_CloseWindow(windowId))
 
     ; Initialize WebViewToo
-    WV := MainGui.Control.wv
-    WV.Settings.IsSwipeNavigationEnabled := 0
-    WV.Settings.IsZoomControlEnabled := 0
-    WV.Settings.IsPinchZoomEnabled := 0
-    WV.Settings.IsBuiltInErrorPageEnabled := 0
-    WV.Settings.IsGeneralAutofillEnabled := 0
-    WV.Settings.AreDefaultContextMenusEnabled := AboutConfig_AllowRightClick ? 1 : 0
-    WV.Settings.AreDevToolsEnabled := AboutConfig_AllowDevtools ? 1 : 0
+    wvObj := newGui.Control.wv
+    WVs[windowId] := wvObj
+    
+    wvObj.Settings.IsSwipeNavigationEnabled := 0
+    wvObj.Settings.IsZoomControlEnabled := 0
+    wvObj.Settings.IsPinchZoomEnabled := 0
+    wvObj.Settings.IsBuiltInErrorPageEnabled := 0
+    wvObj.Settings.IsGeneralAutofillEnabled := 0
+    wvObj.Settings.AreDefaultContextMenusEnabled := AboutConfig_AllowRightClick ? 1 : 0
+    wvObj.Settings.AreDevToolsEnabled := AboutConfig_AllowDevtools ? 1 : 0
 
     try {
-        WV.add_DownloadStarting(AHK_DownloadStarting)
+        wvObj.add_DownloadStarting(AHK_DownloadStarting)
     } catch {
     }
 
     if !DirExist(WorkspaceDir "\interfaces")
         DirCreate(WorkspaceDir "\interfaces")
-    MainGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
+    newGui.Control.BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
 
     if (A_IsCompiled) {
         WebViewCtrl.CreateFileFromResource("gui\index.html", WebViewCtrl.TempDir)
-        MainGui.Control.BrowseFolder(WebViewCtrl.TempDir "\gui", "gui.localhost")
+        newGui.Control.BrowseFolder(WebViewCtrl.TempDir "\gui", "gui.localhost")
     } else {
-        MainGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
+        newGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
     }
 
     downloadsLoc := AHK_LoadData("downloads_loc.txt")
@@ -53,21 +59,44 @@ InitAppGui() {
         }
     }
     if DirExist(downloadsLoc) {
-        try MainGui.Control.BrowseFolder(downloadsLoc, "downloads.localhost")
+        try newGui.Control.BrowseFolder(downloadsLoc, "downloads.localhost")
+    }
+    
+    return newGui
+}
+
+AHK_CloseWindow(windowId) {
+    global MainGuis, WVs
+    if (MainGuis.Has(windowId)) {
+        try MainGuis[windowId].Destroy()
+        MainGuis.Delete(windowId)
+    }
+    if (WVs.Has(windowId)) {
+        WVs.Delete(windowId)
+    }
+    
+    count := 0
+    for id, g in MainGuis {
+        count++
+    }
+    if (count == 0) {
+        ExitApp()
     }
 }
 
 OnExit(AHK_AggressiveCleanup)
 
 AHK_AggressiveCleanup(*) {
-    global WV, PlayerWVs
+    global WVs, PlayerWVs
     pids := Map()
 
     try {
-        if (WV) {
-            pid := WV.BrowserProcessId
-            if (pid) {
-                pids[pid] := true
+        if (WVs) {
+            for id, w in WVs {
+                pid := w.BrowserProcessId
+                if (pid) {
+                    pids[pid] := true
+                }
             }
         }
     } catch {

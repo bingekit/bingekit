@@ -11,7 +11,7 @@ MainNavigationCompletedHandler(sender, args) {
         }
     }
 }
-WV.add_NavigationCompleted(MainNavigationCompletedHandler)
+WVs["main"].add_NavigationCompleted(MainNavigationCompletedHandler)
 
 CheckSplashTimeout() {
     global SplashGui
@@ -73,6 +73,6 @@ if (InStr(AppStartupUrl, "gui.localhost")) {
 SplashStatus.Text := A_IsCompiled ? "LOADING COMPILED UI BUNDLE" : "WAITING FOR FRONTEND BUILDER (MAY TAKE 10s)"
 Sleep(-1) ; Yield for repaint
 
-WV.Navigate(AppStartupUrl)
-MainGui.Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
-WinSetTransparent(0, MainGui.Hwnd)
+WVs["main"].Navigate(AppStartupUrl)
+MainGuis["main"].Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden
+WinSetTransparent(0, MainGuis["main"].Hwnd)

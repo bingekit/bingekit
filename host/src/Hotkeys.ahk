@@ -1,7 +1,11 @@
 isAppActive() {
-    global MainGui, PlayerGuis
-    if (IsSet(MainGui) && MainGui != "" && WinActive("ahk_id " MainGui.Hwnd))
-        return true
+    global MainGuis, PlayerGuis
+    if (IsSet(MainGuis)) {
+        for wid, g in MainGuis {
+            if (WinActive("ahk_id " g.Hwnd))
+                return true
+        }
+    }
     if (IsSet(PlayerGuis)) {
         for _, bg in PlayerGuis {
             if (WinActive("ahk_id " bg.Hwnd))
@@ -11,21 +15,53 @@ isAppActive() {
     return false
 }
 
+GetActiveMainGui() {
+    global MainGuis, PlayerGuis, PlayerOwners
+    if (IsSet(MainGuis)) {
+        for wid, g in MainGuis {
+            if (WinActive("ahk_id " g.Hwnd))
+                return g
+        }
+    }
+    if (IsSet(PlayerGuis)) {
+        for id, bg in PlayerGuis {
+            if (WinActive("ahk_id " bg.Hwnd)) {
+                ownerId := (IsSet(PlayerOwners) && PlayerOwners.Has(id)) ? PlayerOwners[id] : "main"
+                if (MainGuis.Has(ownerId))
+                    return MainGuis[ownerId]
+            }
+        }
+    }
+    
+    if (IsSet(MainGuis)) {
+        if (MainGuis.Has("main"))
+            return MainGuis["main"]
+        for wid, g in MainGuis {
+            return g
+        }
+    }
+    return ""
+}
+
 #HotIf isAppActive() && !(IsSet(IsPiPMode) && IsPiPMode)
 #Up::
 {
-    global MainGui
-    WinMaximize("ahk_id " MainGui.Hwnd)
+    g := GetActiveMainGui()
+    if (g)
+        WinMaximize("ahk_id " g.Hwnd)
 }
 #Down::
 {
-    global MainGui
-    WinMinimize("ahk_id " MainGui.Hwnd)
+    g := GetActiveMainGui()
+    if (g)
+        WinMinimize("ahk_id " g.Hwnd)
 }
 F5::
 {
-    global MainGui
-    AHK_EvalPlayerJS("window.location.reload()")
+    g := GetActiveMainGui()
+    if (g) {
+        try AHK_EvalPlayerJS("", "window.location.reload()")
+    }
 }
 F11::
 {
@@ -62,23 +98,23 @@ Escape::
 }
 ^w::
 {
-    global MainGui
-    if (IsSet(MainGui) && MainGui != "") {
+    g := GetActiveMainGui()
+    if (g) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-close-active-tab')) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        g.Control.ExecuteScriptAsync(js)
     }
 }
 ^t::
 {
-    global MainGui
-    if (IsSet(MainGui) && MainGui != "") {
+    g := GetActiveMainGui()
+    if (g) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-new-tab')) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        g.Control.ExecuteScriptAsync(js)
     }
 }
 #HotIf
 
 #HotIf IsSet(IsPiPMode) && IsPiPMode && isAppActive()
-Escape:: AHK_TogglePiP()
-!F4:: AHK_TogglePiP()
+Escape:: AHK_TogglePiP("")
+!F4:: AHK_TogglePiP("")
 #HotIf

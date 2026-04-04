@@ -150,7 +150,7 @@ export const Titlebar = () => {
           {(!isMultiTabEnabled || activeTab !== 'player') && (
             <div className={`flex items-center flex-shrink-0 ${activeTab !== 'player' ? 'gap-3 w-48' : 'gap-3 mr-4'}`}>
               <div className="flex items-center gap-2 text-zinc-400 transition-colors">
-                <Film size={16} className="text-indigo-500" />
+                <Film size={16} className="" />
                 {activeTab !== 'player' && (
                   <span className="text-xs ml-6 font-medium tracking-wider uppercase">BingeKit</span>
                 )}

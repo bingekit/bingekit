@@ -2,7 +2,7 @@ global DownloadedMediaCache := Map()
 global ActiveFFmpegPIDs := Map()
 
 AHK_DownloadStarting(sender, args) {
-    global CurrentWorkspace, MainGui, SiteBlockersMap
+    global CurrentWorkspace, MainGuis, SiteBlockersMap
 
     ; args is ICoreWebView2DownloadStartingEventArgs
     download := args.DownloadOperation
@@ -34,9 +34,11 @@ AHK_DownloadStarting(sender, args) {
     if (isBlocked) {
         args.Cancel := 1
         args.Handled := 1
-        if (MainGui) {
+        if (IsSet(MainGuis)) {
             js := "try { window.dispatchEvent(new CustomEvent('bk-download-blocked', { detail: { file: '" StrReplace(outFileName, "'", "\'") "' } })) } catch(e){}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            for wid, g in MainGuis {
+                try g.Control.ExecuteScriptAsync(js)
+            }
         }
         return
     }
@@ -50,32 +52,38 @@ AHK_DownloadStarting(sender, args) {
     download.add_StateChanged(AHK_DownloadState)
 
     ; Send init to react
-    if (MainGui) {
+    if (IsSet(MainGuis)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-download-started', { detail: { file: '" StrReplace(outFileName, "'", "\'") "', path: '" StrReplace(args.ResultFilePath, "\", "\\") "' } })) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        for wid, g in MainGuis {
+            try g.Control.ExecuteScriptAsync(js)
+        }
     }
 }
 
 AHK_DownloadProgress(sender, *) {
-    global MainGui
+    global MainGuis
     total := sender.TotalBytesToReceive
     rcv := sender.BytesReceived
     path := sender.ResultFilePath
 
-    if (MainGui) {
+    if (IsSet(MainGuis)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-download-progress', { detail: { path: '" StrReplace(path, "\", "\\") "', total: " total ", rcv: " rcv " } })) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        for wid, g in MainGuis {
+            try g.Control.ExecuteScriptAsync(js)
+        }
     }
 }
 
 AHK_DownloadState(sender, *) {
-    global MainGui
+    global MainGuis
     state := sender.State ; 0=InProgress, 1=Interrupted, 2=Completed
     path := sender.ResultFilePath
 
-    if (MainGui) {
+    if (IsSet(MainGuis)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-download-state', { detail: { path: '" StrReplace(path, "\", "\\") "', state: " state " } })) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        for wid, g in MainGuis {
+            try g.Control.ExecuteScriptAsync(js)
+        }
     }
 }
 
@@ -159,8 +167,8 @@ AHK_NativeDownloadWinHttp(url, destPath, extraHeaders := "") {
     stream.Close()
 }
 
-AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
-    global MainGui
+AHK_DownloadActiveVideo(windowId, url, targetFilename, subUrl := "") {
+    global MainGuis
     if (url = "")
         return
 
@@ -176,9 +184,11 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
 
     finalPath := downloadLoc "\" targetFilename
 
-    if (MainGui) {
+    if (IsSet(MainGuis)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-download-started', { detail: { file: '" StrReplace(targetFilename, "'", "\'") "', path: '" StrReplace(finalPath, "\", "\\") "', isFFmpeg: true } })) } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        for wid, g in MainGuis {
+            try g.Control.ExecuteScriptAsync(js)
+        }
     }
 
     global ActiveTabId, ActiveMediaAuths
@@ -229,20 +239,22 @@ AHK_DownloadActiveVideo(url, targetFilename, subUrl := "") {
 }
 
 CheckFFmpegProcess(pid, finalPath, cb, logFile) {
-    global MainGui
+    global MainGuis
     if !ProcessExist(pid) {
         SetTimer(cb, 0)
-        if (MainGui) {
+        if (IsSet(MainGuis)) {
             ; 2 = Completed
             js := "try { window.dispatchEvent(new CustomEvent('bk-download-state', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', state: 2 } })) } catch(e){}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            for wid, g in MainGuis {
+                try g.Control.ExecuteScriptAsync(js)
+            }
         }
         try FileDelete(logFile)
         global ActiveFFmpegPIDs
         if ActiveFFmpegPIDs.Has(finalPath)
             ActiveFFmpegPIDs.Delete(finalPath)
     } else {
-        if (MainGui && FileExist(logFile)) {
+        if (IsSet(MainGuis) && FileExist(logFile)) {
             try {
                 ; Read tail of log file effectively by reading all and getting last parts
                 content := FileRead(logFile)
@@ -267,7 +279,9 @@ CheckFFmpegProcess(pid, finalPath, cb, logFile) {
                             speedStr := matches[3]
 
                             js := "try { window.dispatchEvent(new CustomEvent('bk-download-progress', { detail: { path: '" StrReplace(finalPath, "\", "\\") "', total: 0, rcv: " sizeBytes ", speed: '" speedStr "', ffmpegTime: '" timeStr "' } })) } catch(e){}"
-                            MainGui.Control.ExecuteScriptAsync(js)
+                            for wid, g in MainGuis {
+                                try g.Control.ExecuteScriptAsync(js)
+                            }
                         }
                     }
                 }
@@ -343,7 +357,7 @@ AHK_RenameDownload(oldPath, newName) {
     return true
 }
 
-AHK_DownloadSubtitle(url, targetFilename) {
+AHK_DownloadSubtitle(windowId, url, targetFilename) {
     if (url = "")
         return
 

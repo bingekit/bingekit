@@ -38,31 +38,36 @@ global UserscriptsScript := ""
 ; Initialize PlayerRect defaults to satisfy the editor linter (assigned actual values in Player.ahk)
 global PlayerRectX := 0, PlayerRectY := 0, PlayerRectW := 0, PlayerRectH := 0
 
-AHK_Minimize(*) {
-    global MainGui
-    MainGui.Minimize()
+AHK_Minimize(windowId := "main") {
+    global MainGuis, PlayerOwners
+    if (MainGuis.Has(windowId))
+        MainGuis[windowId].Minimize()
 }
 
-AHK_Maximize(*) {
-    global MainGui
-    if (WinGetMinMax(MainGui.Hwnd) = 1)
-        WinRestore(MainGui.Hwnd)
-    else
-        WinMaximize(MainGui.Hwnd)
+AHK_Maximize(windowId := "main") {
+    global MainGuis, PlayerOwners
+    if (MainGuis.Has(windowId)) {
+        if (WinGetMinMax(MainGuis[windowId].Hwnd) = 1)
+            WinRestore(MainGuis[windowId].Hwnd)
+        else
+            WinMaximize(MainGuis[windowId].Hwnd)
+    }
 }
 
-AHK_Close(*) {
-    ExitApp()
+AHK_Close(windowId := "main") {
+    AHK_CloseWindow(windowId)
 }
 
-AHK_HideSplash(*) {
-    global SplashGui, MainGui
+AHK_HideSplash(windowId := "main") {
+    global SplashGui, MainGuis
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
-        MainGui.Show("w1280 h800 center")
-        MainGui.Opt("+MinSize" . MinWidth . "x" . MinHeight)
-        WinSetTransparent(255, MainGui.Hwnd)
+    }
+    if (MainGuis.Has(windowId)) {
+        MainGuis[windowId].Show("w1280 h800 center")
+        MainGuis[windowId].Opt("+MinSize" . MinWidth . "x" . MinHeight)
+        WinSetTransparent(255, MainGuis[windowId].Hwnd)
     }
 }
 
@@ -83,26 +88,27 @@ AHK_RevealPath(path) {
         Run('explorer.exe /select,"' path '"')
 }
 
-AHK_PromptSelectFolder(id) {
-    global MainGui
-    cb := () => DoSelectFolder(id)
+AHK_PromptSelectFolder(windowId, id) {
+    global MainGuis, PlayerOwners
+    cb := () => DoSelectFolder(windowId, id)
     SetTimer(cb, -10)
 }
 
-DoSelectFolder(id) {
-    global MainGui, WorkspaceDir
+DoSelectFolder(windowId, id) {
+    global MainGuis, PlayerOwners, WorkspaceDir
     dir := DirSelect("*" WorkspaceDir, 3, "Select Folder")
     if (dir != "") {
-        if (MainGui) {
+        if (MainGuis.Has(windowId)) {
             js := "try { window.dispatchEvent(new CustomEvent('bk-folder-selected', { detail: { id: '" id "', dir: '" StrReplace(dir, "\", "\\") "' } })) } catch(e){}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            MainGuis[windowId].Control.ExecuteScriptAsync(js)
         }
     }
 }
 
-AHK_InjectJS(js, tabId := "") {
-    global WV, PlayerGuis, PlayerWVs, ActiveTabId
-    WV.ExecuteScriptAsync(js)
+AHK_InjectJS(windowId, js, tabId := "") {
+    global WVs, PlayerGuis, PlayerWVs, ActiveTabId
+    if (WVs.Has(windowId))
+        WVs[windowId].ExecuteScriptAsync(js)
     if (tabId == "")
         tabId := ActiveTabId
     if (PlayerGuis.Has(tabId) && PlayerWVs.Has(tabId)) {
@@ -110,7 +116,7 @@ AHK_InjectJS(js, tabId := "") {
     }
 }
 
-AHK_EvalPlayerJS(js, tabId := "") {
+AHK_EvalPlayerJS(windowId, js, tabId := "") {
     global PlayerGuis, PlayerWVs, ActiveTabId
     if (tabId == "")
         tabId := ActiveTabId
@@ -149,8 +155,8 @@ AHK_HideTooltip(*) {
 
 global IsPiPMode := false
 
-AHK_TogglePiP(tabId := "main") {
-    global IsPiPMode, MainGui, PlayerGuis, PlayerWVs, ActiveTabId, PlayerRects
+AHK_TogglePiP(windowId, tabId := "main") {
+    global IsPiPMode, MainGuis, PlayerGuis, PlayerWVs, ActiveTabId, PlayerRects, PlayerOwners
     if (tabId == "main")
         tabId := ActiveTabId
 
@@ -158,18 +164,19 @@ AHK_TogglePiP(tabId := "main") {
         return
 
     IsPiPMode := !IsPiPMode
+    ownerId := (IsSet(PlayerOwners) && PlayerOwners.Has(tabId)) ? PlayerOwners[tabId] : "main"
 
-    if (MainGui) {
+    if (MainGuis.Has(ownerId)) {
         js := "try { window.dispatchEvent(new CustomEvent('pip-mode-change', { detail: { isPip: " (IsPiPMode ? "true" : "false") " } })) } catch(e) {}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 
     pGui := PlayerGuis[tabId]
     pWv := PlayerWVs[tabId]
 
     if (IsPiPMode) {
-        if (MainGui) {
-            MainGui.Hide()
+        if (MainGuis.Has(ownerId)) {
+            MainGuis[ownerId].Hide()
         }
         if (pGui) {
             pGui.Opt("+AlwaysOnTop +Resize -Caption")
@@ -190,7 +197,7 @@ AHK_TogglePiP(tabId := "main") {
             pipJs := "
             (
                 (function() {
-                    console.log(""loading pip js"");
+                    console.log('loading pip js');
                     if (document.getElementById('bk-pip-container')) return;
                     
                     function findLargestPlayingVideo() {
@@ -207,7 +214,7 @@ AHK_TogglePiP(tabId := "main") {
                 
                     let style = document.createElement('style');
                     style.id = 'bk-pip-style';
-                    style.textContent = ""iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }"";
+                    style.textContent = 'iframe[allowfullscreen], video { position: fixed!important; inset: 0!important; z-index: 0!important; }';
                     document.body.append(style);
                 
                     const container = document.createElement('div');
@@ -223,7 +230,7 @@ AHK_TogglePiP(tabId := "main") {
                     });
                 
                     const playBtn = document.createElement('button');
-                    playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>';
+                    playBtn.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
                     playBtn.style.cssText = 'position:relative;width:80px;height:80px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(0.9);transition:all 0.2s ease;pointer-events:auto;backdrop-filter:blur(4px);';
                     
                     let isPlaying = true;
@@ -236,8 +243,8 @@ AHK_TogglePiP(tabId := "main") {
                         playBtn.style.opacity = '1';
                         playBtn.style.transform = 'scale(1)';
                         isPlaying = window._svIsGloballyPlaying !== undefined ? window._svIsGloballyPlaying : true;
-                        if(!isPlaying) playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>';
-                        else playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>';
+                        if(!isPlaying) playBtn.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                        else playBtn.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
                     });
                     container.addEventListener('mouseleave', () => {
                         container.style.background = 'transparent';
@@ -246,7 +253,7 @@ AHK_TogglePiP(tabId := "main") {
                     });
                 
                     const closeBtn = document.createElement('button');
-                    closeBtn.innerHTML = '<svg width=\`"24\`" height=\`"24\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><line x1=\`"18\`" y1=\`"6\`" x2=\`"6\`" y2=\`"18\`"></line><line x1=\`"6\`" y1=\`"6\`" x2=\`"18\`" y2=\`"18\`"></line></svg>';
+                    closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
                     closeBtn.style.cssText = 'position:absolute;top:15px;right:15px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s ease;pointer-events:auto;backdrop-filter:blur(4px);z-index:2;';
                     closeBtn.addEventListener('click', () => {
                         try { window.chrome.webview.hostObjects.sync.ahk.TogglePiP(); } catch(e){}
@@ -296,8 +303,8 @@ AHK_TogglePiP(tabId := "main") {
                                 let globPlaying = window._svIsGloballyPlaying !== undefined ? window._svIsGloballyPlaying : !video.paused;
                                 if(globPlaying !== isPlaying) {
                                     isPlaying = globPlaying;
-                                    if(isPlaying) playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><rect x=\`"6\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect><rect x=\`"14\`" y=\`"4\`" width=\`"4\`" height=\`"16\`"></rect></svg>';
-                                    else playBtn.innerHTML = '<svg width=\`"48\`" height=\`"48\`" viewBox=\`"0 0 24 24\`" fill=\`"none\`" stroke=\`"white\`" stroke-width=\`"2\`" stroke-linecap=\`"round\`" stroke-linejoin=\`"round\`"><polygon points=\`"5 3 19 12 5 21 5 3\`"></polygon></svg>';
+                                    if(isPlaying) playBtn.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+                                    else playBtn.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
                                 }
                             }
                         }
@@ -315,8 +322,8 @@ AHK_TogglePiP(tabId := "main") {
             pWv.wv.ExecuteScriptAsync(pipJs)
         }
     } else {
-        if (MainGui) {
-            MainGui.Show()
+        if (MainGuis.Has(ownerId)) {
+            MainGuis[ownerId].Show()
         }
         if (pGui) {
             pGui.Opt("-AlwaysOnTop -Resize -Caption")
@@ -330,7 +337,7 @@ AHK_TogglePiP(tabId := "main") {
             try {
                 if (PlayerRects.Has(tabId)) {
                     rect := PlayerRects[tabId]
-                    WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+                    WinGetClientPos(&CX, &CY, , , MainGuis.Has(ownerId) ? MainGuis[ownerId].Hwnd : 0)
                     pGui.Move(CX + rect.x, CY + rect.y, rect.w, rect.h)
                     pWv.Move(0, 0, rect.w, rect.h)
                     pWv.wvc.Fill()
@@ -342,9 +349,9 @@ AHK_TogglePiP(tabId := "main") {
     }
 }
 
-AHK_ResizePiP(vw, vh, tabId := "main") {
+AHK_ResizePiP(windowId, tabId, vw, vh) {
     global PlayerGuis, PlayerWVs, ActiveTabId, IsPiPMode
-    if (tabId == "main")
+    if (tabId == "main" || tabId == "")
         tabId := ActiveTabId
 
     if (!PlayerGuis.Has(tabId) || !PlayerWVs.Has(tabId))
@@ -367,9 +374,9 @@ AHK_ResizePiP(vw, vh, tabId := "main") {
     }
 }
 
-AHK_DragMove(tabId := "main") {
+AHK_DragMove(windowId, tabId) {
     global PlayerGuis, ActiveTabId, IsPiPMode
-    if (tabId == "main")
+    if (tabId == "main" || tabId == "")
         tabId := ActiveTabId
     if (!PlayerGuis.Has(tabId))
         return
@@ -380,9 +387,9 @@ AHK_DragMove(tabId := "main") {
     }
 }
 
-AHK_ResizeEdge(dir, tabId := "main") {
+AHK_ResizeEdge(windowId, tabId, dir) {
     global PlayerGuis, ActiveTabId, IsPiPMode
-    if (tabId == "main")
+    if (tabId == "main" || tabId == "")
         tabId := ActiveTabId
     if (!PlayerGuis.Has(tabId))
         return
@@ -396,16 +403,17 @@ AHK_ResizeEdge(dir, tabId := "main") {
 }
 
 AHK_ReportPlayState(isPlaying, currentTime := 0, duration := 0, activeSrc := "", id := "") {
-    global MainGui, ActiveMediaStreams, ActiveTabId
+    global MainGuis, PlayerOwners, ActiveMediaStreams, ActiveTabId
     id := id ? id : ActiveTabId
     if (activeSrc != "") {
         if !IsSet(ActiveMediaStreams)
             ActiveMediaStreams := Map()
         ActiveMediaStreams[id] := activeSrc
     }
-    if (MainGui) {
+    ownerId := (IsSet(PlayerOwners) && PlayerOwners.Has(id)) ? PlayerOwners[id] : "main"
+    if (MainGuis.Has(ownerId)) {
         js := "try { window.dispatchEvent(new CustomEvent('player-play-state', { detail: { isPlaying: " (isPlaying ? "true" : "false") ", currentTime: " currentTime ", duration: " duration ", tabId: '" id "' } })) } catch(e) {}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }
 
@@ -413,7 +421,7 @@ global ActiveSubtitleStreams := Map()
 global ActiveMediaStreamQualitiesMap := Map()
 global ActiveMediaAuths := Map()
 
-AHK_SetMediaStream(url, qualities := "", auth := "", id := "") {
+AHK_SetMediaStream(windowId, url, qualities := "", auth := "", id := "") {
     global ActiveTabId, ActiveMediaStreams, ActiveMediaStreamQualitiesMap, ActiveMediaAuths
     id := id ? id : ActiveTabId
     ActiveMediaStreams[id] := url
@@ -422,7 +430,7 @@ AHK_SetMediaStream(url, qualities := "", auth := "", id := "") {
         ActiveMediaAuths[id] := auth
 }
 
-AHK_SetSubtitleStream(url, auth := "", id := "") {
+AHK_SetSubtitleStream(windowId, url, auth := "", id := "") {
     global ActiveTabId, ActiveSubtitleStreams, ActiveMediaAuths
     id := id ? id : ActiveTabId
     ActiveSubtitleStreams[id] := url
@@ -430,7 +438,7 @@ AHK_SetSubtitleStream(url, auth := "", id := "") {
         ActiveMediaAuths[id] := auth
 }
 
-AHK_GetActiveMediaQualities() {
+AHK_GetActiveMediaQualities(windowId := "main") {
     global ActiveTabId, ActiveMediaStreamQualitiesMap
     if (ActiveMediaStreamQualitiesMap.Has(ActiveTabId))
         return ActiveMediaStreamQualitiesMap[ActiveTabId]
@@ -438,7 +446,7 @@ AHK_GetActiveMediaQualities() {
 }
 
 
-AHK_ToggleMedia() {
+AHK_ToggleMedia(windowId := "main") {
     global PlayerWVs, ActiveTabId
     if (PlayerWVs.Has(ActiveTabId)) {
         PlayerWVs[ActiveTabId].wv.ExecuteScriptAsync("window.top.postMessage('bk-toggle-play', '*');")
@@ -455,8 +463,8 @@ global TabMenuCallbacks := []
 global TabMenuTextColor := ""
 global TabMenuTextHoverColor := ""
 
-AHK_ShowTabContextMenu(tabId, x, y, isMuted, bgC, hoverC, borderC, textC, textHoverC, tabCount := 2) {
-    global TabMenuGui, MainGui, TabMenuHoverColor, TabMenuBgColor, TabMenuTextCtrls, TabMenuCallbacks, TabMenuTextColor, TabMenuTextHoverColor
+AHK_ShowTabContextMenu(windowId, tabId, x, y, isMuted, bgC, hoverC, borderC, textC, textHoverC, tabCount := 2) {
+    global TabMenuGui, MainGuis, TabMenuHoverColor, TabMenuBgColor, TabMenuTextCtrls, TabMenuCallbacks, TabMenuTextColor, TabMenuTextHoverColor
 
     if (TabMenuGui) {
         try TabMenuGui.Destroy()
@@ -468,7 +476,7 @@ AHK_ShowTabContextMenu(tabId, x, y, isMuted, bgC, hoverC, borderC, textC, textHo
     TabMenuTextColor := StrReplace(textC, "#", "")
     TabMenuTextHoverColor := StrReplace(textHoverC, "#", "")
 
-    TabMenuGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" MainGui.Hwnd " +Border")
+    TabMenuGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" (MainGuis.Has(windowId) ? MainGuis[windowId].Hwnd : "") " +Border")
     TabMenuGui.MarginX := 0
     TabMenuGui.MarginY := 4
     TabMenuGui.BackColor := TabMenuBgColor
@@ -541,15 +549,16 @@ ExecuteTabMenuAction(idx) {
 }
 
 SendTabContextAction(action, tabId) {
-    global MainGui
-    if (MainGui) {
+    global MainGuis, PlayerOwners
+    ownerId := (IsSet(PlayerOwners) && PlayerOwners.Has(tabId)) ? PlayerOwners[tabId] : "main"
+    if (MainGuis.Has(ownerId)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-tab-context-action', { detail: { action: '" action "', tabId: '" tabId "' } })); } catch(e){}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }
 
 CheckTabMenuClickOutside() {
-    global TabMenuGui, MainGui
+    global TabMenuGui, MainGuis
     if (!TabMenuGui) {
         SetTimer(CheckTabMenuClickOutside, 0)
         OnMessage(0x0200, TabMenuHoverHandler, 0)
@@ -557,7 +566,15 @@ CheckTabMenuClickOutside() {
     }
 
     ; Check if window lost focus
-    if (!WinActive("ahk_id " MainGui.Hwnd) && !WinActive("ahk_id " TabMenuGui.Hwnd)) {
+    topActive := false
+    for wid, g in MainGuis {
+        if (WinActive("ahk_id " g.Hwnd)) {
+            topActive := true
+            break
+        }
+    }
+
+    if (!topActive && !WinActive("ahk_id " TabMenuGui.Hwnd)) {
         try TabMenuGui.Destroy()
         TabMenuGui := ""
         SetTimer(CheckTabMenuClickOutside, 0)

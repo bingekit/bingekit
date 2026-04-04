@@ -28,8 +28,8 @@ DestroyToast(id) {
     }
 }
 
-AHK_ShowToast(msg, arg1 := "info", arg2 := "", arg3 := "") {
-    global MainGui, ToastWidth, ToastHeight
+AHK_ShowToast(windowId, msg, arg1 := "info", arg2 := "", arg3 := "") {
+    global MainGuis, ToastWidth, ToastHeight
     
     id := "toast_" . A_TickCount . "_" . Random(1000, 9999)
     slotIndex := GetNextToastSlot()
@@ -64,7 +64,8 @@ AHK_ShowToast(msg, arg1 := "info", arg2 := "", arg3 := "") {
             borderC := StrReplace(arg3, "#", "")
     }
 
-    tGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" (MainGui ? MainGui.Hwnd : "") " +Border")
+    ownerHwnd := MainGuis.Has(windowId) ? MainGuis[windowId].Hwnd : ""
+    tGui := Gui("-Caption +ToolWindow +AlwaysOnTop +Owner" ownerHwnd " +Border")
     tGui.BackColor := bgC
     tGui.MarginX := 0
     tGui.MarginY := 0

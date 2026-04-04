@@ -20,7 +20,7 @@ InitWorkspaces()
 InitEnvironment()
 
 #Include src\App.ahk
-InitAppGui()
+CreateAppWindow("main")
 
 #Include src\Crypto.ahk
 
@@ -39,6 +39,7 @@ InitAppGui()
 
 ; 4. Interop Setup: Expose AHK functions to the WebView (JavaScript)
 #Include src\api_expose.ahk
+BindApiToWindow(WVs["main"], "main")
 
 #Include src\Startup.ahk
 

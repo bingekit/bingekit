@@ -3,6 +3,7 @@ global PlayerWVs := Map()
 global PlayerCurrentUrls := Map()
 global PendingPlayerUrls := Map()
 global PlayerRects := Map()
+global PlayerOwners := Map()
 
 global NetworkFilters := Map()
 global NetworkAdblockEnabled := true
@@ -16,7 +17,7 @@ global ActiveTabId := "main"
 global ActiveMediaStreams := Map()
 global ActiveMediaSubtitles := Map()
 
-AHK_SetActiveTabId(id) {
+AHK_SetActiveTabId(windowId, id) {
     global ActiveTabId
     ActiveTabId := id
 }
@@ -31,18 +32,19 @@ AHK_GetSiteBlockers() {
     return SiteBlockersMap
 }
 
-AHK_UpdateURL(url, id := "") {
-    global PlayerCurrentUrls, ActiveTabId, MainGui
+AHK_UpdateURL(windowId, url, id := "") {
+    global PlayerCurrentUrls, ActiveTabId, MainGuis
     id := id ? id : ActiveTabId
     try {
         PlayerCurrentUrls[id] := url
         js := 'window.dispatchEvent(new CustomEvent("player-url-changed", { detail: { url: "' url '", tabId: "' id '" } }))'
-        MainGui.Control.ExecuteScriptAsync(js)
+        if (MainGuis.Has(windowId)) 
+            MainGuis[windowId].Control.ExecuteScriptAsync(js)
     } catch {
     }
 }
 
-AHK_UpdatePlayerUrl(url, id := "main") {
+AHK_UpdatePlayerUrl(windowId, url, id := "main") {
     DoUpdateUrl() {
         global PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls
         if (!PlayerWVs.Has(id)) {
@@ -55,10 +57,11 @@ AHK_UpdatePlayerUrl(url, id := "main") {
     SetTimer(DoUpdateUrl, -1)
 }
 
-AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
+AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
     DoUpdateRect() {
-        global PlayerGuis, PlayerWVs, PlayerCurrentUrls, MainGui, WebViewSettings, PendingPlayerUrls
-        global PlayerRects
+        global PlayerGuis, PlayerWVs, PlayerCurrentUrls, MainGuis, WebViewSettings, PendingPlayerUrls
+        global PlayerRects, PlayerOwners
+        PlayerOwners[id] := windowId
         global GlobalScript, AdblockScript, IsPiPMode
 
         if (IsPiPMode ?? false) {
@@ -83,7 +86,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
         }
 
         if (!PlayerGuis.Has(id)) {
-            PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGui.Hwnd)
+            PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGuis[windowId].Hwnd)
             PlayerGuis[id].BackColor := "09090b"
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
             PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
@@ -93,7 +96,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
             PlayerWVs[id].Settings.IsBuiltInErrorPageEnabled := 0
             PlayerWVs[id].BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
             PlayerWVs[id].AddHostObjectToScript("ahk", {
-                UpdateURL: (url) => AHK_UpdateURL(url, id),
+                UpdateURL: (url) => AHK_UpdateURL(windowId, url, id),
                 GetUserscriptPayload: AHK_GetUserscriptPayload,
                 GetAdblockStatus: AHK_GetAdblockStatus,
                 GetAdblockWhitelist: AHK_GetAdblockWhitelist,
@@ -105,10 +108,10 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
                 CacheClear: AHK_CacheClear,
                 AddNetworkFilter: AHK_AddNetworkFilter,
                 GetSiteBlockers: AHK_GetSiteBlockers,
-                TogglePiP: AHK_TogglePiP,
-                ResizePiP: AHK_ResizePiP,
-                DragMove: AHK_DragMove,
-                ResizeEdge: AHK_ResizeEdge,
+                TogglePiP: AHK_TogglePiP.Bind(windowId, id),
+                ResizePiP: AHK_ResizePiP.Bind(windowId, id),
+                DragMove: AHK_DragMove.Bind(windowId, id),
+                ResizeEdge: AHK_ResizeEdge.Bind(windowId, id),
                 ReportPlayState: (state, time := 0, dur := 0, src := "") => AHK_ReportPlayState(state, time, dur, src, id),
                 ToggleMedia: AHK_ToggleMedia,
                 ReportPlayerStatus: (auth, hasP, title := "") => AHK_ReportPlayerStatus(auth, hasP, title, id),
@@ -156,7 +159,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
 
         if (visible) {
             if (PlayerWVs.Has(id) && PlayerGuis.Has(id)) {
-                WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
+                WinGetClientPos(&CX, &CY, , , MainGuis[windowId].Hwnd)
                 ScreenX := CX + x
                 ScreenY := CY + y
 
@@ -193,7 +196,7 @@ AHK_UpdatePlayerRect(x, y, w, h, visible, id := "main") {
     SetTimer(DoUpdateRect, -1)
 }
 
-AHK_ClosePlayer(id) {
+AHK_ClosePlayer(windowId, id) {
     DoClose() {
         global PlayerGuis, PlayerWVs, PlayerCurrentUrls, PendingPlayerUrls, PlayerRects, ActiveMediaStreams, ActiveMediaSubtitles
         if (PlayerGuis.Has(id)) {
@@ -230,7 +233,7 @@ AHK_PlayerGuiResized(guiObj, minMax, width, height) {
 }
 
 AHK_PlayerFullscreenChanged(ICoreWebView2, *) {
-    global PlayerGuis, PlayerWVs, MainGui, PlayerRects
+    global PlayerGuis, PlayerWVs, MainGuis, PlayerRects, PlayerOwners
     foundId := ""
     for id, pwv in PlayerWVs {
         if (pwv.wv.ptr == ICoreWebView2.ptr) {
@@ -256,8 +259,11 @@ AHK_PlayerFullscreenChanged(ICoreWebView2, *) {
             PlayerWVs[foundId].wvc.Fill()
         } else {
             PlayerGuis[foundId].Opt("-AlwaysOnTop")
-            WinGetClientPos(&CX, &CY, , , MainGui.Hwnd)
-            PlayerGuis[foundId].Move(CX + PlayerRects[foundId].x, CY + PlayerRects[foundId].y, PlayerRects[foundId].w, PlayerRects[foundId].h)
+            ownerId := PlayerOwners.Has(foundId) ? PlayerOwners[foundId] : "main"
+            if (MainGuis.Has(ownerId)) {
+                WinGetClientPos(&CX, &CY, , , MainGuis[ownerId].Hwnd)
+                PlayerGuis[foundId].Move(CX + PlayerRects[foundId].x, CY + PlayerRects[foundId].y, PlayerRects[foundId].w, PlayerRects[foundId].h)
+            }
             PlayerWVs[foundId].Move(0, 0, PlayerRects[foundId].w, PlayerRects[foundId].h)
             PlayerWVs[foundId].wvc.Fill()
         }
@@ -304,18 +310,19 @@ AHK_PlayerFaviconChanged(ICoreWebView2, *) {
 }
 
 AHK_ReportPlayerFavicon(favUri, id := "") {
-    global MainGui, ActiveTabId
+    global MainGuis, ActiveTabId, PlayerOwners
     id := id ? id : ActiveTabId
-    if (MainGui) {
+    ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
+    if (MainGuis.Has(ownerId)) {
         safeFav := StrReplace(favUri, "'", "\'")
         safeFav := StrReplace(safeFav, "`n", "")
         safeFav := StrReplace(safeFav, "`r", "")
         js := "try { window.dispatchEvent(new CustomEvent('player-favicon-update', { detail: { favicon: '" safeFav "', tabId: '" id "' } })) } catch(e) {}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }
 
-AHK_PlayerGoBack(id := "main") {
+AHK_PlayerGoBack(windowId, id := "main") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -327,7 +334,7 @@ AHK_PlayerGoBack(id := "main") {
     }
 }
 
-AHK_PlayerGoForward(id := "main") {
+AHK_PlayerGoForward(windowId, id := "main") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -339,7 +346,7 @@ AHK_PlayerGoForward(id := "main") {
     }
 }
 
-AHK_PlayerReload(id := "main") {
+AHK_PlayerReload(windowId, id := "main") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -351,7 +358,7 @@ AHK_PlayerReload(id := "main") {
     }
 }
 
-AHK_MutePlayer(muted, id := "main") {
+AHK_MutePlayer(windowId, muted, id := "main") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -373,13 +380,15 @@ AHK_UpdateNetworkFilters(jsonStr) {
 }
 
 AHK_AddNetworkFilter(term) {
-    global NetworkFilters, MainGui
+    global NetworkFilters, MainGuis
     if (!NetworkFilters.Has(term)) {
         NetworkFilters[term] := true
-        try {
-            MainGui.Control.ExecuteScriptAsync("window.postMessage({ type: 'addNetworkFilter', term: '" term "' }, '*');")
-        } catch as e {
-            OutputDebug(e.Message)
+        for wid, g in MainGuis {
+            try {
+                g.Control.ExecuteScriptAsync("window.postMessage({ type: 'addNetworkFilter', term: '" term "' }, '*');")
+            } catch as e {
+                OutputDebug(e.Message)
+            }
         }
 
         json := "{"
@@ -477,7 +486,7 @@ AHK_GetActiveSubtitle() {
 }
 
 AHK_PlayerResourceRequested(sender, args) {
-    global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStreams, ActiveMediaSubtitles, MainGui, PlayerWVs
+    global NetworkFilters, NetworkAdblockEnabled, ActiveMediaStreams, ActiveMediaSubtitles, MainGuis, PlayerWVs, PlayerOwners
 
     foundId := "main"
     for id, pwv in PlayerWVs {
@@ -514,17 +523,19 @@ AHK_PlayerResourceRequested(sender, args) {
 
     if (RegExMatch(uri, "i)(\.m3u8?|\.mp4|\.flv|\.webm|/playlist|/manifest|type=video|/master(\.txt|\.json|/)|/hls/(index|master))")) {
         ActiveMediaStreams[foundId] := uri
-        if (MainGui) {
+        ownerId := PlayerOwners.Has(foundId) ? PlayerOwners[foundId] : "main"
+        if (MainGuis.Has(ownerId)) {
             js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'video', url: '" StrReplace(uri, "'", "\'") "', tabId: '" foundId "' } })) } catch(e){}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            MainGuis[ownerId].Control.ExecuteScriptAsync(js)
         }
     } else if (InStr(uri, ".vtt") || InStr(uri, ".srt") || InStr(uri, ".ass")) {
         if (!ActiveMediaSubtitles.Has(foundId))
             ActiveMediaSubtitles[foundId] := []
         ActiveMediaSubtitles[foundId].Push(uri)
-        if (MainGui) {
+        ownerId := PlayerOwners.Has(foundId) ? PlayerOwners[foundId] : "main"
+        if (MainGuis.Has(ownerId)) {
             js := "try { window.dispatchEvent(new CustomEvent('bk-media-detected', { detail: { type: 'subtitle', url: '" StrReplace(uri, "'", "\'") "', tabId: '" foundId "' } })) } catch(e){}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            MainGuis[ownerId].Control.ExecuteScriptAsync(js)
         }
     }
 
@@ -549,14 +560,15 @@ AHK_PlayerResourceRequested(sender, args) {
 }
 
 AHK_ReportPlayerStatus(authStatus, hasPlayer, titleStr := "", id := "") {
-    global MainGui, ActiveTabId
+    global MainGuis, ActiveTabId, PlayerOwners
     id := id ? id : ActiveTabId
-    if (MainGui) {
+    ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
+    if (MainGuis.Has(ownerId)) {
         safeTitle := StrReplace(titleStr, "'", "\'")
         safeTitle := StrReplace(safeTitle, "`n", "")
         safeTitle := StrReplace(safeTitle, "`r", "")
         js := "try { window.dispatchEvent(new CustomEvent('player-status-update', { detail: { authStatus: '" authStatus "', hasPlayer: " (hasPlayer ? "true" : "false") ", title: '" safeTitle "', tabId: '" id "' } })) } catch(e) {}"
-        MainGui.Control.ExecuteScriptAsync(js)
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }
 global internalBlacklist := ["edge://flags"]
@@ -579,17 +591,26 @@ AHK_PlayerNavigationStarting(ICoreWebView2, args) {
 }
 
 AHK_PlayerNewWindowRequested(ICoreWebView2, args) {
-    global MainGui
+    global MainGuis, PlayerOwners, PlayerWVs
     try {
         uri := args.Uri
         args.Handled := True ; Block the default new window from spawning
         
-        if (MainGui) {
+        foundId := "main"
+        for id, pwv in PlayerWVs {
+            if (pwv.wv.ptr == ICoreWebView2.ptr) {
+                foundId := id
+                break
+            }
+        }
+        
+        ownerId := PlayerOwners.Has(foundId) ? PlayerOwners[foundId] : "main"
+        if (MainGuis.Has(ownerId)) {
             safeUri := StrReplace(uri, "'", "\'")
             safeUri := StrReplace(safeUri, "`n", "")
             safeUri := StrReplace(safeUri, "`r", "")
             js := "try { window.dispatchEvent(new CustomEvent('bk-remote-navigate', { detail: { url: '" safeUri "', newTab: true, background: false } })) } catch(e) {}"
-            MainGui.Control.ExecuteScriptAsync(js)
+            MainGuis[ownerId].Control.ExecuteScriptAsync(js)
         }
     } catch {
         try args.Handled := True

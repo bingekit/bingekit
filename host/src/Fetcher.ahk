@@ -51,11 +51,13 @@ AHK_RawFetchHTML(url) {
         return ""
     }
 }
-OnHiddenNavigationCompleted(callbackId, hiddenGui, sender, args) {
+OnHiddenNavigationCompleted(windowId, callbackId, hiddenGui, sender, args) {
+    global MainGuis
     try {
         if (!args.IsSuccess) {
             ; Execute the async script
-            MainGui.Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');")
+            if (MainGuis.Has(windowId))
+                MainGuis[windowId].Control.ExecuteScriptAsync("console.log('[SmartFetch Debug] Navigation Failed (Aborted or Invalid)'); if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', '{`"error`": `"Navigation Failed`"}');")
 
             ; Set the timer to call the nested cleanup function
             SetTimer(CleanupTask, -500)
@@ -73,7 +75,7 @@ OnHiddenNavigationCompleted(callbackId, hiddenGui, sender, args) {
     }
 }
 
-AHK_StartSmartFetch(url, actionJs, callbackId) {
+AHK_StartSmartFetch(windowId, url, actionJs, callbackId) {
     DoSmartFetch() {
         try {
             activeWindow := WinGetID("A")
@@ -81,7 +83,7 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
             activeWindow := 0 ; Fallback in case no window is strictly active
         }
 
-        global MainGui, WebViewSettings, WV
+        global MainGuis, WebViewSettings, WVs
         hiddenGui := Gui("-Caption +ToolWindow -Resize +Owner" activeWindow, "SmartFetch Debug Window")
         hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
 
@@ -104,8 +106,8 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
         hostObjName := "fetchResult_" StrReplace(callbackId, "-", "")
 
         hostObj := {
-            ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => DestroyFetcher(callbackId), -10)),
-            ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => DestroyFetcher(callbackId), -10))
+            ReturnData: (data, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
+            ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10))
         }
 
         FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
@@ -185,16 +187,16 @@ AHK_StartSmartFetch(url, actionJs, callbackId) {
 
         hiddenWV.AddScriptToExecuteOnDocumentCreatedAsync(wrapperJs)
 
-        hiddenWV.wv.add_NavigationCompleted(OnHiddenNavigationCompleted.Bind(callbackId, hiddenGui))
+        hiddenWV.wv.add_NavigationCompleted(OnHiddenNavigationCompleted.Bind(windowId, callbackId, hiddenGui))
 
         hiddenWV.Navigate(url)
     }
     SetTimer(DoSmartFetch, -1)
 }
 
-AHK_StartRawFetchParse(url, actionJs, callbackId) {
+AHK_StartRawFetchParse(windowId, url, actionJs, callbackId) {
     DoRawFetch() {
-        global MainGui, WebViewSettings, WV
+        global MainGuis, WebViewSettings, WVs
         hostObjName := "fetchResult_" StrReplace(callbackId, "-", "")
         try {
             req := ComObject("WinHttp.WinHttpRequest.5.1")
@@ -204,7 +206,7 @@ AHK_StartRawFetchParse(url, actionJs, callbackId) {
             req.WaitForResponse()
             rawHtml := req.ResponseText
 
-            hiddenGui := Gui("+Resize +ToolWindow +Owner" MainGui.Hwnd, "RawFetchParse Debug Window")
+            hiddenGui := Gui("+Resize +ToolWindow +Owner" (MainGuis.Has(windowId) ? MainGuis[windowId].Hwnd : 0), "RawFetchParse Debug Window")
             hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
             global AboutConfig_ShowFetcher
             slotIndex := 0
@@ -219,8 +221,8 @@ AHK_StartRawFetchParse(url, actionJs, callbackId) {
             }
 
             hostObj := {
-                ReturnData: (data, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");"), SetTimer(() => DestroyFetcher(callbackId), -10)),
-                ReturnError: (err, _*) => (MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");"), SetTimer(() => DestroyFetcher(callbackId), -10))
+                ReturnData: (data, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
+                ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10))
             }
             FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
 
@@ -253,7 +255,8 @@ AHK_StartRawFetchParse(url, actionJs, callbackId) {
             hiddenWV.NavigateToString(rawHtml)
         } catch as err {
             errJson := '{`"error`": `"' StrReplace(err.Message, '`"', '\"') '`"}'
-            MainGui.Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " errJson ");")
+            if (MainGuis.Has(windowId))
+                MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " errJson ");")
         }
     }
     SetTimer(DoRawFetch, -1)
