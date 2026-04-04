@@ -95,6 +95,9 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
             PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
             PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0
             PlayerWVs[id].Settings.IsBuiltInErrorPageEnabled := 0
+            if (!DirExist(WorkspaceDir "\interfaces")) {
+                DirCreate(WorkspaceDir "\interfaces")
+            }
             PlayerWVs[id].BrowseFolder(WorkspaceDir "\interfaces", "interface.localhost")
             PlayerWVs[id].AddHostObjectToScript("ahk", {
                 UpdateURL: (url) => AHK_UpdateURL(windowId, url, id),

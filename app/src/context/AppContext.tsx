@@ -473,9 +473,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const computedHomeUrl = savedHomePage || 'https://bingekit.app/start/';
     if (savedHomePage) {
       general.setHomePage(savedHomePage);
-      setUrl(savedHomePage);
-      setInputUrl(savedHomePage);
     }
+    setUrl(computedHomeUrl);
+    setInputUrl(computedHomeUrl);
     tabs.setBrowserTabs(prev => [{ ...prev[0], url: computedHomeUrl, inputUrl: computedHomeUrl }]);
     ahk.call('UpdatePlayerUrl', computeNavUrl(computedHomeUrl), 'main');
     tabs.lastSyncUrls.current['main'] = computedHomeUrl;
