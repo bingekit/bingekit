@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "bingekit-repo",
+			"path": "../BingeKit-Repo/bingekit-repo"
+		}
+	],
+	"settings": {}
+}
