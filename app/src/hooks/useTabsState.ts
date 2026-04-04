@@ -58,14 +58,17 @@ export function useTabsState(
           reportedUrl = reportedUrl.replace(/\/$/, '');
         }
         setBrowserTabs(prev => {
-          const newTabs = [...prev];
-          const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
+          const tabIdx = prev.findIndex(t => t.id === eventTabId);
           if (tabIdx >= 0) {
+            if (prev[tabIdx].url === reportedUrl && prev[tabIdx].inputUrl === reportedUrl) return prev;
+            const newTabs = [...prev];
             newTabs[tabIdx] = { ...newTabs[tabIdx], url: reportedUrl, inputUrl: reportedUrl };
+            return newTabs;
           } else {
+            const newTabs = [...prev];
             newTabs.push({ id: eventTabId, url: reportedUrl, inputUrl: reportedUrl });
+            return newTabs;
           }
-          return newTabs;
         });
         lastSyncUrls.current[eventTabId] = reportedUrl;
         if (eventTabId === activeBrowserTabIdRef.current) {
@@ -96,10 +99,14 @@ export function useTabsState(
         }
 
         setBrowserTabs(prev => {
-          const newTabs = [...prev];
-          const tabIdx = newTabs.findIndex(t => t.id === eventTabId);
-          if (tabIdx >= 0) newTabs[tabIdx] = { ...newTabs[tabIdx], title: safeTitle };
-          return newTabs;
+          const tabIdx = prev.findIndex(t => t.id === eventTabId);
+          if (tabIdx >= 0) {
+            if (prev[tabIdx].title === safeTitle) return prev;
+            const newTabs = [...prev];
+            newTabs[tabIdx] = { ...newTabs[tabIdx], title: safeTitle };
+            return newTabs;
+          }
+          return prev;
         });
 
         if (eventTabId === activeBrowserTabIdRef.current) {
@@ -115,10 +122,14 @@ export function useTabsState(
     const handleFaviconUpdate = (e: any) => {
       if (e.detail && e.detail.favicon !== undefined) {
         setBrowserTabs(prev => {
-          const newTabs = [...prev];
-          const tabIdx = newTabs.findIndex(t => t.id === (e.detail.tabId || 'main'));
-          if (tabIdx >= 0) newTabs[tabIdx] = { ...newTabs[tabIdx], favicon: e.detail.favicon };
-          return newTabs;
+          const tabIdx = prev.findIndex(t => t.id === (e.detail.tabId || 'main'));
+          if (tabIdx >= 0) {
+            if (prev[tabIdx].favicon === e.detail.favicon) return prev;
+            const newTabs = [...prev];
+            newTabs[tabIdx] = { ...newTabs[tabIdx], favicon: e.detail.favicon };
+            return newTabs;
+          }
+          return prev;
         });
       }
     };

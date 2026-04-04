@@ -3,7 +3,7 @@ global SplashStatus := ""
 
 InitSplashGui() {
     global SplashGui, SplashStatus
-    SplashGui := Gui("-Caption +AlwaysOnTop +ToolWindow", "BingeKit Loading")
+    SplashGui := Gui("-Caption +AlwaysOnTop -ToolWindow", "BingeKit Loading")
     SplashGui.BackColor := "09090b"
     SplashGui.MarginX := 0
     SplashGui.MarginY := 0

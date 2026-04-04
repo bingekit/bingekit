@@ -468,14 +468,14 @@ AHK_GetInlineKeywords() {
     return InlineKeywords
 }
 
-AHK_GetActiveMedia() {
+AHK_GetActiveMedia(windowId := "main") {
     global ActiveTabId, ActiveMediaStreams
     if (ActiveMediaStreams.Has(ActiveTabId))
         return ActiveMediaStreams[ActiveTabId]
     return ""
 }
 
-AHK_GetActiveSubtitle() {
+AHK_GetActiveSubtitle(windowId := "main") {
     global ActiveTabId, ActiveMediaSubtitles
     if (ActiveMediaSubtitles.Has(ActiveTabId)) {
         subs := ActiveMediaSubtitles[ActiveTabId]
