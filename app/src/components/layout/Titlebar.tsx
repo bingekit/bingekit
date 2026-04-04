@@ -1,9 +1,57 @@
 import React, { useState, useEffect } from 'react';
 import { Film, Minus, Square, X, Plus, LayoutGrid, Columns, Rows, Globe, Music, VolumeX, Zap } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { restrictToHorizontalAxis, restrictToParentElement } from '@dnd-kit/modifiers';
+import { CSS } from '@dnd-kit/utilities';
+
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 import { UrlBar } from './UrlBar';
+
+const SortableTab = ({ id, active, className, ...props }: any) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : (active ? 10 : 1),
+    perspective: 1000,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`${className} ${isDragging ? 'shadow-2xl brightness-110 opacity-90' : ''}`}
+      {...attributes}
+      {...listeners}
+      {...props}
+    />
+  );
+};
 
 export const Titlebar = () => {
   const {
@@ -15,6 +63,30 @@ export const Titlebar = () => {
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setBrowserTabs((tabs: any[]) => {
+        const oldIndex = tabs.findIndex((t) => t.id === active.id);
+        const newIndex = tabs.findIndex((t) => t.id === over.id);
+
+        return arrayMove(tabs, oldIndex, newIndex);
+      });
+    }
+  };
 
   useEffect(() => {
     const handlePlayState = (e: any) => {
@@ -62,61 +134,77 @@ export const Titlebar = () => {
       {isMultiTabEnabled && (
         <div className="flex-1 flex w-full items-end pl-3 pt-2">
           <div className="flex items-end gap-[2px] flex-1 overflow-x-auto no-scrollbar">
-            {browserTabs.map(tab => (
-              <div
-                key={tab.id}
-                onClick={() => {
-                  setActiveBrowserTabId(tab.id);
-                  if (autoFocusPlayerOnTabChange && activeTab !== 'player') {
-                    setActiveTab('player');
-                  }
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  const screenX = window.screenX + (e.clientX || 0);
-                  const screenY = window.screenY + (e.clientY || 0);
-                  ahk.call('ShowTabContextMenu', tab.id, screenX, screenY, tab.isMuted === true ? 1 : 0, theme.sidebarBg || '#27272a', theme.mainBg || '#18181b', theme.border || '#3f3f46', theme.textSec || '#a1a1aa', theme.textMain || '#ffffff', browserTabs.length);
-                }}
-                className={`h-[32px] titlebarTab overflow-hidden no-drag max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-all duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
-                  ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'
-                  : 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border-transparent text-[var(--theme-titlebar-text)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] hover:text-[var(--theme-text-main)]'
-                  }`}
+            <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
+            >
+              <SortableContext 
+                items={browserTabs.map(t => t.id)}
+                strategy={horizontalListSortingStrategy}
               >
-                <div className="flex items-center gap-2 truncate opacity-90 pr-2">
-                  {tab.isPlaying ? (
-                    <div
-                      className={`no-drag p-[1px] rounded transition-colors group-hover:bg-indigo-500/20 hover:text-indigo-400 ${tab.isMuted ? 'text-red-400' : 'text-indigo-500'}`}
-                      onClick={(e) => handleToggleMute(tab.id, e)}
-                      title={tab.isMuted ? "Unmute Tab" : "Mute Tab"}
-                    >
-                      {tab.isMuted ? <VolumeX size={14} className="flex-shrink-0" /> : <Music size={14} className="flex-shrink-0 animate-pulse" />}
-                    </div>
-                  ) : tab.favicon ? (
-                    <img src={tab.favicon} alt="" className="w-4 h-4 rounded-sm bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] flex-shrink-0" />
-                  ) : (
-                    <Globe size={14} className="opacity-70 flex-shrink-0" />
-                  )}
-                  <span className="text-xs truncate font-medium tracking-wide">{tab.title || tab.url}</span>
-                </div>
-                {browserTabs.length > 1 && (
-                  <button
-                    className="no-drag p-1 rounded transition-colors opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 flex-shrink-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseTab(tab.id);
+                {browserTabs.map(tab => (
+                  <SortableTab
+                    active={activeBrowserTabId === tab.id}
+                    key={tab.id}
+                    id={tab.id}
+                    onClick={() => {
+                      setActiveBrowserTabId(tab.id);
+                      if (autoFocusPlayerOnTabChange && activeTab !== 'player') {
+                        setActiveTab('player');
+                      }
                     }}
+                    onContextMenu={(e: any) => {
+                      e.preventDefault();
+                      const screenX = window.screenX + (e.clientX || 0);
+                      const screenY = window.screenY + (e.clientY || 0);
+                      ahk.call('ShowTabContextMenu', tab.id, screenX, screenY, tab.isMuted === true ? 1 : 0, theme.sidebarBg || '#27272a', theme.mainBg || '#18181b', theme.border || '#3f3f46', theme.textSec || '#a1a1aa', theme.textMain || '#ffffff', browserTabs.length);
+                    }}
+                    className={`h-[32px] titlebarTab overflow-hidden no-drag max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-colors duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
+                      ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'
+                      : 'bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border-transparent text-[var(--theme-titlebar-text)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] hover:text-[var(--theme-text-main)]'
+                      }`}
                   >
-                    <X size={12} strokeWidth={2.5} />
-                  </button>
-                )}
-                {activeBrowserTabId === tab.id && (
-                  <>
-                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--theme-titlebar-accent)] rounded-t-lg" style={{ boxShadow: '0 0 10px var(--theme-titlebar-accent)' }} />
-                    <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[var(--theme-sidebar)]" />
-                  </>
-                )}
-              </div>
-            ))}
+                    <div className="flex items-center gap-2 truncate opacity-90 pr-2">
+                      {tab.isPlaying ? (
+                        <div
+                          className={`no-drag p-[1px] rounded transition-colors group-hover:bg-indigo-500/20 hover:text-indigo-400 ${tab.isMuted ? 'text-red-400' : 'text-indigo-500'}`}
+                          onClick={(e: any) => handleToggleMute(tab.id, e)}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                          title={tab.isMuted ? "Unmute Tab" : "Mute Tab"}
+                        >
+                          {tab.isMuted ? <VolumeX size={14} className="flex-shrink-0" /> : <Music size={14} className="flex-shrink-0 animate-pulse" />}
+                        </div>
+                      ) : tab.favicon ? (
+                        <img src={tab.favicon} alt="" className="w-4 h-4 rounded-sm bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] flex-shrink-0 pointer-events-none" />
+                      ) : (
+                        <Globe size={14} className="opacity-70 flex-shrink-0 pointer-events-none" />
+                      )}
+                      <span className="text-xs truncate font-medium tracking-wide pointer-events-none">{tab.title || tab.url}</span>
+                    </div>
+                    {browserTabs.length > 1 && (
+                      <button
+                        className="no-drag p-1 rounded transition-colors opacity-0 group-hover:opacity-100 hover:bg-red-500/20 hover:text-red-400 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseTab(tab.id);
+                        }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <X size={12} strokeWidth={2.5} />
+                      </button>
+                    )}
+                    {activeBrowserTabId === tab.id && (
+                      <>
+                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-[var(--theme-titlebar-accent)] rounded-t-lg pointer-events-none" style={{ boxShadow: '0 0 10px var(--theme-titlebar-accent)' }} />
+                        <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[var(--theme-sidebar)] pointer-events-none" />
+                      </>
+                    )}
+                  </SortableTab>
+                ))}
+              </SortableContext>
+            </DndContext>
             <div
               className="no-drag h-7 w-8 flex items-center justify-center rounded-lg text-[var(--theme-titlebar-text)] hover:text-[var(--theme-text-main)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_8%,transparent)] ml-2 mb-1 transition-all cursor-pointer border border-transparent hover:border-[color-mix(in_srgb,var(--theme-border)_20%,transparent)]"
               onClick={handleNewTab}
