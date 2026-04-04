@@ -27,7 +27,8 @@ declare global {
 export const MainLayout = () => {
   const {
     theme, activeTab, browserTabs, setBrowserTabs, activeBrowserTabId,
-    setActiveBrowserTabId, navigateUrl, homePage
+    setActiveBrowserTabId, navigateUrl, homePage,
+    bookmarks, setBookmarks, url, fetchTitleForUrl
   } = useAppContext();
 
   useEffect(() => {
@@ -109,6 +110,33 @@ export const MainLayout = () => {
       window.removeEventListener('bk-tab-context-action', handleContextAction);
     };
   }, [activeBrowserTabId, browserTabs, homePage, navigateUrl, setBrowserTabs, setActiveBrowserTabId]);
+
+  useEffect(() => {
+    const toggleBookmark = () => {
+      const exists = bookmarks.find(b => b.url === url);
+      if (exists) {
+        window.showToast("Bookmark removed", "info");
+        setBookmarks(prev => prev.filter(b => b.url !== url));
+      } else {
+        window.showToast("Bookmark added", "success");
+        setBookmarks(prev => [...prev, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
+      }
+    };
+
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        toggleBookmark();
+      }
+    };
+    
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    window.addEventListener('bk-toggle-bookmark', toggleBookmark);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalKeyDown);
+      window.removeEventListener('bk-toggle-bookmark', toggleBookmark);
+    };
+  }, [url, bookmarks, setBookmarks, fetchTitleForUrl]);
 
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>

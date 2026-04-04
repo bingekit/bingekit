@@ -109,9 +109,13 @@ export const UrlBar = () => {
           <button
             type="button"
             onClick={() => {
-              if (!bookmarks.find(b => b.url === url)) {
-                setBookmarks([...bookmarks, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }]);
-              }
+              setBookmarks(prev => {
+                const exists = prev.find(b => b.url === url);
+                if (exists) {
+                  return prev.filter(b => b.url !== url);
+                }
+                return [...prev, { id: Date.now().toString(), title: fetchTitleForUrl(url), url }];
+              });
             }}
             className="px-2 urlbar-icon hover:urlbar-icon-hover transition-colors flex-shrink-0"
             title="Bookmark"
@@ -121,9 +125,13 @@ export const UrlBar = () => {
           <button
             type="button"
             onClick={() => {
-              if (!watchLater.find(w => w.url === url)) {
-                setWatchLater([...watchLater, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }]);
-              }
+              setWatchLater(prev => {
+                const exists = prev.find(w => w.url === url);
+                if (exists) {
+                  return prev.filter(w => w.url !== url);
+                }
+                return [...prev, { id: Date.now().toString(), title: fetchTitleForUrl(url), url, addedAt: Date.now() }];
+              });
             }}
             className="px-2 urlbar-icon hover:urlbar-icon-hover transition-colors flex-shrink-0"
             title="Watch Later"

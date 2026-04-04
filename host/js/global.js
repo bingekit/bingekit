@@ -39,6 +39,17 @@
         try { window.chrome.webview.hostObjects.sync.ahk.ShowToast(msg, type); } catch(e) {}
     };
 
+    window.toggleBookmark = function() {
+        try { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } catch(e) {}
+    };
+
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            window.toggleBookmark();
+        }
+    });
+
     function syncUrlToAhk() {
         if (!runSync) return;
         try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
