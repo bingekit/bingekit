@@ -409,8 +409,23 @@ export function usePluginsState(
   };
 
   const runFlow = async (flow: CustomFlow, multiSearchQuery: string, initialUrl: string = url, customVars: Record<string, string> = {}) => {
-    console.log('Running flow:', flow.name, 'with inputs:', customVars);
     let currentVar = initialUrl;
+    let actualVars = { ...customVars };
+
+    if (flow.variables && flow.variables.length > 0) {
+      for (const vName of flow.variables) {
+        if (!actualVars[vName]) {
+          const val = await window.showPrompt(`Please provide value for variable: {${vName}}`, "");
+          if (val === null) {
+            window.showToast?.("Flow evaluation cancelled.", "error");
+            return;
+          }
+          actualVars[vName] = val || "";
+        }
+      }
+    }
+
+    console.log('Running flow:', flow.name, 'with inputs:', actualVars);
 
     const resolveVars = async (str: string) => {
       if (!str) return str;
@@ -418,7 +433,7 @@ export function usePluginsState(
         .replace(/\\{\\{PREV\\}\\}/g, currentVar)
         .replace(/\\{\\{SEARCH\\}\\}/g, multiSearchQuery);
 
-      Object.entries(customVars).forEach(([key, val]) => {
+      Object.entries(actualVars).forEach(([key, val]) => {
         res = res.replace(new RegExp(`\\{${key}\\}`, 'g'), val);
       });
 
@@ -427,13 +442,23 @@ export function usePluginsState(
       while ((match = promptRegex.exec(res)) !== null) {
         const promptTitle = match[1];
         const userInput = await window.showPrompt(`Flow Input Required:\n${promptTitle}`, "");
+        if (userInput === null) throw new Error("Flow evaluation cancelled.");
         res = res.replace(match[0], userInput || "");
       }
       return res;
     };
 
-    for (const step of flow.steps) {
-      if (step.type === 'navigate') {
+    // Yield to the event loop so React can flush the DOM and close the modal before heavy/synchronous COM calls begin
+    await new Promise(resolve => setTimeout(resolve, 150));
+
+    try {
+      for (let i = 0; i < flow.steps.length; i++) {
+        const step = flow.steps[i];
+        
+        console.log(`[Flow Evaluator] Executing step ${i + 1}/${flow.steps.length}: [${step.type}]`, step);
+        
+        try {
+          if (step.type === 'navigate') {
         const dest = await resolveVars(step.params.url || '');
         let navUrl = computeNavUrl(dest);
         ahk.call('UpdatePlayerUrl', navUrl);
@@ -446,15 +471,26 @@ export function usePluginsState(
         const selector = await resolveVars(step.params.selector || '');
         let found = false;
         let attempts = 0;
-        while (!found && attempts < 100) {
-          const js = `!!document.querySelector('${selector.replace(/'/g, "\\\\'")}')`;
+        while (!found && attempts < 50) { // Max 5 seconds
+          const js = `
+             (function() {
+                try {
+                   return !!document.querySelector('${selector.replace(/'/g, "\\\\'")}');
+                } catch(e) {
+                   return false;
+                }
+             })()
+          `;
           try {
             const res = await ahk.call('EvalPlayerJS', js);
             if (res === 'true') { found = true; break; }
-          } catch (e) { }
-          await new Promise(r => setTimeout(r, 100));
+          } catch (e: any) { 
+            console.error('EvalPlayerJS failed:', e);
+          }
+          await new Promise(r => setTimeout(r, 100)); // Yields to event loop
           attempts++;
         }
+        if (!found) throw new Error(`Timeout waiting for element: ${selector}`);
       } else if (step.type === 'interact') {
         const selector = await resolveVars(step.params.selector || '');
         const actionType = step.params.actionType || 'click';
@@ -462,17 +498,21 @@ export function usePluginsState(
 
         const jsCode = `
           (function() {
-            var el = document.querySelector('${selector.replace(/'/g, "\\\\'")}');
-            if (el) {
-              ${actionType === 'setValue' ? `
-                 el.value = '${value.replace(/'/g, "\\\\'")}'';
-                 el.dispatchEvent(new Event('input', {bubbles: true}));
-                 el.dispatchEvent(new Event('change', {bubbles: true}));
-                 if (el.tagName === 'FORM') el.submit();
-              ` : `el.click();`}
-              return true;
+            try {
+              var el = document.querySelector('${selector.replace(/'/g, "\\\\'")}');
+              if (el) {
+                ${actionType === 'setValue' ? `
+                   el.value = '${value.replace(/'/g, "\\\\'")}';
+                   el.dispatchEvent(new Event('input', {bubbles: true}));
+                   el.dispatchEvent(new Event('change', {bubbles: true}));
+                   if (el.tagName === 'FORM') el.submit();
+                ` : `el.click();`}
+                return true;
+              }
+              return false;
+            } catch(e) {
+              return false;
             }
-            return false;
           })();
         `;
         ahk.call('InjectJS', jsCode);
@@ -491,7 +531,9 @@ export function usePluginsState(
         try {
           const res = await (window as any).RunPluginFunction(targetPluginId, actionName, currentVar);
           currentVar = (typeof res === 'object') ? JSON.stringify(res) : String(res);
-        } catch (e: any) { }
+        } catch (e: any) { 
+          throw new Error(`Plugin Action Failed: ${e.message || String(e)}`);
+        }
       } else if (step.type === 'callPlugin') {
         const targetPluginId = await resolveVars(step.params.pluginId || '');
         const targetPlugin = plugins.find(p => p.id === targetPluginId);
@@ -514,17 +556,25 @@ export function usePluginsState(
 
         if (targetPlugin && targetUrl && (window as any).SmartFetch) {
           const jsQuery = `
-              const items = Array.from(document.querySelectorAll('${targetPlugin.search?.itemSel?.replace(/'/g, "\\\\'") || 'body'}'));
-              return items.slice(0, 10).map(item => {
-                 let el = item.querySelector('${targetPlugin.search?.titleSel?.replace(/'/g, "\\\\'") || ''}');
-                 const title = el ? el.textContent.trim() : '';
-                 el = item.querySelector('${targetPlugin.search?.linkSel?.replace(/'/g, "\\\\'") || ''}');
-                 const href = el ? el.getAttribute('href') : '';
-                 return { title, href };
-              });
+              return (function() {
+                 try {
+                    const items = Array.from(document.querySelectorAll('${targetPlugin.search?.itemSel?.replace(/'/g, "\\\\'") || 'body'}'));
+                    return items.slice(0, 10).map(item => {
+                       try {
+                          let el = item.querySelector('${targetPlugin.search?.titleSel?.replace(/'/g, "\\\\'") || ''}');
+                          const title = el ? el.textContent.trim() : '';
+                          el = item.querySelector('${targetPlugin.search?.linkSel?.replace(/'/g, "\\\\'") || ''}');
+                          const href = el ? el.getAttribute('href') : '';
+                          return { title, href };
+                       } catch(ea) { return { title: '', href: '' }; }
+                    });
+                 } catch(e) {
+                    return [];
+                 }
+              })();
            `;
           const res = await (window as any).SmartFetch(targetUrl, jsQuery);
-          if (res) currentVar = res;
+          if (res) currentVar = typeof res === 'object' ? JSON.stringify(res) : String(res);
         }
       } else if (step.type === 'customSmartFetch') {
         const targetUrl = await resolveVars(step.params.url || '');
@@ -551,9 +601,22 @@ export function usePluginsState(
         const ms = parseInt(msStr) || 1000;
         await new Promise(r => setTimeout(r, ms));
       }
+        
+        // Yield after every single step so React can process updates and UI won't lock!
+        await new Promise(r => setTimeout(r, 10));
+
+        } catch (stepError: any) {
+             throw new Error(`[Step ${i + 1} - ${step.type}] failed: ${stepError.message}`);
+        }
     }
+    window.showToast?.(`Flow "${flow.name}" completed successfully.`, "success");
     return currentVar;
-  };
+  } catch (e: any) {
+    console.error(e);
+    window.showToast?.(e.message || "Flow evaluation failed.", "error");
+    return null;
+  }
+};
 
   useEffect(() => {
     if (autoCheckPluginUpdates && plugins.length > 0 && !isInitialPluginCheck.current) {

@@ -590,6 +590,64 @@ export const FlowsView = () => {
                               </div>
                             </div>
                           )}
+                          {step.type === "callFlow" && (
+                            <div>
+                              <label className="block text-xs text-zinc-500 mb-1.5">
+                                Target Flow
+                              </label>
+                              <CustomSelect
+                                options={flows.map((f) => ({
+                                  label: f.name,
+                                  value: f.id,
+                                }))}
+                                value={step.params.flowId || ""}
+                                onChange={(val) => {
+                                  const newSteps = [...editingFlow.steps];
+                                  newSteps[idx].params.flowId = val;
+                                  setEditingFlow({ ...editingFlow, steps: newSteps });
+                                }}
+                                placeholder="Select target flow..."
+                              />
+                            </div>
+                          )}
+                          {step.type === "callPlugin" && (
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-xs text-zinc-500 mb-1.5">
+                                  Target Search Plugin
+                                </label>
+                                <CustomSelect
+                                  options={plugins.map((p) => ({
+                                    label: p.name,
+                                    value: p.id,
+                                  }))}
+                                  value={step.params.pluginId || ""}
+                                  onChange={(val) => {
+                                    const newSteps = [...editingFlow.steps];
+                                    newSteps[idx].params.pluginId = val;
+                                    setEditingFlow({ ...editingFlow, steps: newSteps });
+                                  }}
+                                  placeholder="Select plugin..."
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-zinc-500 mb-1.5">
+                                  Search Query (e.g. {"{query}"})
+                                </label>
+                                <input
+                                  type="text"
+                                  value={step.params.query || ""}
+                                  placeholder="{query} or literal value"
+                                  onChange={(e) => {
+                                    const newSteps = [...editingFlow.steps];
+                                    newSteps[idx].params.query = e.target.value;
+                                    setEditingFlow({ ...editingFlow, steps: newSteps });
+                                  }}
+                                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                                />
+                              </div>
+                            </div>
+                          )}
                           {step.type === "navigate" && (
                             <div>
                               <label className="block text-xs text-zinc-500 mb-1.5">
