@@ -1,23 +1,31 @@
 # BingeKit Documentation Hub
 
-Welcome to the BingeKit documentation. BingeKit is a headless-capable, fully synchronized media automation platform built on an AutoHotkey v2 (AHK) foundation with a React-based frontend. It dynamically spawns persistent edge WebView2 instances and manages seamless bi-directional JS/COM RPC bridges.
+Welcome to BingeKit! 
 
-## Documentation Index
+BingeKit is a headless-capable, fully synchronized media automation platform. At its core, it is built on a high-privileged **AutoHotkey v2 (AHK)** foundation that physically orchestrates one or more native Microsoft Edge **WebView2** instances. The primary UI is driven by a beautiful **React** frontend, securely communicating over a custom IPC bridge.
 
-Below is a map of the different technical areas within the project:
+> [!NOTE]
+> BingeKit is not an Electron app. It is a native Windows application that uses edge rendering purely for presentation and web-scraping. This gives it immense power to manipulate OS-level windows, spawn hidden parsing browsers, natively download files, and intercept network traffic.
 
-| Documentation Topic | Description |
-| ------------------- | ----------- |
-| [**Initial Setup and build**](setup_and_build.md) | How to set up and build the project. |
-| [**Architecture Overview**](architecture.md) | The core design logic: why we bridge AHK with WebView2, how multi-tiered blocking works, and the project's foundational ethos. |
-| [**The API Reference**](api.md) | A comprehensive guide to the massive `window.chrome.webview.hostObjects.sync.ahk` API used to bridge the React frontend and AHK backend. Groups APIs by their usage scope (Main App vs. Player vs. Hidden fetchers). |
-| [**Site Plugins Configuration**](plugins.md) | How to build plugins. Explains the configuration structures for domains containing targeted userscripts, block rules, generic element selectors, and metadata trackers. |
-| [**Native Types & Tracking**](types_and_tracking.md) | Defines the strict JSON object structures (SearchResult, VideoPayload) expected by the React UI and breaks down cross-site episodic tracking logic. |
-| [**Custom Flows Engine**](flows.md) | Details the automated workflows engine meant to script complex browser behaviors (navigation, clicking, parsing) without user interaction. |
-| [**Remote Parsing & SmartFetch**](smartfetch.md) | How to execute silent scrapers using background/hidden WebView2 instances. Crucial for asynchronous execution without blocking the UI thread. |
-| [**Userscripts & DOM Styling**](userscripts.md) | How BingeKit evaluates and injects dynamic javascript payloads (like Tampermonkey) across targeted domain patterns to rewrite or observe the DOM. |
+## Using this Documentation
 
-## Quick Start
-If you are modifying the React frontend and need to interact with the system (e.g., download a file, toggle fullscreen, resize a player), start with the [API Reference](api.md).
+This documentation has been structured linearly. Depending on your goals, choose your path:
 
-If you are trying to add a new media site to the platform, begin with [Site Plugins](plugins.md).
+### Platform Architecture & Foundations
+- 🏗️ [**Architecture Overview**](architecture.md) — The fundamental "Why" and "How" of BingeKit. Understand the boundary between the AHK Host and the React Client, IPC messaging, and credential security.
+- 🔗 [**The API Reference**](api.md) — A comprehensive guide to the `ahk` COM interface. Clearly separated into **Internal APIs** (building React components) and **User APIs** (automating media).
+
+### Automation & Scraping Systems
+- 🕵️ [**The Background Fetcher**](smartfetch.md) — Deep dive into `SmartFetch` and `RawFetchHTML`. Learn how to spin up invisible browsers to scrape dynamic SPAs or defeat Cloudflare without dropping frames.
+- 🎬 [**Site Plugins**](plugins.md) — The lifecycle of a domain plugin. How BingeKit intercepts traffic, blocks ads, injects styles, and deeply scans video elements on external streaming sites.
+
+### Scripting & Customization
+- ⚡ [**Userscripts & Scripting**](userscripts.md) — A practical guide on writing Tampermonkey-style scripts to interact directly with the BingeKit ecosystem. Includes flows for hooking into the universal video tracker.
+- 🤖 [**Custom Macros & Flows**](flows.md) — How to chain powerful multi-context commands. Learn how to sequence clicks, navigations, and extractions natively using JSON piping.
+
+### Other References
+- ⚙️ [**Setup & Build**](setup_and_build.md) — Instructions for cloning and compiling your own BingeKit environment.
+- 🏗️ [**Native Types & Tracking**](types_and_tracking.md) — JSON schema structures expected by the ecosystem.
+
+---
+**Ready to dig in?** Start by understanding the [Architecture](architecture.md).

@@ -1,5 +1,9 @@
 (function () {
     console.log("Global Script Loaded", location.href);
+    window.BingeKit = window.BingeKit || {};
+    window.BingeKit.localPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
+    window.BingeKit.globalPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
+
     let runSync = true;
     window.throwNavigationError = () => {
         window.chrome.webview.hostObjects.sync.ahk.UpdateURL("err://");
@@ -192,12 +196,14 @@
             window._svLastTimeLocal = pTime;
             window._svLastDurLocal = pDur;
             window._svLastSrcLocal = pSrc;
+            window.BingeKit.localPlayerState = { isPlaying: true, currentTime: pTime, duration: pDur, src: pSrc };
             if (window.top !== window) {
                 window.top.postMessage({ type: 'bk-play-state', playing: true, currentTime: pTime, duration: pDur, activeSrc: pSrc }, '*');
             } else {
                 window.updateGlobalPlayState && window.updateGlobalPlayState();
             }
         } else {
+            window.BingeKit.localPlayerState.isPlaying = false;
             if (window._svLastPlayingLocal) {
                 window._svLastPlayingLocal = false;
                 if (window.top !== window) {
@@ -268,6 +274,12 @@
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
             });
+        } else if (e.data && e.data.type === 'bk-sync-global-state') {
+            window.BingeKit = window.BingeKit || {};
+            window.BingeKit.globalPlayerState = e.data.state;
+            Array.from(document.querySelectorAll('iframe')).forEach(f => {
+                try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
+            });
         }
     });
 
@@ -292,6 +304,12 @@
             }
             let isPlaying = window._svLastPlayingLocal || window._svPlayingTimers.size > 0;
             let timeDiff = Math.abs(cTime - (window._svLastReportedTime || 0));
+
+            window.BingeKit.globalPlayerState = { isPlaying, currentTime: cTime, duration: cDur, src: aSrc };
+            Array.from(document.querySelectorAll('iframe')).forEach(f => {
+                try { f.contentWindow?.postMessage({ type: 'bk-sync-global-state', state: window.BingeKit.globalPlayerState }, '*'); } catch (err) { }
+            });
+
             if (window._svIsGloballyPlaying !== isPlaying || (isPlaying && timeDiff >= 10) || window._svLastReportedSrc !== aSrc) {
                 window._svIsGloballyPlaying = isPlaying;
                 window._svLastReportedTime = cTime;

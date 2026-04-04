@@ -1,76 +1,75 @@
-# Remote Parsing: SmartFetch & RawFetch
+# The Background Fetcher Pipeline
 
-BingeKit utilizes an orchestrated asynchronous scraping pipeline to harvest values without dropping frame rates or freezing the primary user interface.
+BingeKit completely sidesteps typical scraping pain points (like blocking the UI loop, running into CORS walls, or failing against Cloudflare proxy guards). It does this through **SmartFetch** and **RawFetch**.
 
-## 1. SmartFetch Engine
+## Unlocking Hidden WebViews (`SmartFetch`)
 
-If your target URL requires DOM execution (e.g., React SPA, NextJS rendering, protected Cloudflare challenges resolving visually), you must utilize `SmartFetch`.
+`SmartFetch` is primarily utilized during Deep Scans, Discovery feeds, or resolving complicated Site Plugins. 
 
-`SmartFetch` loads the URL in a hidden, fully-rendered layout, and evaluates your custom Javascript logic asynchronously. 
+When you issue a `SmartFetch` call, BingeKit seamlessly spawns a secondary Chromium process layered invisibly beneath your active application window.
 
-### The AHK Background Hook
-When `AHK_StartSmartFetch` triggers, BingeKit invokes a non-visible GUI Window, navigates to the target URL, appends the JavaScript query wrapper, hooks `AddScriptToExecuteOnDocumentCreatedAsync`, and resolves a `COM` Promise bridging the payload.
+### The Lifecycle of a SmartFetch
 
-### Authoring the JS Extraction Payload
-The injected Javascript evaluates globally in the hidden window. It *must* return a `Promise` resolving to either stringified JSON or a primitive to properly jump the COM bridge.
+1. **Invocation**: You fire the async command: `ahk.StartSmartFetch(url, actionJs, "callback-123")`
+2. **Launch**: AHK creates the invisible GUI instance natively and navigates Chromium to the URL.
+3. **Execution Pipeline**: `actionJs` is injected globally using `AddScriptToExecuteOnDocumentCreatedAsync`.
+4. **Resolution**: Your custom logic runs asynchronously mapping the DOM until you securely call the `resolve` primitive.
+5. **Callback**: AHK immediately kills the hidden browser window to free up RAM, and executes a targeted `postMessage` globally on the React window pushing `SF_RESULT`.
+
+### Practical Scraper Example
+
+If a site requires Javascript to render an episode grid, or sits behind a 5-second protective Cloudflare interstitial challenge:
 
 ```javascript
-// Example Payload: stringified extraction logic
-const myJS = `
+// Step 1: Write Custom Extraction Logic (To be injected off-screen)
+const scraperJS = `
 return new Promise(async (resolve) => {
-    // Wait for the dynamic React DOM to render the list
+    // A. Wait for any Cloudflare checking UI elements to disappear
+    while (document.querySelector('.cf-browser-verification')) {
+        await new Promise(r => setTimeout(r, 1000));
+    }
+    
+    // B. Wait for a specific streaming API to fire inside Chromium's network panel
     await window.BK_WAIT_XHR('api/v1/episodes');
     
-    // Harvest elements
-    const epNodes = document.querySelectorAll('.episode-item');
-    const result = Array.from(epNodes).map(ep => ({
+    // C. Navigate DOM
+    const nodes = document.querySelectorAll('.episode-item');
+    const result = Array.from(nodes).map(ep => ({
        title: ep.innerText,
        url: ep.getAttribute('href')
     }));
     
-    // Resolve back to BingeKit's Flow Engine securely
+    // D. Safely return back across the AHK bridge!
     resolve(JSON.stringify(result)); 
 });
 `;
+
+// Step 2: Ensure your React component prepares the catch basin
+window.addEventListener("message", (e) => {
+    let payload = JSON.parse(e.data);
+    if (payload.callbackId === "my-scraper-id") {
+       console.log("Scraped from off-screen:", payload.data);
+    }
+});
+
+// Step 3: Trigger the execution natively!
+window.chrome.webview.hostObjects.sync.ahk.StartSmartFetch(
+    "https://complex-react-site.com", 
+    scraperJS, 
+    "my-scraper-id"
+);
 ```
 
-### Starting SmartFetch from React (IPC)
-Because this action takes time, React does not block waiting for the result. Instead, you invoke the call assigning a unique `callbackId`, and catch the return on the global asynchronous message bus.
+> [!TIP]
+> **Use Case Context:** `SmartFetch` executes precisely like an automated Puppeteer script, seamlessly passing browser authentication challenges.
+
+## Extreme Speed: `RawFetchHTML`
+
+If you are just parsing a simple XML feed, basic tags from Wikipedia, or non-SPA applications, `SmartFetch` is too slow because it waits for complete layout painting (~1-2 seconds per cycle).
+
+`RawFetchHTML` leverages native Windows WinHTTP Requests to pull the text array natively instantaneously directly to memory (~30 milliseconds).
 
 ```javascript
-// 1. Establish the Event Listener in your React Component
-useEffect(() => {
-    const handleHostMessage = (event) => {
-        try {
-            const payload = JSON.parse(event.data);
-            if (payload.type === "SF_RESULT" && payload.callbackId === "my-unique-fetch-1") {
-                console.log("Extraction Results:", JSON.parse(payload.data));
-            }
-        } catch (e) { }
-    };
-    window.addEventListener("message", handleHostMessage);
-    return () => window.removeEventListener("message", handleHostMessage);
-}, []);
-
-// 2. Trigger the Fetch securely from the UI
-const targetUrl = "https://complex-react-site.com";
-const callbackId = "my-unique-fetch-1";
-window.chrome.webview.hostObjects.sync.ahk.StartSmartFetch(targetUrl, myJS, callbackId);
-```
-
-## 2. RawFetchHTML
-
-If the site purely delivers structured HTML (e.g., Wikipedia), `<meta>` tags, or static SSR bodies, absolute peak performance is achieved utilizing `RawFetchHTML`.
-
-It utilizes `WinHttpRequest` inside AHK to bypass the Chromium rendering engine entirely.
-- **Execution Speed**: ~30ms (compared to ~1.2s for traditional `SmartFetch`).
-- **Use Case**: Parsing JSON script blocks embedded in the HTML body `(\<script type="application\/json"\>)`, or evaluating Regex maps on static markup.
-- **Limitation**: Cannot process Javascript frameworks or defeat Cloudflare. Returns exactly what network curl produces.
-
-Because `RawFetchHTML` is so fast, it is executed *synchronously* through the COM bridge:
-```javascript
-// Triggers instantly and blocks until returned.
-const htmlBody = window.chrome.webview.hostObjects.sync.ahk.RawFetchHTML("https://anidb.net");
-const regex = /<meta property="og:title" content="(.*?)"/i;
-const title = htmlBody.match(regex)[1];
+// Unlike SmartFetch, RawFetch is perfectly synchronous and blazing fast.
+const htmlBody = window.chrome.webview.hostObjects.sync.ahk.RawFetchHTML("https://en.wikipedia.org");
 ```
