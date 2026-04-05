@@ -208,6 +208,15 @@ export const DashboardView = () => {
                       const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
                       const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(baseQuery));
                       try {
+                        // EXPLICIT REQUIREMENT: Enforce preflight authentication checks for EVERY search
+                        // so we never accidentally fetch unauthenticated pages!
+                        try {
+                           const { ensureAuthForPlugin } = await import('../../lib/authHelper');
+                           await ensureAuthForPlugin(plugin, credentials);
+                        } catch(authErr) {
+                           console.error(`[Search] Background Auth Preflight failed for ${opName}:`, authErr);
+                        }
+                        
                         const isFormSearch = !!cfg.isFormSearch;
                         const encodedExtras = JSON.stringify(cfg.formExtraActions || []);
 

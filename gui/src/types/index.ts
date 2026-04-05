@@ -155,6 +155,8 @@ export interface SitePlugin extends BaseMetadata {
   baseUrl: string;
   auth: {
     loginUrl: string;
+    loginUrlJs?: string;
+    captchaSel?: string;
     userSel: string;
     passSel: string;
     submitSel: string;
@@ -163,6 +165,7 @@ export interface SitePlugin extends BaseMetadata {
     encryptCreds: boolean;
     checkAuthJs?: string;
     customLoginJs?: string;
+    skipSel?: string;
   };
   search: {
     urlFormat: string;
@@ -188,6 +191,7 @@ export interface SitePlugin extends BaseMetadata {
   networkBlockers?: string[];
   inlineBlockers?: string[];
   redirectBlockers?: string[];
+  elementBlockers?: string;
   enabled?: boolean;
   details: {
     titleSel: string;
@@ -236,12 +240,13 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   updateUrl: '',
   icon: '',
   baseUrl: 'https://',
-  auth: { loginUrl: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '', customLoginJs: '' },
+  auth: { loginUrl: '', loginUrlJs: '', captchaSel: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '', customLoginJs: '', skipSel: '' },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [], costSel: '', rentBuySel: '', priceExtractJs: '' },
   additionalSearches: [],
   networkBlockers: [],
   inlineBlockers: [],
   redirectBlockers: [],
+  elementBlockers: '',
   enabled: true,
   details: { titleSel: '', descSel: '', castSel: '', ratingSel: '', posterSel: '', similarSel: '' },
   media: { seasonSel: '', epSel: '', deepJs: '' },

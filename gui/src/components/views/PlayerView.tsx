@@ -10,6 +10,7 @@ import _Editor from 'react-simple-code-editor';
 const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
 import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
+import { getAutoLoginScript } from '../../lib/authHelper';
 
 const PlayerSlot: React.FC<{ tabId: string, isVisuallyActive: boolean, className?: string }> = ({ tabId, isVisuallyActive, className }) => {
   const slotRef = React.useRef<HTMLDivElement>(null);
@@ -182,11 +183,35 @@ export const PlayerView = () => {
 
   }, [isFocusedMode, activeTab, playerStatus, url, plugins, playerNavSignal]);
 
+  const initiatorId = React.useRef(Math.random().toString());
+
+  // Setup authentication synchronization listener
+  React.useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('BingeKitAuthSync');
+      bc.onmessage = (ev) => {
+          if (ev.data && ev.data.hostname && ev.data.initiator !== initiatorId.current) {
+             try {
+                const currentH = new URL(url).hostname;
+                if (currentH === ev.data.hostname || currentH.includes(ev.data.hostname) || ev.data.hostname.includes(currentH)) {
+                    if (window.confirm(`A new login session was established for ${ev.data.hostname}.\n\nWould you like to refresh this window right now to apply the authenticated session?`)) {
+                        ahk.asyncCall('UpdatePlayerUrl', url);
+                    }
+                }
+             } catch(e) {}
+          }
+      };
+    } catch(e) {}
+    return () => { if(bc) bc.close(); };
+  }, [url]);
+
   React.useEffect(() => {
     if (activeTab !== 'player') return;
     const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
     const { ignoreVideoUrls, ignoreVideoCSS } = plugin?.player || {};
-    ahk.asyncCall('InjectJS', `window.top.postMessage({ type: 'bk-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")} }, '*');`);
+    const elements = plugin?.elementBlockers || "";
+    ahk.asyncCall('InjectJS', `window.top.postMessage({ type: 'bk-ignore-cfg', urls: ${JSON.stringify(ignoreVideoUrls || "")}, css: ${JSON.stringify(ignoreVideoCSS || "")}, elements: ${JSON.stringify(elements)} }, '*');`);
   }, [url, activeTab, plugins]);
 
   React.useEffect(() => {
@@ -435,55 +460,74 @@ export const PlayerView = () => {
               <span title={authStatus === 'loggedIn' ? 'Logged In' : 'Not Logged In'} className={`w-2 h-2 rounded-full ${authStatus === 'loggedIn' ? 'bg-emerald-500' : 'bg-red-500 animate-pulse'}`} />
             </div>
           )}
-          <button
-            title="Inject Login Credentials"
-            onClick={async () => {
-              const plugin = plugins.find(p => url.includes(p.baseUrl));
-              if (plugin && plugin.auth.usernameValue && plugin.auth.passwordValue) {
-                const js = `
-                            (function() {
-                              const userEl = document.querySelector("${plugin.auth.userSel}");
-                              const passEl = document.querySelector("${plugin.auth.passSel}");
-                              if (userEl) {
-                                userEl.value = "${plugin.auth.usernameValue}";
-                                userEl.dispatchEvent(new Event('input', { bubbles: true }));
-                              }
-                              if (passEl) {
-                                passEl.value = "${plugin.auth.passwordValue}";
-                                passEl.dispatchEvent(new Event('input', { bubbles: true }));
-                              }
-                              const submitEl = document.querySelector("${plugin.auth.submitSel}");
-                              if (submitEl) submitEl.click();
-                            })();
-                          `;
-                ahk.call('InjectJS', js);
-              } else {
-                // Try general credentials
-                const hostname = new URL(url).hostname;
-                const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
-                if (cred) {
-                  // Basic injection for standard forms if no plugin matches
-                  const plainPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64);
-                  const parsedPass = plainPass ? plainPass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
-                  const js = `
-                              (function() {
-                                const pass = "${parsedPass}";
-                                const userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"]');
-                                const passInputs = document.querySelectorAll('input[type="password"]');
-                                if (userInputs.length > 0) { userInputs[0].value = "${cred.username}"; userInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
-                                if (passInputs.length > 0) { passInputs[0].value = pass; passInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
-                              })();
-                            `;
-                  ahk.asyncCall('InjectJS', js);
-                } else {
-                  window.showToast('No matching plugin or saved credentials found.', 'error');
+          {authStatus !== 'loggedIn' && (
+            <button
+              title="Inject Login Credentials"
+              onClick={async () => {
+                try {
+                  const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+                  
+                  if (plugin) {
+                    // We must use the exact robust background logic
+                    const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
+                    const cred = credentials.find(c => {
+                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
+                    });
+                    
+                    if (!cred) {
+                      window.showToast("No credentials found for this plugin's domains.", "error");
+                      return;
+                    }
+                    
+                    window.showToast("Initiating Smart Auto-Login Verification...", "info");
+                    
+                    // Do the robust SmartFetch sync
+                    const { ensureAuthForPlugin } = await import('../../lib/authHelper');
+                    const authValid = await ensureAuthForPlugin(plugin, credentials);
+                    
+                    if (authValid) {
+                       window.showToast("Logged in successfully! Syncing session across active windows...", "success");
+                       try {
+                           const bc = new BroadcastChannel('BingeKitAuthSync');
+                           bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
+                           bc.close();
+                       } catch(e) {}
+                       setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); // Reload tab
+                    } else {
+                       window.showToast("Auto-login completed, but could not confirm success.", "warning");
+                    }
+                  } else {
+                    // Try general credentials if no plugin matched
+                    const hostname = new URL(url).hostname;
+                    const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
+                    if (cred) {
+                      const plainPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64);
+                      const parsedPass = plainPass ? plainPass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
+                      const js = `
+                                  (function() {
+                                    const pass = "${parsedPass}";
+                                    const userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"]');
+                                    const passInputs = document.querySelectorAll('input[type="password"]');
+                                    if (userInputs.length > 0) { userInputs[0].value = "${cred.username || ""}"; userInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+                                    if (passInputs.length > 0) { passInputs[0].value = pass; passInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+                                  })();
+                                `;
+                      ahk.asyncCall('InjectJS', js);
+                      window.showToast("Injected basic credential fallback.", "info");
+                    } else {
+                      window.showToast('No matching plugin or saved credentials found.', 'error');
+                    }
+                  }
+                } catch(err: any) {
+                  window.showToast("Silent UI Error: " + (err.message || String(err)), "error");
+                  console.error("Auto-Login UI Click Exception:", err);
                 }
-              }
-            }}
-            className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0"
-          >
-            <KeyRound size={14} /> Auto-Login
-          </button>
+              }}
+              className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0"
+            >
+              <KeyRound size={14} /> Auto-Login
+            </button>
+          )}
         </div>
       )}
 

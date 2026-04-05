@@ -282,6 +282,44 @@
         } else if (e.data && e.data.type === 'bk-ignore-cfg') {
             window._svIgnoreVideoUrls = e.data.urls;
             window._svIgnoreVideoCSS = e.data.css;
+            window._svElementBlockers = e.data.elements;
+            
+            if (window._svElementBlockers) {
+                if (!window._svElBlocker) {
+                    window._svElBlocker = new MutationObserver((mutations) => {
+                        if (!window._svElementBlockers) return;
+                        for (let i = 0; i < mutations.length; i++) {
+                            const nodes = mutations[i].addedNodes;
+                            for (let j = 0; j < nodes.length; j++) {
+                                const n = nodes[j];
+                                if (n.nodeType === 1) {
+                                    if (n.matches && n.matches(window._svElementBlockers)) {
+                                        n.remove();
+                                    } else if (n.querySelectorAll) {
+                                        const bad = n.querySelectorAll(window._svElementBlockers);
+                                        for (let k = 0; k < bad.length; k++) bad[k].remove();
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    if (document.documentElement) {
+                        window._svElBlocker.observe(document.documentElement, { childList: true, subtree: true });
+                    } else {
+                         document.addEventListener('DOMContentLoaded', () => {
+                             if (window._svElBlocker) window._svElBlocker.observe(document.documentElement, { childList: true, subtree: true });
+                         });
+                    }
+                }
+                // Initial scan
+                if (document.body) {
+                    try { document.querySelectorAll(window._svElementBlockers).forEach(el => el.remove()); } catch(err){}
+                }
+            } else if (!window._svElementBlockers && window._svElBlocker) {
+                window._svElBlocker.disconnect();
+                window._svElBlocker = null;
+            }
+
             Array.from(document.querySelectorAll('iframe')).forEach(f => {
                 try { f.contentWindow?.postMessage(e.data, '*'); } catch (err) { }
             });

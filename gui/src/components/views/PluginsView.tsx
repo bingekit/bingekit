@@ -653,6 +653,25 @@ export const PluginsView = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs text-zinc-500 mb-1.5 flex items-center gap-2">
+                      Element Blockers (CSS Selectors)
+                    </label>
+                    <p className="text-[10px] text-zinc-500 mb-2">Comma separated CSS selectors (e.g. <code className="bg-zinc-800 px-1 rounded">iframe, .ad-banner, #popup</code>). Matching elements are instantly removed from the DOM via MutationObserver.</p>
+                    <textarea
+                      value={editingPlugin.elementBlockers || ""}
+                      placeholder="iframe, .ad-container..."
+                      onChange={(e) =>
+                        updateEditingPlugin(
+                          "root",
+                          "elementBlockers",
+                          e.target.value
+                        )
+                      }
+                      rows={2}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs text-zinc-500 mb-1.5">
                       Site-Specific Blocked Download Extensions
                     </label>
@@ -786,6 +805,41 @@ export const PluginsView = () => {
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs text-zinc-500">
+                          Dynamic Login URL JS (Optional)
+                        </label>
+                        <button
+                          onClick={() => {
+                            setIdeTempVal(editingPlugin.auth.loginUrlJs || "");
+                            setIdeModalData({
+                              title: "Dynamic Login URL JS",
+                              value: editingPlugin.auth.loginUrlJs || "",
+                              mode: "javascript",
+                              onChange: (val) => updateEditingPlugin("auth", "loginUrlJs", val)
+                            });
+                          }}
+                          className="text-[10px] bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 px-2 py-0.5 rounded transition-colors flex items-center gap-1"
+                        >
+                          <Code size={12} /> IDE Editor
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mb-2">Evaluates on Base URL to dynamically return a login URL (useful if login URLs change often). e.g. <code className="bg-zinc-800 px-1 rounded">return document.querySelector('#login-link').href;</code></p>
+                      <textarea
+                        value={editingPlugin.auth.loginUrlJs || ""}
+                        placeholder="return 'https://...';"
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "loginUrlJs",
+                            e.target.value,
+                          )
+                        }
+                        rows={2}
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs text-zinc-500">
                           Check Auth JS (Returns true if logged in)
                         </label>
                         <button
@@ -848,8 +902,46 @@ export const PluginsView = () => {
                             e.target.value,
                           )
                         }
-                        rows={3}
+                        rows={4}
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5 flex items-center gap-2">
+                        Captcha / Bot Verification Selector
+                      </label>
+                      <p className="text-[10px] text-zinc-500 mb-2">CSS Selector. If present during login, the hidden SmartFetch browser will automatically show so the user can manually solve it.</p>
+                      <input
+                        type="text"
+                        value={editingPlugin.auth.captchaSel || ""}
+                        placeholder="#captcha, .g-recaptcha"
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "captchaSel",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5 flex items-center gap-2">
+                        Interstitial Bypass Selector (Optional)
+                      </label>
+                      <p className="text-[10px] text-zinc-500 mb-2">CSS Selector for buttons like "Not Now" or "Skip" to bypass OAUTH ad-screens. E.g. <code className="bg-zinc-800 px-1 rounded">#skip-button</code>. Adds to default heuristics.</p>
+                      <input
+                        type="text"
+                        value={editingPlugin.auth.skipSel || ""}
+                        placeholder="a#skip, button.dismiss..."
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "skipSel",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
                       />
                     </div>
                     <div className="grid grid-cols-3 gap-4">

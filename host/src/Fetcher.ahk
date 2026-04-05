@@ -86,6 +86,10 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         global MainGuis, WebViewSettings, WVs
         hiddenGui := Gui("-Caption +ToolWindow -Resize +Owner" activeWindow, "SmartFetch Debug Window")
         hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
+        
+        hiddenGui.OnEvent("Size", (guiObj, minMax, w, h) => (
+            minMax = -1 ? 0 : hiddenWV.Move(0, 0, w, h)
+        ))
 
         global AboutConfig_ShowFetcher
         slotIndex := 0
@@ -108,7 +112,15 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         hostObj := {
             ReturnData: (data, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
             ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
-            ShowFetcherWindow: (*) => (WinSetTransparent("Off", hiddenGui), hiddenGui.Show("w800 h600 Center"))
+            ShowFetcherWindow: (*) => (
+                WinSetTransparent("Off", hiddenGui),
+                hiddenGui.Title := "ATTENTION REQUIRED - BingeKit",
+                hiddenGui.Opt("+Caption -ToolWindow +Resize"),
+                hiddenGui.Show("w1000 h800 Center"),
+                hiddenWV.Move(0, 0, 1000, 800),
+                SoundPlay("*-1"),
+                WinActivate("ahk_id " hiddenGui.Hwnd)
+            )
         }
 
         FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
@@ -158,21 +170,23 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         wrapperJs .= "  return _origSend.apply(this, arguments); "
         wrapperJs .= " };"
         wrapperJs .= "}`n"
-        wrapperJs .= "window.addEventListener('DOMContentLoaded', function() {`n"
+        wrapperJs .= "function __runSmartFetch() {`n"
+        wrapperJs .= "    if (window.__sfRan) return; window.__sfRan = true;`n"
+        wrapperJs .= "    console.log('[SmartFetch Debug] __runSmartFetch initialized.');`n"
         wrapperJs .= "    window._svBotInterval = setInterval(function() {`n"
         wrapperJs .= "        try {`n"
         wrapperJs .= "            var t = document.title || '';`n"
         wrapperJs .= "            if(t.includes('Just a moment') || t.includes('Attention Required') || document.querySelector('.cf-browser-verification, #cf-wrapper, #challenges')) {`n"
         wrapperJs .= "                clearInterval(window._svBotInterval);`n"
+        wrapperJs .= "                window._svBotDetected = true;`n"
         wrapperJs .= "                window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e));`n"
         wrapperJs .= "            }`n"
         if (botCheckJs != "") {
-             wrapperJs .= "            try { var _svBotRes = (function() {" botCheckJs "`n})(); if(_svBotRes) { clearInterval(window._svBotInterval); window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e)); } } catch(e) {}`n"
+             wrapperJs .= "            try { var _svBotRes = (function() {" botCheckJs "`n})(); if(_svBotRes) { clearInterval(window._svBotInterval); window._svBotDetected = true; window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e)); } } catch(e) {}`n"
         }
         wrapperJs .= "        } catch(e) {}`n"
         wrapperJs .= "    }, 1000);`n"
-        wrapperJs .= "    console.log('[SmartFetch Debug] DOMContentLoaded triggered. Waiting 1000ms for idle...');`n"
-        wrapperJs .= "    requestIdleCallback(()=>setTimeout(function() {`n"
+        wrapperJs .= "    setTimeout(function() {`n"
         wrapperJs .= "        console.log('[SmartFetch Debug] Executing your actionJs...');`n"
         wrapperJs .= "        try {`n"
         wrapperJs .= "            var result = (function() { " actionJs "`n })();`n"
@@ -180,23 +194,24 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         wrapperJs .= "            if (result instanceof Promise) {`n"
         wrapperJs .= "                console.log('[SmartFetch Debug] Awaiting promise result...');`n"
         wrapperJs .= "                result.then(res => {`n"
-        wrapperJs .= "                    console.log('[SmartFetch Debug] Promise resolved. Transmitting back to AHK...', res);`n"
+        wrapperJs .= "                    console.log('[SmartFetch Debug] Promise resolved. Transmitting back to AHK...');`n"
         wrapperJs .= "                    window.chrome.webview.hostObjects." hostObjName ".ReturnData(JSON.stringify(res)).catch(e => console.error('[SmartFetch Debug] COM Transit Error:', e));`n"
         wrapperJs .= "                }).catch(e => {`n"
         wrapperJs .= "                    console.error('[SmartFetch Debug] Promise rejected:', e);`n"
-        wrapperJs .= "                    window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(e.message||e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
+        wrapperJs .= "                    window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(typeof e === 'object' && e !== null && e.message ? e.message : e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
         wrapperJs .= "                });`n"
         wrapperJs .= "            } else {`n"
         wrapperJs .= "                var jsonStr = typeof result === 'string' ? result : JSON.stringify(result);`n"
-        wrapperJs .= "                console.log('[SmartFetch Debug] Transmitting synchronous result back to AHK...', jsonStr);`n"
+        wrapperJs .= "                console.log('[SmartFetch Debug] Transmitting synchronous result...');`n"
         wrapperJs .= "                window.chrome.webview.hostObjects." hostObjName ".ReturnData(jsonStr).catch(e => console.error('[SmartFetch Debug] COM Transit Error:', e));`n"
         wrapperJs .= "            }`n"
         wrapperJs .= "        } catch(e) {`n"
         wrapperJs .= "            console.error('[SmartFetch Debug] Exception execution crashed:', e);`n"
-        wrapperJs .= "            window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(e.message||e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
+        wrapperJs .= "            window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(typeof e === 'object' && e !== null && e.message ? e.message : e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
         wrapperJs .= "        }`n"
-        wrapperJs .= "    }, 1500));`n"
-        wrapperJs .= "});`n"
+        wrapperJs .= "    }, 1000);`n"
+        wrapperJs .= "}`n"
+        wrapperJs .= "if (document.readyState === 'loading') { window.addEventListener('DOMContentLoaded', __runSmartFetch); } else { __runSmartFetch(); }`n"
 
         hiddenWV.AddScriptToExecuteOnDocumentCreatedAsync(wrapperJs)
 
