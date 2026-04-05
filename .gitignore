@@ -23,3 +23,4 @@ error*
 .vscode/
 .vscode/settings.json
 host/gui/*
+appHash.ahk
