@@ -6,7 +6,7 @@ BINGEKIT_Version := "0.0.9"
 ;! WEBVIEW RESOURCES
 ;@Ahk2Exe-AddResource Lib\32bit\WebView2Loader.dll, 32bit\WebView2Loader.dll
 ;@Ahk2Exe-AddResource Lib\64bit\WebView2Loader.dll, 64bit\WebView2Loader.dll
-;;@Ahk2Exe-SetMainIcon favicon.ico
+;@Ahk2Exe-SetMainIcon playlogo.ico
 
 ;! RESOURCES
 ;@Ahk2Exe-AddResource gui\index.html, gui\index.html

@@ -28,6 +28,9 @@ EnsureWebView2Installed()
 
 #SingleInstance Off
 
+if A_IsCompiled
+    A_IconHidden := true
+
 if (!A_IsCompiled) {
     DetectHiddenWindows True
     SetTitleMatchMode 1
