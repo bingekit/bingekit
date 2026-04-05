@@ -98,11 +98,20 @@ export function usePluginsState(
       }
     });
   };
-
   // Sync payload to AHK (Runs on script/plugin changes or URL changes)
   useEffect(() => {
     const activeScripts = userscripts.filter(s => s.enabled);
     let payload = '';
+
+    const globalCss = `
+html {
+    background: var(--theme-mainBg);
+    color: var(--theme-textMain);
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+::selection {
+    background: var(--theme-accent);
+}`;
 
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs) || Object.keys(theme).length > 0) {
       payload = `
@@ -155,8 +164,8 @@ export function usePluginsState(
               tStyle.id = 'bk-theme-injection';
               target.appendChild(tStyle);
             }
-            if (tStyle.innerHTML !== \`:root { \${themeVars} }\`) {
-              tStyle.innerHTML = \`:root { \${themeVars} }\`;
+            if (tStyle.innerHTML !== \`:root { \${themeVars} }${globalCss}\`) {
+              tStyle.innerHTML = \`:root { \${themeVars} }${globalCss}\`;
             }
           }
 
