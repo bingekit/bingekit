@@ -22,7 +22,7 @@ if !DirExist(BuildDir) {
 
 ; Run frontend build
 TrayTip("Running Vite Build...", "BingeKit Build")
-AppDir := A_ScriptDir "\app"
+AppDir := A_ScriptDir "\gui"
 if DirExist(AppDir) {
     RunWait("bun build.js", AppDir, "Hide")
 }
