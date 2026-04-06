@@ -209,16 +209,23 @@ export const PlayerView = () => {
   // Live Auto-Login Session Nav-Injection Bridging handled natively in global.js
 
   React.useEffect(() => {
-      const handleLiveMsg = (e: any) => {
-         if (e.data && e.data.type === 'bk-live-login-success') {
-             window.showToast("Live Auto-Login Completed Successfully!", "success");
+      const handleLiveMsg = async (e: any) => {
+         if (e.data && (e.data.type === 'bk-live-login-success' || e.data.type === 'bk-live-login-fail')) {
+             const targetDomain = e.data.domain;
+             if (e.data.type === 'bk-live-login-success') {
+                 window.showToast(`Live Auto-Login Completed Successfully!`, "success");
+                 try {
+                    const bc = new BroadcastChannel('BingeKitAuthSync');
+                    bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
+                    bc.close();
+                 } catch(err) {}
+                 setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); 
+             }
+             if (targetDomain) {
+                 ahk.asyncCall('CacheSet', 'bkLiveLogin_' + targetDomain, '');
+             }
+             // For legacy cleanup
              ahk.asyncCall('CacheSet', '__bkLiveLoginScript', '');
-             try {
-                const bc = new BroadcastChannel('BingeKitAuthSync');
-                bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
-                bc.close();
-             } catch(e) {}
-             setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); 
          }
       };
       window.addEventListener('message', handleLiveMsg);
@@ -589,21 +596,51 @@ export const PlayerView = () => {
                           `;
                       }
                       
+                      const tgtDomainStr = String(cred.domain || "");
                       const wrappedJs = `
+                         // Immediately abort if navigation left the target credential scope
+                         if (window.location.hostname.includes('localhost') || window.location.href.startsWith('about:blank')) {
+                             window.top.postMessage({ type: 'bk-live-login-fail', domain: ${JSON.stringify(tgtDomainStr)} }, '*');
+                             return;
+                         }
+                         
+                         const tgtDomain = ${JSON.stringify(tgtDomainStr)};
+                         const curHost = window.location.hostname.toLowerCase();
+                         if (tgtDomain && !curHost.includes(tgtDomain) && !curHost.includes('login') && !curHost.includes('auth') && !curHost.includes('account') && !curHost.includes('signin') && !curHost.includes('oauth')) {
+                             window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                             return;
+                         }
+
                          ${waitForLinkJs}
-                         (async function() {
+                         
+                         // Prevent parallel evaluation racing using Web Locks!
+                         if (window.navigator && window.navigator.locks) {
+                             window.navigator.locks.request("bk-live-setup-" + tgtDomain, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+                                 if (!lock) { console.log("[AutoLogin] Another parallel tab holds the setup lock for " + tgtDomain + ". Yielding."); return; }
+                                 await executeLoginFlow();
+                             }).catch(() => executeLoginFlow());
+                         } else {
+                             executeLoginFlow();
+                         }
+
+                         async function executeLoginFlow() {
                               if (window._bkLiveLoginHooked) return;
                               window._bkLiveLoginHooked = true;
                               const loginTask = async function() { ${loginJs} };
                               try {
                                  const result = await loginTask();
                                  if (result) {
-                                    window.top.postMessage({ type: 'bk-live-login-success' }, '*');
+                                    window.top.postMessage({ type: 'bk-live-login-success', domain: tgtDomain }, '*');
+                                 } else {
+                                    window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
                                  }
-                              } catch(e) {}
-                         })();
+                              } catch(e) {
+                                 window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                              }
+                         }
                       `;
-                      ahk.asyncCall('CacheSet', '__bkLiveLoginScript', wrappedJs);
+                      
+                      ahk.asyncCall('CacheSet', 'bkLiveLogin_' + tgtDomainStr, wrappedJs);
                       
                       ahk.asyncCall('UpdatePlayerUrl', targetUrl);
                   } else {

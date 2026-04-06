@@ -111,6 +111,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 CacheSet: AHK_CacheSet,
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
+                RawFetchHTML: AHK_RawFetchHTML,
                 AddNetworkFilter: AHK_AddNetworkFilter,
                 GetSiteBlockers: AHK_GetSiteBlockers,
                 TogglePiP: AHK_TogglePiP.Bind(windowId, id),

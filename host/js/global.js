@@ -128,11 +128,19 @@
             "Referrer": document.referrer
         });
 
-        const liveJs = window.ahk.CacheGet("__bkLiveLoginScript");
-        if (liveJs && liveJs !== "") {
-            console.log("[BingeKit] Resuming persistent Live Setup task block from Cache...");
-            try { eval(liveJs); } catch (e) { console.error("[BingeKit] Live Setup evaluation error:", e); }
-        }
+        try {
+            const listRaw = window.chrome.webview.hostObjects.sync.ahk.CacheList("bkLiveLogin_");
+            if (listRaw && listRaw !== "[]" && listRaw !== "") {
+                const keys = JSON.parse(listRaw);
+                for (const k of keys) {
+                    const payload = window.chrome.webview.hostObjects.sync.ahk.CacheGet(k);
+                    if (payload && payload !== "") {
+                        console.log(`[BingeKit] Resuming persistent Live Setup task block for ${k}...`);
+                        try { eval(payload); } catch (e) { console.error(`[BingeKit] Live Setup expr error for ${k}:`, e); }
+                    }
+                }
+            }
+        } catch (e) { console.error("[BingeKit] Failed to fetch Live Setup cache keys:", e); }
     });
 
     const bkParseM3U8Qualities = (txt, baseUrl) => {

@@ -17,6 +17,7 @@ This documentation has been structured linearly. Depending on your goals, choose
 
 ### Automation & Scraping Systems
 - 🕵️ [**The Background Fetcher**](smartfetch.md) — Deep dive into `SmartFetch` and `RawFetchHTML`. Learn how to spin up invisible browsers to scrape dynamic SPAs or defeat Cloudflare without dropping frames.
+- 🔐 [**Auto-Authentication**](auto_authentication.md) — The architecture of "Live Setup" and "SmartFetch" logins. Explains physical file caching isolation, cross-tab Web Locks, and self-destructing persistent injections.
 - 🎬 [**Site Plugins**](plugins.md) — The lifecycle of a domain plugin. How BingeKit intercepts traffic, blocks ads, injects styles, and deeply scans video elements on external streaming sites.
 
 ### Scripting & Customization

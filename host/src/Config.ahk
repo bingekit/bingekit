@@ -208,6 +208,29 @@ AHK_CacheGet(key) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
+AHK_CacheList(prefix := "") {
+    global WorkspaceDir
+    dirPath := WorkspaceDir "\cache"
+    if !DirExist(dirPath)
+        return "[]"
+    
+    files := []
+    Loop Files, dirPath "\" prefix "*.txt"
+    {
+        name := StrReplace(A_LoopFileName, ".txt", "")
+        files.Push(name)
+    }
+    
+    result := "["
+    for k, v in files {
+        if (k > 1)
+            result .= ","
+        result .= '"' StrReplace(v, '"', '\"') '"'
+    }
+    result .= "]"
+    return result
+}
+
 AHK_CacheClear(*) {
     global WorkspaceDir
     if !DirExist(WorkspaceDir "\cache")
