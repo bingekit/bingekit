@@ -17,6 +17,7 @@ import { LibraryView } from '../views/library/LibraryView';
 import { ExploreView } from '../views/explore/ExploreView';
 import { ExtensionsView } from '../views/plugins/ExtensionsView';
 import { DownloadsView } from '../views/DownloadsView';
+import { DocsView } from '../views/DocsView';
 
 declare global {
   interface Window {
@@ -156,6 +157,10 @@ export const MainLayout = () => {
             {(activeTab === 'settings' || activeTab === 'config') && <SettingsView />}
             <div className={`w-full h-full absolute inset-0 ${activeTab === 'player' ? 'z-0' : 'pointer-events-none opacity-0 z-[-1]'}`}>
               <PlayerView />
+            </div>
+            <div className={`w-full h-full absolute inset-0 ${activeTab === 'docs' ? 'z-10' : 'pointer-events-none opacity-0 z-[-1]'}`} style={{ backgroundColor: theme.mainBg }}>
+              {/* Only render DocsView if it has been activated once to save resources, but keep it mounted. Actually it's simple enough to just render it */}
+              <DocsView />
             </div>
           </div>
         </div>

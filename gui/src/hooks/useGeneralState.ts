@@ -22,7 +22,7 @@ export function useGeneralState() {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config' | 'docs' | 'explore' | 'library' | 'extensions'>('dashboard');
   const [activeSettingsTab, _setActiveSettingsTab] = useState<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>('general');
   const setActiveSettingsTab = (val: React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>) => {
     _setActiveSettingsTab(prev => {

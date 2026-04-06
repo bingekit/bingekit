@@ -1,5 +1,5 @@
 import React from 'react';
-import { Film, MonitorPlay, Compass, Bookmark, Download, Puzzle, Settings } from 'lucide-react';
+import { Film, MonitorPlay, Compass, Bookmark, Download, Puzzle, Settings, BookOpen } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { TooltipWrapper } from '../ui/TooltipWrapper';
 
@@ -76,6 +76,15 @@ export const Sidebar = () => {
               {pluginUpdateCount}
             </span>
           )}
+        </button>
+      </TooltipWrapper>
+
+      <TooltipWrapper text="Help & Docs">
+        <button
+          onClick={() => setActiveTab('docs')}
+          className={`relative p-2.5 rounded-xl transition-all duration-200 ${activeTab === 'docs' ? 'bg-indigo-500/10 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-900'}`}
+        >
+          <BookOpen size={20} strokeWidth={1.5} />
         </button>
       </TooltipWrapper>
 

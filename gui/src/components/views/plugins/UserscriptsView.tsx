@@ -189,7 +189,7 @@ export const UserscriptsView = () => {
                       fontSize: 14,
                       minHeight: '100%',
                     }}
-                    className="bg-transparent text-zinc-300 transition-colors focus-within:bg-zinc-900/30 w-full h-full"
+                    className="bg-transparent text-zinc-300 transition-colors w-full h-full"
                     textareaClassName="focus:outline-none"
                   />
                 </div>

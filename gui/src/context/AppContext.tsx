@@ -39,7 +39,7 @@ interface AppContextType {
   editingFlow: CustomFlow | null; setEditingFlow: React.Dispatch<React.SetStateAction<CustomFlow | null>>;
   userscripts: Userscript[]; setUserscripts: React.Dispatch<React.SetStateAction<Userscript[]>>;
   editingUserscriptId: string | null; setEditingUserscriptId: React.Dispatch<React.SetStateAction<string | null>>;
-  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config';
+  activeTab: 'dashboard' | 'player' | 'bookmarks' | 'watchlater' | 'plugins' | 'activity' | 'settings' | 'flows' | 'userscripts' | 'history' | 'discovery' | 'workspaces' | 'downloads' | 'config' | 'docs' | 'explore' | 'library' | 'extensions';
   setActiveTab: React.Dispatch<React.SetStateAction<any>>;
   activeSettingsTab: 'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced';
   setActiveSettingsTab: React.Dispatch<React.SetStateAction<'general' | 'appearance' | 'downloads' | 'privacy' | 'adblock' | 'advanced'>>;
@@ -75,7 +75,7 @@ interface AppContextType {
   redirectKeywords: Record<string, boolean>; setRedirectKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   inlineKeywords: Record<string, boolean>; setInlineKeywords: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   cssAdblockSelectors: Record<string, boolean>; setCssAdblockSelectors: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<void>;
+  runFlow: (flow: CustomFlow, initialUrl?: string) => Promise<any>;
   checkForUpdates: () => Promise<void>;
   handleNavigate: (e: React.FormEvent) => void;
   loadPlugins: () => void;
@@ -94,7 +94,7 @@ interface AppContextType {
   ctrlClickBackgroundTab: boolean; setCtrlClickBackgroundTab: React.Dispatch<React.SetStateAction<boolean>>;
   checkPluginUpdates: () => Promise<void>;
   isMultiTabEnabled: boolean; setIsMultiTabEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-  browserTabs: { id: string, url: string, inputUrl: string, title?: string }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string }[]>>;
+  browserTabs: { id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean }[]>>;
   activeBrowserTabId: string; setActiveBrowserTabId: React.Dispatch<React.SetStateAction<string>>;
   tilingMode: 'none' | 'split-hz' | 'split-vt' | 'grid'; setTilingMode: React.Dispatch<React.SetStateAction<'none' | 'split-hz' | 'split-vt' | 'grid'>>;
   navigateUrl: (targetUrl: string, inNewTab?: boolean, isBackground?: boolean) => void;
