@@ -872,13 +872,11 @@ export const PluginsView = () => {
                       />
                     </div>
                     <div className="flex items-center gap-2 mt-1">
-                      <input
-                        type="checkbox"
+                      <CustomCheckbox
                         checked={!!editingPlugin.auth.checkAuthOnSearch}
-                        onChange={(e) =>
-                          updateEditingPlugin("auth", "checkAuthOnSearch", e.target.checked)
+                        onChange={(c) =>
+                          updateEditingPlugin("auth", "checkAuthOnSearch", c)
                         }
-                        className="w-4 h-4 bg-zinc-900 border-zinc-800 rounded checked:bg-indigo-500"
                       />
                       <div className="flex flex-col">
                         <label className="text-xs text-zinc-300">
