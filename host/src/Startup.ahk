@@ -1,6 +1,47 @@
 ; Error handling / Splash loading checks
+MainNavigationStartingHandler(sender, args) {
+    global SplashStatus, SplashGui
+    if (SplashGui && SplashStatus) {
+        SplashStatus.Text := "NAVIGATING TO FRONTEND..."
+        Sleep(-1)
+    }
+}
+try WVs["main"].add_NavigationStarting(MainNavigationStartingHandler)
+
+MainSourceChangedHandler(sender, args) {
+    global SplashStatus, SplashGui
+    if (SplashGui && SplashStatus) {
+        SplashStatus.Text := "RESOLVING APPLICATION ROUTES..."
+        Sleep(-1)
+    }
+}
+try WVs["main"].add_SourceChanged(MainSourceChangedHandler)
+
+MainContentLoadingHandler(sender, args) {
+    global SplashStatus, SplashGui
+    if (SplashGui && SplashStatus) {
+        SplashStatus.Text := "DOWNLOADING BUNDLE AND ASSETS..."
+        Sleep(-1)
+    }
+}
+try WVs["main"].add_ContentLoading(MainContentLoadingHandler)
+
+MainDOMContentLoadedHandler(sender, args) {
+    global SplashStatus, SplashGui
+    if (SplashGui && SplashStatus) {
+        SplashStatus.Text := "INITIALIZING REACT COMPONENTS..."
+        Sleep(-1)
+    }
+}
+try WVs["main"].add_DOMContentLoaded(MainDOMContentLoadedHandler)
+
 MainNavigationCompletedHandler(sender, args) {
-    global SplashGui
+    global SplashGui, SplashStatus
+    if (SplashGui && SplashStatus) {
+        SplashStatus.Text := "WAITING FOR REACT FRAMEWORK READY SIGNAL..."
+        Sleep(-1)
+    }
+
     if (!args.IsSuccess && SplashGui) {
         errStatus := "Unknown Error: " args.WebErrorStatus
         if (args.WebErrorStatus != 9) {
@@ -18,12 +59,12 @@ CheckSplashTimeout() {
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
-        MsgBox("Critical Error: BingeKit UI did not respond within 10 seconds.`n`nThis usually indicates the frontend development server/URL is not available. Please verify the URL.", "BingeKit Timeout", 16)
+        MsgBox("Critical Error: BingeKit UI did not respond within 30 seconds.`n`nThis usually indicates the frontend development server/URL is not available or is taking too long to compile. Please verify the URL or try reloading.", "BingeKit Timeout", 16)
         ExitApp()
     }
 }
 ; Wait 30 seconds for React frontend to reply (Vite cold starts)
-SetTimer(CheckSplashTimeout, -10000)
+SetTimer(CheckSplashTimeout, -30000)
 
 FileMD5(filePath) {
     if !FileExist(filePath)

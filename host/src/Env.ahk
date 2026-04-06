@@ -44,7 +44,7 @@ InitEnvironment() {
             tempZoom := parsedConf["FetcherDefaultZoom"]
         if (parsedConf.Has("FetcherTimeout"))
             tempTimeout := parsedConf["FetcherTimeout"]
-            
+
         if (IsSet(tempSize) && Type(tempSize) == "Integer")
             fetcherDefaultSize := tempSize
         if (IsSet(tempZoom))
@@ -73,6 +73,7 @@ InitEnvironment() {
         "--deny-permission-prompts " .
         "--disable-domain-reliability " .
         "--disable-sync " .
+        "--proxy-bypass-list=`"<-loopback>;gui.localhost;interface.localhost;downloads.localhost;localhost`" " .
         "--IsSwipeNavigationEnabled=0 "
 
     if (disableGPU) {
