@@ -7,7 +7,7 @@ BingeKit requires your Plugins and Javascript extractors to return structured, i
 ## 1. Expected Object Types
 
 ### A. Search / Discovery Results
-When the background SmartFetcher evaluates a website search or processes the Discovery feed, the `SV_SEARCH_RESULT` array should consist of these objects:
+When the background SmartFetcher evaluates a website search or processes the Discovery feed, the `BK_SEARCH_RESULT` array should consist of these objects:
 
 ```typescript
 type SearchResult = {

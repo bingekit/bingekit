@@ -260,6 +260,49 @@ export interface FlowStep {
     | 'interact';
   params: Record<string, any>;
 }
+\`\`\`
+
+## JS Extraction Payloads
+When writing custom Javascript injection logic for Site Plugins (such as \`searchJs\`, or extraction routines), BingeKit requires your Javascript to definitively return these specifically typed objects so the React UI can parse them correctly. 
+
+### A. Search / Discovery Results
+When a Search flow evaluates Javascript, it expects an array of these objects (\`BK_SEARCH_RESULT\`):
+\`\`\`typescript
+type SearchResult = {
+  title: string;        // The display name of the Movie/Show (e.g. "Arcane")
+  url: string;          // The absolute HTTP URL to the media on the host site
+  image?: string;       // (Optional) Background poster or cover thumbnail URL
+  subtitle?: string;    // (Optional) Used to display "Ep. 5" or "1080p WebRip"
+  isFolder?: boolean;   // (Optional) Set 'true' if the URL leads to a series page, 'false' if direct video
+};
+\`\`\`
+
+### B. Tracked Episodes (Activity View)
+When a Tracking Flow executes periodically, your extraction logic must resolve to an array of these objects:
+\`\`\`typescript
+type TrackedEpisode = {
+  id: string;         // STRICT FORMATTING REQUIRED! e.g., 's01e05' or 'ep10'
+  title: string;      // "Episode 5 - The Boy Savior"
+  url: string;        // Absolute HTTP link to the episode
+  status: "released" | "unreleased"; // Crucial! Unreleased episodes stay faded out in the Dashboard
+};
+\`\`\`
+
+### C. Deep Scan Video Nodes (Player Execution)
+If you utilize a \`Deep Scan JS Ripper\`, it executes when the user clicks an Episode. Your script MUST hand back this exact object to successfully initialize the \`PlayerVW\`:
+\`\`\`typescript
+type VideoPayload = {
+  videoUrl: string;       // Direct HLS (.m3u8), DASH (.mpd) or mp4 source
+  quality?: string;       // Initial quality (e.g., '1080p')
+  subtitles?: {           // Array of accessible VTT/SRT files
+    language: string;
+    url: string;
+  }[];
+  headers?: {             // Any required headers to bypass 403 Forbidden!
+    "Referer"?: string;
+    "User-Agent"?: string;
+  };
+}
 \`\`\``
   },
   {
@@ -274,11 +317,23 @@ export interface FlowStep {
 **Problem**: A site embeds their video inside three layers of proprietary iframes originating from totally different domains.
 **Solution**: BingeKit ignores cross-origin barriers internally! Do not attempt complex JavaScript mapping. Ensure the \`SitePlugin\` matching the *parent* domain is active. BingeKit natively cascades the video event listeners down into all DOM children asynchronously until it hooks the raw \`<video>\` element.
 
-## Protip: Instant Aggregate Searches
-Use the dashboard search bar efficiently by prefixing tags explicitly defined in your SearchConfigs:
-- \`!yt interstellar\` — Bypasses multi-search and explicitly queries the YouTube plugin instantly.
-- Type any domain keyword or map them in your UI.
+## Search Modifiers & Advanced Commands
+The master dashboard search bar is physically tied to several powerful regex patterns that modify your query before hitting the Plugins. Append these to any search string:
 
+1. **Deep Scan Engine (\`sXXeXX\` / \`- Subtitle\`)**
+   Appending standard episode tracking formats like \`s01e05\` or \`s1 e5\` triggers BingeKit's **Deep Scan Match**. Instead of returning normal search results, the engine resolves the target, opens a background SmartFetch instance, and aggressively hunts for matching DOM nodes using your Plugin's \`tvConfig.epSel\` configurations.
+   - Example: \`Arcane s02e03\` — Will return the direct video nodes for Episode 3, entirely bypassing the show's landing page!
+
+2. **Price Thresholds (\`$<amount>\`)**
+   If you have Plugins configured with \`costSel\`, you can enforce strict numerical filtering right from the bar!
+   - Example: \`Interstellar $5.99\` — BingeKit evaluates all search results, parses the scraped strings into floats, and trims out any plugin offering it for over five dollars.
+
+3. **Rental & Purchase Strictness (\`--rent\` / \`--buy\`)**
+   Filters your results by the explicitly parsed \`rentBuySel\` returned from your web scrapers.
+   - Example: \`Dune --rent\` — Hides all storefront purchase links, leaving only the cheaper rental objects.
+
+> [!TIP]
+> **Domain Overrides & Raw Links:** If you paste a raw \`https://\` URL or domain directly into the Dashboard search, BingeKit bypasses all Plugins and opens it natively inside your Web Navigation instance!
 ## Example: Absolute CSS Takeover
 Sometimes merely hiding adverts using \`display: none\` leaves an ugly, misaligned DOM. 
 Use \`customCss\` to physically detach and expand the video player:
