@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Search, Plus, Trash2, RefreshCw } from 'lucide-react';
-import { CustomCheckbox } from '../ui/CustomCheckbox';
-import { CustomSelect } from '../ui/CustomSelect';
-import { SearchConfig, CustomFlow } from '../../types';
-import { resolvePluginUrl } from '../../lib/urlHelper';
+import { CustomCheckbox } from '../../ui/CustomCheckbox';
+import { CustomSelect } from '../../ui/CustomSelect';
+import { SearchConfig, CustomFlow } from '../../../types';
+import { resolvePluginUrl } from '../../../lib/urlHelper';
 
 export const SearchConfigEditor = ({
   config,

@@ -1,12 +1,12 @@
 import React, { useRef, useEffect } from 'react';
 import { Settings, Palette, Download, ShieldOff, Shield, Code } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
 import { ConfigView } from './ConfigView';
-import { SettingsGeneralTab } from './SettingsGeneralTab';
-import { SettingsAppearanceTab } from './SettingsAppearanceTab';
-import { SettingsDownloadsTab } from './SettingsDownloadsTab';
-import { SettingsAdblockTab } from './SettingsAdblockTab';
-import { SettingsPrivacyTab } from './SettingsPrivacyTab';
+import { SettingsGeneralTab } from './tabs/SettingsGeneralTab';
+import { SettingsAppearanceTab } from './tabs/SettingsAppearanceTab';
+import { SettingsDownloadsTab } from './tabs/SettingsDownloadsTab';
+import { SettingsAdblockTab } from './tabs/SettingsAdblockTab';
+import { SettingsPrivacyTab } from './tabs/SettingsPrivacyTab';
 
 const settingsScrollMap = new Map<string, number>();
 

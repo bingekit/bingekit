@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ShieldOff, Trash2, Plus, ChevronDown } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { TagsInput } from '../ui/TagsInput';
+import { useAppContext } from '../../../../context/AppContext';
+import { TagsInput } from '../../../ui/TagsInput';
 
 const collapsibleStateMap = new Map<string, boolean>();
 export const CollapsibleSection = ({ title, children, defaultOpen = false }: any) => {

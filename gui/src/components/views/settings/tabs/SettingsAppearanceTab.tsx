@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Palette, Zap, LayoutGrid, ChevronDown } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { CustomSelect } from '../ui/CustomSelect';
+import { useAppContext } from '../../../../context/AppContext';
+import { CustomSelect } from '../../../ui/CustomSelect';
 
 const NavButtonsSelect = ({ navButtons, setNavButtons }: { navButtons: any, setNavButtons: any }) => {
 const [isOpen, setIsOpen] = useState(false);

@@ -1,15 +1,15 @@
 import React from 'react';
 import { Search, Bookmark, Settings, Minus, Square, X, ChevronLeft, ChevronRight, RotateCw, Film, Tv, Play, LayoutGrid, Shield, ShieldOff, Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code, ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap, Clock, Folder, Lock, EyeOff, Eye, Globe } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { ahk } from '../../lib/ahk';
-import { TooltipWrapper } from '../ui/TooltipWrapper';
-import { CustomCheckbox } from '../ui/CustomCheckbox';
-import { TagsInput } from '../ui/TagsInput';
-import { Modal } from '../ui/Modal';
+import { useAppContext } from '../../../context/AppContext';
+import { ahk } from '../../../lib/ahk';
+import { TooltipWrapper } from '../../ui/TooltipWrapper';
+import { CustomCheckbox } from '../../ui/CustomCheckbox';
+import { TagsInput } from '../../ui/TagsInput';
+import { Modal } from '../../ui/Modal';
 import _Editor from 'react-simple-code-editor';
 const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
-import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../types';
+import { DEFAULT_PLUGIN, SitePlugin, CustomFlow, Userscript, FollowedItem, BookmarkItem, WatchLaterItem, CredentialItem } from '../../../types';
 
 let watchlaterScrollPos = 0;
 

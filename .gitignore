@@ -27,4 +27,5 @@ appHash.ahk
 original_*
 extract*.js
 split_*
-fix.js
+fix*.js
+fix_*

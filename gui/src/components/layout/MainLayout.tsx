@@ -12,10 +12,10 @@ import { GlobalConfirm } from '../ui/GlobalConfirm';
 // Views
 import { DashboardView } from '../views/DashboardView';
 import { PlayerView } from '../views/PlayerView';
-import { SettingsView } from '../views/SettingsView';
-import { LibraryView } from '../views/LibraryView';
-import { ExploreView } from '../views/ExploreView';
-import { ExtensionsView } from '../views/ExtensionsView';
+import { SettingsView } from '../views/settings/SettingsView';
+import { LibraryView } from '../views/library/LibraryView';
+import { ExploreView } from '../views/explore/ExploreView';
+import { ExtensionsView } from '../views/plugins/ExtensionsView';
 import { DownloadsView } from '../views/DownloadsView';
 
 declare global {

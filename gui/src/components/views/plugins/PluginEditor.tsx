@@ -7,23 +7,23 @@ import {
   Clock, Folder, Lock, EyeOff, Eye, Globe, Copy, Store,
   DownloadCloud, CheckCircle2, Package
 } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { ahk } from '../../lib/ahk';
-import { TooltipWrapper } from '../ui/TooltipWrapper';
-import { CustomCheckbox } from '../ui/CustomCheckbox';
-import { CustomSelect } from '../ui/CustomSelect';
+import { useAppContext } from '../../../context/AppContext';
+import { ahk } from '../../../lib/ahk';
+import { TooltipWrapper } from '../../ui/TooltipWrapper';
+import { CustomCheckbox } from '../../ui/CustomCheckbox';
+import { CustomSelect } from '../../ui/CustomSelect';
 import { SearchConfigEditor } from './SearchConfigEditor';
-import { TagsInput } from '../ui/TagsInput';
-import { Modal } from '../ui/Modal';
+import { TagsInput } from '../../ui/TagsInput';
+import { Modal } from '../../ui/Modal';
 import _Editor from 'react-simple-code-editor';
 const Editor = (_Editor as any).default || _Editor;
 import Prism from 'prismjs';
-import { PluginGeneralTab } from './PluginGeneralTab';
-import { PluginAuthTab } from './PluginAuthTab';
-import { PluginSearchTab } from './PluginSearchTab';
-import { PluginMediaTab } from './PluginMediaTab';
-import { PluginTrackingTab } from './PluginTrackingTab';
-import { PluginFunctionsTab } from './PluginFunctionsTab';
+import { PluginGeneralTab } from './tabs/PluginGeneralTab';
+import { PluginAuthTab } from './tabs/PluginAuthTab';
+import { PluginSearchTab } from './tabs/PluginSearchTab';
+import { PluginMediaTab } from './tabs/PluginMediaTab';
+import { PluginTrackingTab } from './tabs/PluginTrackingTab';
+import { PluginFunctionsTab } from './tabs/PluginFunctionsTab';
 import { MetadataEditor } from './MetadataEditor';
 
 let pluginsEditorScrollPos = 0;

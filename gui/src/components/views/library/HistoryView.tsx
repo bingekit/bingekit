@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Clock, Trash2, Calendar, Globe, MonitorPlay, ExternalLink, PlaySquare, Compass, Filter, History } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../lib/db';
+import { useAppContext } from '../../../context/AppContext';
+import { clearHistoryDB, clearBrowsedHistoryDB, deleteHistoryItemDB } from '../../../lib/db';
 
 let historyScrollPos = 0;
 

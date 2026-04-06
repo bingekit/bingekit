@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Globe, LayoutGrid, Download } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { ahk } from '../../lib/ahk';
-import { CustomSelect } from '../ui/CustomSelect';
-import { Modal } from '../ui/Modal';
+import { useAppContext } from '../../../../context/AppContext';
+import { ahk } from '../../../../lib/ahk';
+import { CustomSelect } from '../../../ui/CustomSelect';
+import { Modal } from '../../../ui/Modal';
 
 export const SettingsGeneralTab = () => {
   const {

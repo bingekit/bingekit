@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Plus, Save, Trash2, KeyRound } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { ahk } from '../../lib/ahk';
-import { Modal } from '../ui/Modal';
-import { CustomSelect } from '../ui/CustomSelect';
-import { addCredentialDB, deleteCredentialDB } from '../../lib/db';
+import { useAppContext } from '../../../../context/AppContext';
+import { ahk } from '../../../../lib/ahk';
+import { Modal } from '../../../ui/Modal';
+import { CustomSelect } from '../../../ui/CustomSelect';
+import { addCredentialDB, deleteCredentialDB } from '../../../../lib/db';
 
 export const SettingsPrivacyTab = () => {
   const {

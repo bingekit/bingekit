@@ -37,13 +37,13 @@ import {
   Eye,
   Globe,
 } from "lucide-react";
-import { useAppContext } from "../../context/AppContext";
-import { ahk } from "../../lib/ahk";
-import { TooltipWrapper } from "../ui/TooltipWrapper";
-import { CustomCheckbox } from "../ui/CustomCheckbox";
-import { TagsInput } from "../ui/TagsInput";
-import { CustomSelect } from "../ui/CustomSelect";
-import { Modal } from "../ui/Modal";
+import { useAppContext } from '../../../context/AppContext';
+import { ahk } from '../../../lib/ahk';
+import { TooltipWrapper } from '../../ui/TooltipWrapper';
+import { CustomCheckbox } from '../../ui/CustomCheckbox';
+import { TagsInput } from '../../ui/TagsInput';
+import { CustomSelect } from '../../ui/CustomSelect';
+import { Modal } from '../../ui/Modal';
 import _Editor from 'react-simple-code-editor';
 const Editor = (_Editor as any).default || _Editor;
 import Prism from "prismjs";
@@ -57,7 +57,7 @@ import {
   WatchLaterItem,
   CredentialItem,
   FlowStep,
-} from "../../types";
+} from '../../../types';
 
 import { MetadataEditor } from "./MetadataEditor";
 

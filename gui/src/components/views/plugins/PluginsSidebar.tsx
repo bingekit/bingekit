@@ -1,9 +1,9 @@
 import React from "react";
 import { Puzzle, Store, RefreshCw, Globe, Trash2, Plus } from "lucide-react";
-import { useAppContext } from "../../context/AppContext";
-import { CustomCheckbox } from "../ui/CustomCheckbox";
-import { ahk } from "../../lib/ahk";
-import { DEFAULT_PLUGIN } from "../../types";
+import { useAppContext } from "../../../context/AppContext";
+import { CustomCheckbox } from "../../ui/CustomCheckbox";
+import { ahk } from "../../../lib/ahk";
+import { DEFAULT_PLUGIN } from "../../../types";
 
 let pluginsSidebarScrollPos = 0;
 

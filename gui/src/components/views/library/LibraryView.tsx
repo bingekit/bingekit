@@ -3,7 +3,7 @@ import { BookmarksView } from './BookmarksView';
 import { WatchlaterView } from './WatchlaterView';
 import { HistoryView } from './HistoryView';
 import { Bookmark, Clock } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
 
 let cachedLibrarySubTab = 'bookmarks';
 

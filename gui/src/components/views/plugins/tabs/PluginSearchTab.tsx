@@ -7,12 +7,12 @@ import {
   Clock, Folder, Lock, EyeOff, Eye, Globe, Copy, Store,
   DownloadCloud, CheckCircle2, Package
 } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { TooltipWrapper } from '../ui/TooltipWrapper';
-import { CustomCheckbox } from '../ui/CustomCheckbox';
-import { CustomSelect } from '../ui/CustomSelect';
-import { SearchConfigEditor } from './SearchConfigEditor';
-import { TagsInput } from '../ui/TagsInput';
+import { useAppContext } from '../../../../context/AppContext';
+import { TooltipWrapper } from '../../../ui/TooltipWrapper';
+import { CustomCheckbox } from '../../../ui/CustomCheckbox';
+import { CustomSelect } from '../../../ui/CustomSelect';
+import { SearchConfigEditor } from '../SearchConfigEditor';
+import { TagsInput } from '../../../ui/TagsInput';
 
 interface TabProps {
   setIdeModalData: (data: any) => void;

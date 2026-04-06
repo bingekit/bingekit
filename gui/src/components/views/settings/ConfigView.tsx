@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Save, AlertTriangle, RefreshCcw, Search } from 'lucide-react';
-import { ahk } from '../../lib/ahk';
-import { useAppContext } from '../../context/AppContext';
-import { TooltipWrapper } from '../ui/TooltipWrapper';
-import { CustomCheckbox } from '../ui/CustomCheckbox';
+import { ahk } from '../../../lib/ahk';
+import { useAppContext } from '../../../context/AppContext';
+import { TooltipWrapper } from '../../ui/TooltipWrapper';
+import { CustomCheckbox } from '../../ui/CustomCheckbox';
 
-import { Modal } from '../ui/Modal';
+import { Modal } from '../../ui/Modal';
 
 type ConfigType = 'string' | 'boolean' | 'number' | 'folder';
 

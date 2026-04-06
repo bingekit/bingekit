@@ -1,8 +1,8 @@
 import React from 'react';
 import { Download } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
-import { ahk } from '../../lib/ahk';
-import { TagsInput } from '../ui/TagsInput';
+import { useAppContext } from '../../../../context/AppContext';
+import { ahk } from '../../../../lib/ahk';
+import { TagsInput } from '../../../ui/TagsInput';
 
 export const SettingsDownloadsTab = () => {
   const { downloadsLoc, downloadsTemp, ffmpegStatusApp, setFfmpegStatusApp, blockedExts, setBlockedExts } = useAppContext();

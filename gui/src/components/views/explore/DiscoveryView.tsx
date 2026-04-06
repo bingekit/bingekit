@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Compass, EyeOff, Play, Clock, Sparkles } from 'lucide-react';
-import { useAppContext } from '../../context/AppContext';
+import { useAppContext } from '../../../context/AppContext';
 
 let discoveryScrollPos = 0;
 

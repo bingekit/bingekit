@@ -1,8 +1,8 @@
 import React from "react";
 import { Store, Globe, RefreshCw, Square, Puzzle, DownloadCloud, CheckCircle2, Package } from "lucide-react";
-import { useAppContext } from "../../context/AppContext";
-import { ahk } from "../../lib/ahk";
-import { RepoManifest, RepoPack } from "../../types";
+import { useAppContext } from "../../../context/AppContext";
+import { ahk } from "../../../lib/ahk";
+import { RepoManifest, RepoPack } from "../../../types";
 
 let pluginsGalleryScrollPos = 0;
 
