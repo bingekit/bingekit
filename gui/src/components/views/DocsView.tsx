@@ -161,76 +161,67 @@ export const DocsView = () => {
       `}</style>
 
       {/* Sidebar Navigation */}
-      <div className="w-[300px] flex-shrink-0 flex flex-col border-r z-10 shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ borderColor: theme.border, backgroundColor: theme.sidebarBg || theme.mainBg }}>
+      <div className="w-1/4 min-w-[250px] flex-shrink-0 flex flex-col border-r border-zinc-800/50 bg-zinc-950/50 z-10 overflow-hidden">
         <div className="p-6">
-          <div className="flex items-center gap-3 mb-6 font-black tracking-tight text-[22px]" style={{ color: theme.textMain }}>
-            <div className="w-10 h-10 rounded-xl shadow-sm flex items-center justify-center flex-shrink-0" style={{ backgroundColor: theme.accent, color: '#ffffff' }}>
-              <BookOpen className="w-5 h-5 flex-shrink-0" />
-            </div>
-            <span className="leading-none mt-1">Documentation</span>
+          <div className="mb-6">
+            <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
+              <BookOpen size={20} className="text-indigo-400" /> Documentation
+            </h2>
+            <p className="text-xs text-zinc-500 mt-1">BingeKit developer guides.</p>
           </div>
           
           <div className="relative group">
             <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Search className="w-[18px] h-[18px] transition-colors duration-300" style={{ color: theme.textSec }} />
+              <Search className="w-[18px] h-[18px] transition-colors duration-300 text-zinc-500" />
             </div>
             <input
               type="text"
               placeholder="Search guides..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-[14px] rounded-xl py-2.5 outline-none transition-all placeholder:font-medium font-medium"
-              style={{ 
-                paddingLeft: '44px',
-                paddingRight: '16px', 
-                backgroundColor: theme.textMain + '0A',
-                border: '1px solid ' + theme.border,
-                color: theme.textMain,
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = theme.accent;
-                e.target.style.backgroundColor = 'transparent';
-                e.target.style.boxShadow = `0 0 0 3px ${theme.accent}20`;
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = theme.border;
-                e.target.style.backgroundColor = theme.textMain + '0A';
-                e.target.style.boxShadow = 'none';
-              }}
+              className="w-full text-sm rounded-xl py-2.5 outline-none transition-all placeholder:font-medium font-medium bg-zinc-900/50 border border-zinc-800/50 text-zinc-200 focus:border-indigo-500/50 focus:bg-zinc-900/80 focus:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]"
+              style={{ paddingLeft: '44px', paddingRight: '16px' }}
             />
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-1 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-6 pb-6 space-y-1 custom-scrollbar">
           {filteredDocs ? (
             <div className="animate-in fade-in duration-200">
-              <div className="text-[12px] uppercase tracking-[0.15em] mb-4 mt-2 px-3 font-bold opacity-60" style={{ color: theme.textSec }}>Search Results</div>
+              <div className="text-xs uppercase tracking-widest mb-4 pl-2 font-medium text-zinc-500">Search Results</div>
               {filteredDocs.length === 0 ? (
-                <div className="px-3 py-10 flex flex-col items-center justify-center gap-3 opacity-50">
-                  <Search className="w-8 h-8" style={{ color: theme.textSec }} />
-                  <div className="font-medium text-[14px]" style={{ color: theme.textSec }}>No matches found</div>
+                <div className="py-10 flex flex-col items-center justify-center gap-3 text-zinc-600">
+                  <Search className="w-8 h-8" />
+                  <div className="font-medium text-sm">No matches found</div>
                 </div>
               ) : (
-                filteredDocs.map((res, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleDocClick(res.docId, true)}
-                    className="w-full text-left p-4 rounded-xl mb-2 transition-all hover:scale-[1.02] group"
-                    style={{ 
-                      backgroundColor: activeDocId === res.docId ? theme.accent + '15' : 'transparent', 
-                      border: '1px solid ' + (activeDocId === res.docId ? theme.accent + '40' : 'transparent'), 
-                    }}
-                  >
-                    <div className="font-semibold text-[14px] truncate transition-colors" style={{ color: activeDocId === res.docId ? theme.accent : theme.textMain }}>{res.title}</div>
-                    <div className="text-[13px] truncate mt-1.5 leading-relaxed" style={{ color: theme.textSec }}>{res.snippet}</div>
-                  </button>
-                ))
+                filteredDocs.map((res, i) => {
+                  const isActive = activeDocId === res.docId;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleDocClick(res.docId, true)}
+                      className={`w-full text-left p-4 rounded-xl mb-3 border cursor-pointer transition-all duration-300 block ${
+                        isActive
+                          ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
+                          : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
+                      }`}
+                    >
+                      <div className={`font-medium text-[14px] leading-tight truncate transition-colors ${isActive ? 'text-indigo-300' : 'text-zinc-200'}`}>
+                        {res.title}
+                      </div>
+                      <div className="text-[12px] truncate mt-1 text-zinc-500 leading-relaxed">
+                        {res.snippet}
+                      </div>
+                    </button>
+                  );
+                })
               )}
             </div>
           ) : (
             <div className="animate-in fade-in duration-200">
-              <div className="text-[12px] uppercase tracking-[0.15em] mb-4 mt-2 px-3 font-bold opacity-60" style={{ color: theme.textSec }}>Overview</div>
-              <div className="space-y-1">
+              <div className="text-xs uppercase tracking-widest mb-4 pl-2 font-medium text-zinc-500">Overview</div>
+              <div className="space-y-3">
                 {SECTION_ORDER.map(section => {
                   const Icon = section.icon;
                   const isActive = activeDocId === section.id;
@@ -240,19 +231,21 @@ export const DocsView = () => {
                     <button
                       key={section.id}
                       onClick={() => handleDocClick(section.id)}
-                      className="w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-200 group"
-                      style={{ 
-                        backgroundColor: isActive ? theme.accent + '15' : 'transparent',
-                        color: isActive ? theme.textMain : theme.textSec,
-                      }}
-                      onMouseEnter={(e) => { if(!isActive) e.currentTarget.style.color = theme.textMain; }}
-                      onMouseLeave={(e) => { if(!isActive) e.currentTarget.style.color = theme.textSec; }}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-300 ${
+                        isActive
+                          ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
+                          : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
+                      }`}
                     >
-                      <Icon 
-                        className={`w-[18px] h-[18px] flex-shrink-0 transition-all duration-300 ${isActive ? 'scale-110' : 'opacity-70 group-hover:opacity-100 group-hover:scale-110'}`} 
-                        style={{ color: isActive ? theme.accent : 'inherit' }} 
-                      />
-                      <span className={`text-[14px] truncate tracking-wide transition-all ${isActive ? 'font-bold' : 'font-medium'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
+                          isActive 
+                            ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30" 
+                            : "bg-zinc-900/40 text-zinc-500 border-zinc-700/50"
+                        }`}
+                      >
+                        <Icon className="w-[14px] h-[14px] flex-shrink-0" />
+                      </div>
+                      <span className={`text-sm tracking-wide truncate transition-all flex-1 text-left ${isActive ? 'font-medium text-zinc-200' : 'text-zinc-400'}`}>
                         {section.title}
                       </span>
                     </button>

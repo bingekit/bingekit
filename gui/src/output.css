@@ -633,6 +633,9 @@
   .h-\[2px\] {
     height: 2px;
   }
+  .h-\[14px\] {
+    height: 14px;
+  }
   .h-\[18px\] {
     height: 18px;
   }
@@ -749,6 +752,9 @@
   }
   .w-64 {
     width: calc(var(--spacing) * 64);
+  }
+  .w-\[14px\] {
+    width: 14px;
   }
   .w-\[18px\] {
     width: 18px;
@@ -3201,6 +3207,20 @@
   .focus\:bg-zinc-900 {
     &:focus {
       background-color: var(--color-zinc-900);
+    }
+  }
+  .focus\:bg-zinc-900\/80 {
+    &:focus {
+      background-color: color-mix(in srgb, oklch(21% 0.006 285.885) 80%, transparent);
+      @supports (color: color-mix(in lab, red, red)) {
+        background-color: color-mix(in oklab, var(--color-zinc-900) 80%, transparent);
+      }
+    }
+  }
+  .focus\:shadow-\[0_0_0_3px_rgba\(99\,102\,241\,0\.1\)\] {
+    &:focus {
+      --tw-shadow: 0 0 0 3px var(--tw-shadow-color, rgba(99,102,241,0.1));
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
     }
   }
   .focus\:ring-0 {
