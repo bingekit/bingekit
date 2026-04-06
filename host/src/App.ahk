@@ -20,7 +20,8 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
             return
     }
 
-    newGui.BackColor := "09090b" ; Match the React app's zinc-950 background
+    newGui.BackColor := AHK_GetThemeBgColor() ; Match the React app's background
+    newGui.Control.DefaultBackgroundColor := AHK_GetThemeBgColor()
     newGui.OnEvent("Close", (*) => AHK_CloseWindow(windowId))
 
     ; Initialize WebViewToo

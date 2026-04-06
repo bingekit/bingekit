@@ -88,9 +88,10 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
 
         if (!PlayerGuis.Has(id)) {
             PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGuis[windowId].Hwnd)
-            PlayerGuis[id].BackColor := "09090b"
+            PlayerGuis[id].BackColor := AHK_GetThemeBgColor()
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
             PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
+            PlayerWVs[id].DefaultBackgroundColor := AHK_GetThemeBgColor()
 
             PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
             PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0

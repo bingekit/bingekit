@@ -418,3 +418,18 @@ AHK_MigrateStorage(newPortableMode, newLocationPath) {
     Run(A_ScriptFullPath " --workspace " CurrentWorkspace)
     ExitApp()
 }
+
+AHK_GetThemeBgColor() {
+    global WorkspaceDir
+    bgC := "09090b"
+    try {
+        if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
+            themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
+            theme := JSON.parse(themeJson)
+            if (theme.Has("mainBg") && theme["mainBg"] != "")
+                bgC := StrReplace(theme["mainBg"], "#", "")
+        }
+    } catch {
+    }
+    return bgC
+}
