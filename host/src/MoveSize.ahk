@@ -41,7 +41,7 @@ WM_NCHITTEST(wParam, lParam, msg, hwnd) {
 }
 
 WM_GETMINMAXINFO(wParam, lParam, msg, hwnd) {
-    global MainGuis
+    global MainGuis, MinWidth, MinHeight
     if (IsSet(MainGuis)) {
         for wid, g in MainGuis {
             if (g.Hwnd == hwnd) {
@@ -55,13 +55,16 @@ WM_GETMINMAXINFO(wParam, lParam, msg, hwnd) {
                     mWorkB := NumGet(mInfo, 32, "Int")
                     mWorkW := mWorkR - mWorkX
                     mWorkH := mWorkB - mWorkY
-                    
+
                     ; ptMaxSize
                     NumPut("Int", mWorkW, lParam, 8)
                     NumPut("Int", mWorkH, lParam, 12)
                     ; ptMaxPosition
                     NumPut("Int", mWorkX, lParam, 16)
                     NumPut("Int", mWorkY, lParam, 20)
+                    ; ptMinTrackSize
+                    NumPut("Int", MinWidth, lParam, 24)
+                    NumPut("Int", MinHeight, lParam, 28)
                     return 0
                 }
             }
@@ -109,10 +112,10 @@ WM_WINDOWPOSCHANGING(wParam, lParam, msg, hwnd) {
         newH := h
 
         if (y + h > ScreenSize.bottom && (ScreenSize.bottom - y) >= MinHeight) {
-            newH := ScreenSize.bottom - y
+            ;newH := ScreenSize.bottom - y
         }
         if (x + w > ScreenSize.right && (ScreenSize.right - x) >= MinWidth) {
-            newW := ScreenSize.right - x
+            ;newW := ScreenSize.right - x
         }
 
         if (newW != w || newH != h) {

@@ -434,7 +434,66 @@ AHK_GetThemeBgColor() {
     return bgC
 }
 
+AHK_ClearCache(*) {
+    global WorkspaceDir
+    try DirDelete(WorkspaceDir "\cache", true)
+    return true
+}
+
 AHK_GetThemeBgColorARGB() {
     bgC := AHK_GetThemeBgColor()
     return Integer("0xFF" . bgC)
+}
+
+AHK_GetThemeBorderColor() {
+    global WorkspaceDir
+    borderC := "27272a"
+    try {
+        if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
+            themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
+            theme := JSON.parse(themeJson)
+            if (theme.Has("borders") && theme["borders"] != "")
+                borderC := StrReplace(theme["borders"], "#", "")
+        }
+    } catch {
+    }
+    return borderC
+}
+
+global AHK_GlobalThemeBrush := 0
+
+AHK_ApplyNativeDarkBackground(hwnd) {
+    global AHK_GlobalThemeBrush
+    static ThemeColorBGR := 0
+    static SystemBorderColorBGR := -1
+    if (!ThemeColorBGR) {
+        rgb := "0x" AHK_GetThemeBgColor()
+        ThemeColorBGR := ((rgb & 0xFF) << 16) | (rgb & 0xFF00) | ((rgb >> 16) & 0xFF)
+    }
+    if (SystemBorderColorBGR == -1) {
+        rgbB := "0x" AHK_GetThemeBorderColor()
+        SystemBorderColorBGR := ((rgbB & 0xFF) << 16) | (rgbB & 0xFF00) | ((rgbB >> 16) & 0xFF)
+    }
+    if (!AHK_GlobalThemeBrush) {
+        AHK_GlobalThemeBrush := DllCall("Gdi32.dll\CreateSolidBrush", "UInt", ThemeColorBGR, "Ptr")
+        OnMessage(0x0014, AHK_OnEraseBkgnd)
+    }
+    try DllCall(A_PtrSize = 8 ? "User32.dll\SetClassLongPtrW" : "User32.dll\SetClassLongW", "Ptr", hwnd, "Int", -10, "Ptr", AHK_GlobalThemeBrush)
+    
+    ; Apply immersive dark mode
+    try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 20, "Int*", 1, "UInt", 4)
+    try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 19, "Int*", 1, "UInt", 4)
+    
+    ; Setup our 1px DWM outline directly mapped to Theme config
+    try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 34, "Int*", SystemBorderColorBGR, "UInt", 4)
+}
+
+AHK_OnEraseBkgnd(wParam, lParam, msg, hwnd) {
+    global AHK_GlobalThemeBrush
+    if (AHK_GlobalThemeBrush) {
+        rect := Buffer(16)
+        DllCall("User32.dll\GetClientRect", "Ptr", hwnd, "Ptr", rect)
+        DllCall("User32.dll\FillRect", "Ptr", wParam, "Ptr", rect, "Ptr", AHK_GlobalThemeBrush)
+        return 1
+    }
 }

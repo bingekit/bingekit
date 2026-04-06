@@ -49,7 +49,8 @@ class WebViewGui extends Gui {
         this.Control.wv.AddHostObjectToScript("gui", {
             __Call: ((Hwnd, Th, Name, Q) => GuiFromHwnd(Hwnd).%Name%(Q*)).Bind(this.Hwnd)
         })
-        this.Sizers := WebViewSizer("-Caption +Resize +Parent" this.Hwnd)
+        this.Sizers := WebViewSizer("-Caption +Resize +Parent" this.Hwnd " +E0x80000")
+        WinSetTransparent(1, this.Sizers.Hwnd)
         this.OnEvent("Size", this.Size)
         for Prop in this.Control.OwnProps() {
             if (!this.HasProp(Prop)) {
@@ -57,6 +58,11 @@ class WebViewGui extends Gui {
             }
         }
         DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", this.Hwnd, "UInt", DWMWA_WINDOW_CORNER_PREFERENCE := 33, "Ptr*", pvAttribute := 2, "UInt", 4)
+        pvAttrDark := Buffer(4), NumPut("Int", 1, pvAttrDark)
+        DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", this.Hwnd, "UInt", 20, "Ptr", pvAttrDark, "UInt", 4)
+        DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", this.Hwnd, "UInt", 19, "Ptr", pvAttrDark, "UInt", 4)
+        DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", this.Sizers.Hwnd, "UInt", 20, "Ptr", pvAttrDark, "UInt", 4)
+        DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", this.Sizers.Hwnd, "UInt", 19, "Ptr", pvAttrDark, "UInt", 4)
         this.Move(, , DefaultWidth, DefaultHeight) ;Sets an initial size that is somewhat reasonable
         this.Control.wvc.Fill() ;Fill the window after setting initial size
         WebViewSizer.ToggleSizer(this) ;Toggle Sizers
@@ -257,6 +263,7 @@ class WebViewSizer extends Gui {
         OnMessage(0x0083, (Params*) => WebViewSizer.WM_NCCALCSIZE(Params*))
         OnMessage(0x00A1, (Params*) => WebViewSizer.WM_NCLBUTTONDOWN(Params*))
         OnMessage(0x007D, (Params*) => WebViewSizer.WM_STYLECHANGED(Params*))
+        OnMessage(0x0085, (Params*) => WebViewSizer.WM_NCPAINT(Params*))
     }
 
     /** Tests if the cursor intersects with the sizing handles */
@@ -359,6 +366,13 @@ class WebViewSizer extends Gui {
         return 0
     }
 
+    /** Physically hides the OS-generated resizing border overlay while keeping hit-geometry active */
+    static WM_NCPAINT(wParam, lParam, Msg, Hwnd) {
+        if (GuiFromHwnd(Hwnd) is WebViewSizer) {
+            return 0
+        }
+    }
+
     __New(p*) {
         super.__New(p*)
     }
@@ -392,7 +406,7 @@ class WebViewCtrl extends Gui.Custom {
      * @returns {WebViewCtrl}
      */
     static Call(Target, Options := "", WebViewSettings := {}) {
-        Container := Gui.Prototype.AddCustom.Call(Target, "ClassStatic " Options)
+        Container := Gui.Prototype.AddCustom.Call(Target, "ClassStatic +0x02000000 +0x04000000 " Options)
         for Prop in this.Prototype.OwnProps() {
             Container.DefineProp(Prop, this.Prototype.GetOwnPropDesc(Prop))
         }

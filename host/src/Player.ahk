@@ -92,7 +92,10 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
             PlayerGuis[id].Show("Hide w" w " h" h)
             PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
-            PlayerWVs[id].DefaultBackgroundColor := AHK_GetThemeBgColorARGB()
+            PlayerWVs[id].DefaultBackgroundColor := AHK_GetThemeBgColor()
+            AHK_ApplyNativeDarkBackground(PlayerGuis[id].Hwnd)
+            if (PlayerWVs[id].HasProp("Hwnd"))
+                AHK_ApplyNativeDarkBackground(PlayerWVs[id].Hwnd)
 
             PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
             PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0
