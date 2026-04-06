@@ -29,8 +29,15 @@ export const SettingsView = () => {
   return (
     <div className="flex h-full w-full">
       {/* Left Sidebar Menu */}
-      <div className="w-64 flex-shrink-0 p-6 pr-4 border-r border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] overflow-y-auto no-scrollbar">
-        <h2 className="text-2xl font-light tracking-tight text-[var(--theme-text-main)] mb-8">Settings</h2>
+      <div className="w-1/4 min-w-[250px] flex-shrink-0 p-6 pr-4 border-r border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] overflow-y-auto no-scrollbar bg-zinc-950/50">
+
+        <div className="mb-6">
+          <h2 className="text-xl font-light tracking-tight text-zinc-100 flex items-center gap-2">
+            <Settings size={20} className="text-indigo-400" /> Settings
+          </h2>
+          <p className="text-xs text-zinc-500 mt-1">Change the theme, settings or app functionality.</p>
+        </div>
+
         <div className="space-y-1.5">
           <button onClick={() => setActiveSettingsTab('general')} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeSettingsTab === 'general' ? 'bg-[color-mix(in_srgb,var(--theme-accent)_15%,transparent)] text-[var(--theme-accent)] font-medium' : 'text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)]'}`}>
             <Settings size={18} /> General
@@ -57,7 +64,7 @@ export const SettingsView = () => {
       </div>
 
       {/* Main Content Area */}
-      <div 
+      <div
         ref={scrollRef}
         className="flex-1 p-8 h-full overflow-y-auto no-scrollbar max-w-5xl"
         onScroll={(e) => settingsScrollMap.set(activeSettingsTab, e.currentTarget.scrollTop)}
