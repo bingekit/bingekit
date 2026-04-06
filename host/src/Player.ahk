@@ -134,6 +134,10 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
             } catch {
             }
             try {
+                PlayerWVs[id].wv.add_NavigationCompleted(AHK_PlayerNavigationCompleted)
+            } catch {
+            }
+            try {
                 PlayerWVs[id].wv.add_NewWindowRequested(AHK_PlayerNewWindowRequested)
             } catch {
             }
@@ -603,6 +607,79 @@ AHK_PlayerNavigationStarting(ICoreWebView2, args) {
         }
     } catch {
         ; Silently handle errors
+    }
+}
+
+global LastNavErrorState := Map()
+
+AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
+    global PlayerWVs, MainGuis, PlayerOwners, LastNavErrorState, PlayerCurrentUrls
+    try {
+        if (!args.IsSuccess) {
+            foundId := "main"
+            for id, pwv in PlayerWVs {
+                if (pwv.wv.ptr == ICoreWebView2.ptr) {
+                    foundId := id
+                    break
+                }
+            }
+
+            currentUrl := PlayerCurrentUrls.Has(foundId) ? PlayerCurrentUrls[foundId] : "unknown"
+            
+            if (LastNavErrorState.Has(foundId) && LastNavErrorState[foundId] == currentUrl) {
+                return ; Lock-in the very first error captured for this URL attempt
+            }
+            LastNavErrorState[foundId] := currentUrl
+
+            webError := args.WebErrorStatus
+            httpCode := 0
+            try httpCode := args.HttpStatusCode
+
+            errStr := "Unknown Communication Error"
+            if (webError == 14)
+                errStr := "DNS Request Failed (Domain Not Found)"
+            else if (webError == 10 || webError == 11)
+                errStr := "Connection Terminated (Aborted/Reset)"
+            else if (webError == 13)
+                errStr := "Cannot Connect (Server Unreachable)"
+            else if (webError == 8)
+                errStr := "Connection Timeout"
+            else if (webError == 5 || webError == 4 || webError == 6 || webError == 1 || webError == 2)
+                errStr := "SSL/TLS Certificate Error"
+            else if (webError == 9 && httpCode > 0)
+                errStr := "HTTP Error " httpCode " " (httpCode == 404 ? "(Not Found)" : httpCode == 500 ? "(Server Error)" : "")
+            else if (webError == 9 && httpCode == 0)
+                return ; Completely ignore opaque fallback error 9 when it lacks a status code
+            else if (webError != 0)
+                errStr := "Connection Error (" webError ")"
+
+            safeErr := StrReplace(errStr, "'", "\'")
+            
+            codeStr := (httpCode > 0) ? String(httpCode) : String(webError)
+            
+            js := "try { if(window.throwNavigationError) window.throwNavigationError('" codeStr "', '" safeErr "'); } catch(e){}"
+            PlayerWVs[foundId].wv.ExecuteScriptAsync(js)
+        } else {
+            ; Reset tracking if a navigation succeeds, unless it's the internal error page!
+            try {
+                if (InStr(ICoreWebView2.Source, "chrome-error://")) {
+                    return ; Do not reset state for internal error pages!
+                }
+            } catch {
+            }
+            
+            foundId := "main"
+            for id, pwv in PlayerWVs {
+                if (pwv.wv.ptr == ICoreWebView2.ptr) {
+                    foundId := id
+                    break
+                }
+            }
+            if (LastNavErrorState.Has(foundId)) {
+                LastNavErrorState.Delete(foundId)
+            }
+        }
+    } catch {
     }
 }
 

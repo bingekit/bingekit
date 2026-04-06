@@ -110,7 +110,8 @@ html {
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 ::selection {
-    background: var(--theme-accent);
+        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;
+        color: var(--theme-accent) !important;
 }`;
 
     if (activeScripts.length > 0 || plugins.some(p => p.customCss || p.customJs) || Object.keys(theme).length > 0) {

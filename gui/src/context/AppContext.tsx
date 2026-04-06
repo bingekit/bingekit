@@ -158,6 +158,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         path += 'index.html';
       }
       navUrl = `http://interface.localhost/${path}`;
+    } else if (target.startsWith('view-source:')) {
+      navUrl = `http://blank.localhost/#custom:view-source#${target.substring(12)}`;
     }
     return navUrl;
   };
@@ -205,7 +207,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       general.setActiveTab('config');
       return;
     }
-    if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('interface:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:')) {
+    if (finalUrl.startsWith('about:') || finalUrl.startsWith('err://') || finalUrl.startsWith('custom:') || finalUrl.startsWith('interface:') || finalUrl.startsWith('file:') || finalUrl.startsWith('data:') || finalUrl.startsWith('view-source:')) {
       // Leave as is
     } else if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       if (!finalUrl.includes('.') || finalUrl.includes(' ')) {

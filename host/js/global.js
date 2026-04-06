@@ -5,28 +5,77 @@
     window.BingeKit.globalPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
 
     let runSync = true;
-    window.throwNavigationError = () => {
-        window.chrome.webview.hostObjects.sync.ahk.UpdateURL("err://");
+    window.throwNavigationError = (codeStr, msgStr) => {
+        if (window.__svErrorFired && window.__svErrorCode) return; // Only lock if we have a real error code
+        window.__svErrorFired = true;
+        if (codeStr) window.__svErrorCode = codeStr;
+        let codeLabel = codeStr ? "err://" + codeStr : "err://";
+        window.chrome.webview.hostObjects.sync.ahk.UpdateURL(codeLabel);
+
+        let displayMsg = msgStr || "Request failed.<br><br>Either the site is: down, blocked, fails to load, or fails smartscreen checks.";
+
         window.addEventListener("DOMContentLoaded", () => {
             var style = document.createElement('style');
-            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{background:var(--theme-accent)}`;
+            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
             document.head.appendChild(style);
             document.body.innerHTML =
                 `<div style='display:flex;text-align:center;flex-direction:column;color:var(--theme-accent);justify-content:center;align-items:center;height:100%;font-size:2rem;'>
                     Navigation Failed
-                    <div style='font-size:1rem;margin-top:1rem;color:var(--theme-textSec);'>Request failed.<br><br>Either the site is: down, blocked, fails to load, or fails smartscreen checks.</div>
+                    <div style='font-size:1rem;margin-top:1rem;color:var(--theme-textSec);'>${displayMsg}</div>
                 </div>`;
         });
+
+        // If already loaded, apply now
+        if (document.readyState === "interactive" || document.readyState === "complete") {
+            var style = document.createElement('style');
+            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
+            try { document.head.appendChild(style); } catch (e) { }
+            try {
+                document.body.innerHTML =
+                    `<div style='display:flex;text-align:center;flex-direction:column;color:var(--theme-accent);justify-content:center;align-items:center;height:100%;font-size:2rem;'>
+                        Navigation Failed
+                        <div style='font-size:1rem;margin-top:1rem;color:var(--theme-textSec);'>${displayMsg}</div>
+                    </div>`;
+            } catch (e) { }
+        }
     };
     if (location.href === "chrome-error://chromewebdata/") {
         window.throwNavigationError();
         return;
     } else if ((location.href.startsWith("about:blank#") || location.href.startsWith("http://blank.localhost/#") || location.href.startsWith("data:text/html")) && location.href.includes("#custom:")) {
-        const url = location.href.substring(location.href.indexOf("#custom:") + 1);
+        const url = location.href.substring(location.href.indexOf("#custom:") + 8);
         runSync = false;
-        window.addEventListener("DOMContentLoaded", () => {
-            window.chrome.webview.hostObjects.sync.ahk.UpdateURL(url);
-        });
+
+        if (url.startsWith("view-source#")) {
+            const tgtUrl = url.substring(12);
+            window.addEventListener("DOMContentLoaded", async () => {
+                window.chrome.webview.hostObjects.sync.ahk.UpdateURL("view-source:" + tgtUrl);
+                document.body.innerHTML = "<div style='color:#d4d4d4;padding:20px;font-family:Consolas,monospace;'>Loading source...</div>";
+                document.body.style.background = "#09090b";
+                document.body.style.margin = "0";
+                try {
+                    let txt = await window.chrome.webview.hostObjects.ahk.RawFetchHTML(tgtUrl);
+                    if (!txt) throw new Error("Empty response or failed request.");
+                    let code = document.createElement("code");
+                    code.textContent = txt;
+                    let pre = document.createElement("pre");
+                    pre.style.color = "#d4d4d4";
+                    pre.style.margin = "0";
+                    pre.style.padding = "20px";
+                    pre.style.whiteSpace = "pre-wrap";
+                    pre.style.wordWrap = "break-word";
+                    pre.appendChild(code);
+                    document.body.innerHTML = "";
+                    document.body.appendChild(pre);
+                } catch (err) {
+                    document.body.innerHTML = "<div style='color:red;padding:20px;font-family:Consolas,monospace;'>Failed to fetch source: " + (err.message || "Unknown error") + "</div>";
+                }
+            });
+        } else {
+            window.addEventListener("DOMContentLoaded", () => {
+                window.chrome.webview.hostObjects.sync.ahk.UpdateURL("custom:" + url);
+            });
+        }
     }
     window.ahk = {
         CacheSet: function (k, v) { return window.chrome.webview.hostObjects.sync.ahk.CacheSet(k, v); },
@@ -35,12 +84,12 @@
         AddNetworkFilter: function (t) { return window.chrome.webview.hostObjects.sync.ahk.AddNetworkFilter(t); }
     };
 
-    window.showToast = function(msg, type = "info") {
-        try { window.chrome.webview.hostObjects.sync.ahk.ShowToast(msg, type); } catch(e) {}
+    window.showToast = function (msg, type = "info") {
+        try { window.chrome.webview.hostObjects.sync.ahk.ShowToast(msg, type); } catch (e) { }
     };
 
-    window.toggleBookmark = function() {
-        try { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } catch(e) {}
+    window.toggleBookmark = function () {
+        try { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } catch (e) { }
     };
 
     window.addEventListener('keydown', (e) => {
@@ -289,7 +338,7 @@
             window._svIgnoreVideoUrls = e.data.urls;
             window._svIgnoreVideoCSS = e.data.css;
             window._svElementBlockers = e.data.elements;
-            
+
             if (window._svElementBlockers) {
                 if (!window._svElBlocker) {
                     window._svElBlocker = new MutationObserver((mutations) => {
@@ -312,14 +361,14 @@
                     if (document.documentElement) {
                         window._svElBlocker.observe(document.documentElement, { childList: true, subtree: true });
                     } else {
-                         document.addEventListener('DOMContentLoaded', () => {
-                             if (window._svElBlocker) window._svElBlocker.observe(document.documentElement, { childList: true, subtree: true });
-                         });
+                        document.addEventListener('DOMContentLoaded', () => {
+                            if (window._svElBlocker) window._svElBlocker.observe(document.documentElement, { childList: true, subtree: true });
+                        });
                     }
                 }
                 // Initial scan
                 if (document.body) {
-                    try { document.querySelectorAll(window._svElementBlockers).forEach(el => el.remove()); } catch(err){}
+                    try { document.querySelectorAll(window._svElementBlockers).forEach(el => el.remove()); } catch (err) { }
                 }
             } else if (!window._svElementBlockers && window._svElBlocker) {
                 window._svElBlocker.disconnect();
