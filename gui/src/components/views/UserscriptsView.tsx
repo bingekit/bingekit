@@ -68,7 +68,7 @@ export const UserscriptsView = () => {
               onClick={() => setEditingUserscriptId(s.id)}
             >
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
                   {s.icon ? (
                     <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {s.icon.includes('<svg') || s.icon.includes('http') ? (
@@ -82,9 +82,9 @@ export const UserscriptsView = () => {
                       <Code size={12} />
                     </div>
                   )}
-                  <div className="font-medium text-sm text-zinc-200 truncate">{s.name}</div>
+                  <div className="font-medium text-sm text-zinc-200 truncate min-w-0 flex-1">{s.name}</div>
                 </div>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-2 items-center shrink-0">
                   <CustomCheckbox
                     checked={s.enabled}
                     onChange={(enabled) => {

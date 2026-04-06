@@ -299,7 +299,7 @@ export const PluginsView = () => {
               className={`p-4 rounded-xl border cursor-pointer transition-all ${editingPlugin?.id === plugin.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]" : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"}`}
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   {plugin.icon ? (
                     <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {plugin.icon.includes("<svg") ||
@@ -321,8 +321,8 @@ export const PluginsView = () => {
                       <Globe size={14} />
                     </div>
                   )}
-                  <div>
-                    <h3 className="text-sm font-medium text-zinc-200 leading-tight">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-zinc-200 leading-tight truncate">
                       {plugin.name}
                     </h3>
                     <p className="text-xs text-zinc-500 mt-0.5 truncate">
@@ -330,7 +330,7 @@ export const PluginsView = () => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   <CustomCheckbox
                     checked={plugin.enabled !== false}
                     onChange={(val) => {
