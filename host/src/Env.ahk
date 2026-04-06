@@ -14,6 +14,7 @@ InitEnvironment() {
     aboutConf := AHK_GetAboutConfig()
     disableWebSec := false
     disableGPU := false
+    incognito := false
     showFetcher := false
     allowRightClick := true
     allowDevtools := false
@@ -27,6 +28,8 @@ InitEnvironment() {
             disableWebSec := parsedConf["DisableWebSecurity"]
         if (parsedConf.Has("DisableGPU"))
             disableGPU := parsedConf["DisableGPU"]
+        if (parsedConf.Has("Incognito"))
+            incognito := parsedConf["Incognito"]
         if (parsedConf.Has("ShowHiddenFetcherWindows"))
             showFetcher := parsedConf["ShowHiddenFetcherWindows"]
         if (parsedConf.Has("AllowRightClick"))
@@ -78,6 +81,10 @@ InitEnvironment() {
 
     if (disableWebSec) {
         browserArgs .= "--disable-web-security "
+    }
+
+    if (incognito) {
+        browserArgs .= "--incognito "
     }
 
     EnvSet("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", browserArgs)

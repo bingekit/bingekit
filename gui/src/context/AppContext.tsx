@@ -92,9 +92,13 @@ interface AppContextType {
   autoUpdatePlugins: boolean; setAutoUpdatePlugins: React.Dispatch<React.SetStateAction<boolean>>;
   autoFocusPlayerOnTabChange: boolean; setAutoFocusPlayerOnTabChange: React.Dispatch<React.SetStateAction<boolean>>;
   ctrlClickBackgroundTab: boolean; setCtrlClickBackgroundTab: React.Dispatch<React.SetStateAction<boolean>>;
+  showTilingOptions: boolean; setShowTilingOptions: React.Dispatch<React.SetStateAction<boolean>>;
+  incognito: boolean; setIncognito: React.Dispatch<React.SetStateAction<boolean>>;
+  autoFocusVideo: boolean; setAutoFocusVideo: React.Dispatch<React.SetStateAction<boolean>>;
+  rememberTabs: boolean; setRememberTabs: React.Dispatch<React.SetStateAction<boolean>>;
   checkPluginUpdates: () => Promise<void>;
   isMultiTabEnabled: boolean; setIsMultiTabEnabled: React.Dispatch<React.SetStateAction<boolean>>;
-  browserTabs: { id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean }[]>>;
+  browserTabs: { id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean, isPlaying?: boolean, favicon?: string }[]; setBrowserTabs: React.Dispatch<React.SetStateAction<{ id: string, url: string, inputUrl: string, title?: string, isMuted?: boolean, isPlaying?: boolean, favicon?: string }[]>>;
   activeBrowserTabId: string; setActiveBrowserTabId: React.Dispatch<React.SetStateAction<string>>;
   tilingMode: 'none' | 'split-hz' | 'split-vt' | 'grid'; setTilingMode: React.Dispatch<React.SetStateAction<'none' | 'split-hz' | 'split-vt' | 'grid'>>;
   navigateUrl: (targetUrl: string, inNewTab?: boolean, isBackground?: boolean) => void;
@@ -588,6 +592,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsed.CtrlClickBackgroundTab !== undefined) settings.setCtrlClickBackgroundTab(parsed.CtrlClickBackgroundTab);
         if (parsed.AutoFocusVideo !== undefined) settings.setAutoFocusVideo(parsed.AutoFocusVideo);
         if (parsed.RememberTabs !== undefined) settings.setRememberTabs(parsed.RememberTabs);
+        if (parsed.ShowTilingOptions !== undefined) settings.setShowTilingOptions(parsed.ShowTilingOptions);
+        if (parsed.Incognito !== undefined) settings.setIncognito(parsed.Incognito);
       }
     } catch (e) { }
     setTimeout(() => ahk.call('HideSplash'), 1500);

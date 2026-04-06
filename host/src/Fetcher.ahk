@@ -84,7 +84,7 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         global MainGuis, WebViewSettings, WVs
         hiddenGui := Gui("-Caption +ToolWindow -Resize +Owner" activeWindow, "SmartFetch Debug Window")
         hiddenWV := WebViewCtrl(hiddenGui, "w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize, WebViewSettings)
-        hiddenWV.DefaultBackgroundColor := AHK_GetThemeBgColor()
+        hiddenWV.DefaultBackgroundColor := AHK_GetThemeBgColorARGB()
         
         hiddenGui.OnEvent("Size", (guiObj, minMax, w, h) => (
             minMax = -1 ? 0 : hiddenWV.Move(0, 0, w, h)
@@ -260,7 +260,7 @@ AHK_StartRawFetchParse(windowId, url, actionJs, callbackId) {
 
             hiddenGui := Gui("+Resize +ToolWindow +Owner" (MainGuis.Has(windowId) ? MainGuis[windowId].Hwnd : 0), "RawFetchParse Debug Window")
             hiddenWV := WebViewCtrl(hiddenGui, "w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize, WebViewSettings)
-            hiddenWV.DefaultBackgroundColor := AHK_GetThemeBgColor()
+            hiddenWV.DefaultBackgroundColor := AHK_GetThemeBgColorARGB()
             global AboutConfig_ShowFetcher
             slotIndex := 0
             if (AboutConfig_ShowFetcher) {

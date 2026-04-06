@@ -87,11 +87,12 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
         }
 
         if (!PlayerGuis.Has(id)) {
-            PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGuis[windowId].Hwnd)
+            PlayerGuis[id] := Gui("-Caption +ToolWindow +0x02000000 +0x04000000 +Owner" MainGuis[windowId].Hwnd)
             PlayerGuis[id].BackColor := AHK_GetThemeBgColor()
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
+            PlayerGuis[id].Show("Hide w" w " h" h)
             PlayerWVs[id] := WebViewCtrl(PlayerGuis[id], "w" w " h" h, WebViewSettings)
-            PlayerWVs[id].DefaultBackgroundColor := AHK_GetThemeBgColor()
+            PlayerWVs[id].DefaultBackgroundColor := AHK_GetThemeBgColorARGB()
 
             PlayerWVs[id].Settings.IsGeneralAutofillEnabled := 0
             PlayerWVs[id].Settings.IsSwipeNavigationEnabled := 0

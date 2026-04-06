@@ -6,7 +6,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     global AboutConfig_AllowRightClick, AboutConfig_AllowDevtools
 
     try {
-        newGui := WebViewGui("+Resize -Caption +ToolWindow", "BingeKit", , WebViewSettings)
+        newGui := WebViewGui("+Resize -Caption +ToolWindow +0x02000000 +0x04000000", "BingeKit", , WebViewSettings)
         MainGuis[windowId] := newGui
     } catch as err {
         if (SplashGui) {
@@ -21,7 +21,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     }
 
     newGui.BackColor := AHK_GetThemeBgColor() ; Match the React app's background
-    newGui.Control.DefaultBackgroundColor := AHK_GetThemeBgColor()
+    newGui.Control.DefaultBackgroundColor := AHK_GetThemeBgColorARGB()
     newGui.OnEvent("Close", (*) => AHK_CloseWindow(windowId))
 
     ; Initialize WebViewToo

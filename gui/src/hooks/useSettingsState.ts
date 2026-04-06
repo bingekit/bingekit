@@ -113,6 +113,8 @@ export function useSettingsState() {
   const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [autoFocusVideo, setAutoFocusVideo] = useState(true);
   const [rememberTabs, setRememberTabs] = useState(true);
+  const [showTilingOptions, setShowTilingOptions] = useState(true);
+  const [incognito, setIncognito] = useState(false);
 
 
   return {
@@ -136,6 +138,8 @@ export function useSettingsState() {
     autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange,
     ctrlClickBackgroundTab, setCtrlClickBackgroundTab,
     autoFocusVideo, setAutoFocusVideo,
-    rememberTabs, setRememberTabs
+    rememberTabs, setRememberTabs,
+    showTilingOptions, setShowTilingOptions,
+    incognito, setIncognito
   };
 }

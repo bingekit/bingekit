@@ -433,3 +433,8 @@ AHK_GetThemeBgColor() {
     }
     return bgC
 }
+
+AHK_GetThemeBgColorARGB() {
+    bgC := AHK_GetThemeBgColor()
+    return Integer("0xFF" . bgC)
+}

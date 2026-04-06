@@ -59,7 +59,7 @@ export const Titlebar = () => {
     activeBrowserTabId, setActiveBrowserTabId, tilingMode, setTilingMode,
     isMultiTabEnabled, autoFocusPlayerOnTabChange, homePage, navigateUrl,
     isQuickOptionsHidden, setIsQuickOptionsHidden,
-    autoFocusVideo, setIsFocusedMode
+    autoFocusVideo, setIsFocusedMode, showTilingOptions
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -297,7 +297,7 @@ export const Titlebar = () => {
 
           {isMultiTabEnabled && activeTab === 'player' && (
             <div className="flex items-center no-drag ml-auto">
-              {browserTabs.length > 1 && (
+              {browserTabs.length > 1 && showTilingOptions && (
                 <div className="flex items-center mx-2 gap-1 bg-zinc-900 rounded p-0.5">
                   <TooltipWrapper text="Single View">
                     <button onClick={() => setTilingMode('none')} className={`p-1 rounded ${tilingMode === 'none' ? 'bg-indigo-500/20 text-indigo-400' : 'text-zinc-500 hover:text-zinc-200'}`}><Square size={14} /></button>

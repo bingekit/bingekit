@@ -56,6 +56,18 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     value: true,
   },
 
+  // EXPERIMENTS
+  {
+    id: 'ShowTilingOptions',
+    name: 'Show Tiling Options',
+    type: 'boolean',
+    category: 'Experiments',
+    tags: ['tiling', 'window', 'split', 'grid'],
+    description: 'When enabled, shows advanced window tiling options in the titlebar layout.',
+    default: true,
+    value: true,
+  },
+
   // PLUGINS & UPDATES
   {
     id: 'UpdateUrl',
@@ -219,6 +231,17 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     category: 'Security & Network',
     tags: ['gpu', 'hardware', 'acceleration', 'graphics', 'glitch', 'crash'],
     description: 'Disables GPU acceleration. Use this if you are experiencing graphical glitches or crashes.',
+    default: false,
+    value: false,
+    requiresRestart: true,
+  },
+  {
+    id: 'Incognito',
+    name: 'Incognito Mode (For Testing)',
+    type: 'boolean',
+    category: 'Security & Network',
+    tags: ['incognito', 'private', 'testing'],
+    description: 'Enables incognito mode for testing purposes.',
     default: false,
     value: false,
     requiresRestart: true,
@@ -434,17 +457,17 @@ export const ConfigView = ({ embedded = false }: { embedded?: boolean } = {}) =>
                           </span>
                         )}
                         {item.tags && item.tags.length > 0 && (
-                           <div className="flex flex-wrap gap-1 mt-2">
-                             {item.tags.map(tag => (
-                               <button 
-                                 key={tag} 
-                                 onClick={(e) => { e.preventDefault(); setSearchQuery(tag); }}
-                                 className="text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors cursor-pointer"
-                               >
-                                 #{tag}
-                               </button>
-                             ))}
-                           </div>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {item.tags.map(tag => (
+                              <button
+                                key={tag}
+                                onClick={(e) => { e.preventDefault(); setSearchQuery(tag); }}
+                                className="text-[9px] px-1.5 py-0.5 rounded bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_10%,transparent)] text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors cursor-pointer"
+                              >
+                                #{tag}
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4 align-top w-1/3">
