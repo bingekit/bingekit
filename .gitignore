@@ -24,3 +24,7 @@ error*
 .vscode/settings.json
 host/gui/*
 appHash.ahk
+original_*
+extract*.js
+split_*
+fix.js
