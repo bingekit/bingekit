@@ -60,29 +60,32 @@ export const UserscriptsView = () => {
             <Plus size={16} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
+        <div className="space-y-3">
           {userscripts.map(s => (
             <div
               key={s.id}
-              className={`p-3 rounded-xl border transition-all cursor-pointer group ${editingUserscriptId === s.id ? 'bg-zinc-900 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.1)]' : 'bg-transparent border-zinc-900/50 hover:bg-zinc-900 hover:border-zinc-800'}`}
+              className={`p-4 rounded-xl border cursor-pointer transition-all ${editingUserscriptId === s.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]" : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"}`}
               onClick={() => setEditingUserscriptId(s.id)}
             >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   {s.icon ? (
-                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {s.icon.includes('<svg') || s.icon.includes('http') ? (
-                        <div className="w-3 h-3" dangerouslySetInnerHTML={{ __html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />` }} />
+                        <div className="w-4 h-4" dangerouslySetInnerHTML={{ __html: s.icon.includes('<svg') ? s.icon : `<img src="${s.icon}" class="w-full h-full object-contain" />` }} />
                       ) : (
                         <span className="text-[10px]">{s.icon}</span>
                       )}
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
-                      <Code size={12} />
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                      <Code size={14} />
                     </div>
                   )}
-                  <div className="font-medium text-sm text-zinc-200 truncate min-w-0 flex-1">{s.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-zinc-200 leading-tight truncate">{s.name}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5 truncate">{s.domains.join(', ')}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2 items-center shrink-0">
                   <CustomCheckbox
@@ -100,13 +103,12 @@ export const UserscriptsView = () => {
                       setUserscripts(userscripts.filter(u => u.id !== s.id));
                       if (editingUserscriptId === s.id) setEditingUserscriptId(null);
                     }}
-                    className="text-zinc-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-zinc-600 hover:text-red-400 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
-              <div className="text-xs text-zinc-500 mt-1 truncate ml-8">Domains: {s.domains.join(', ')}</div>
             </div>
           ))}
         </div>

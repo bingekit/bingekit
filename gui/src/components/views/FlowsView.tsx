@@ -177,21 +177,21 @@ export const FlowsView = () => {
             <Plus size={18} />
           </button>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {flows.map((flow) => (
             <div
               key={flow.id}
               onClick={() => setEditingFlow(flow)}
-              className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border ${editingFlow?.id === flow.id ? "bg-indigo-500/10 border-indigo-500/30" : "bg-zinc-900/50 border-zinc-800/50 hover:bg-zinc-900 hover:border-zinc-700"}`}
+              className={`p-4 rounded-xl border cursor-pointer transition-all ${editingFlow?.id === flow.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]" : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"}`}
             >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   {flow.icon ? (
-                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50">
                       {flow.icon.includes("<svg") ||
                         flow.icon.includes("http") ? (
                         <div
-                          className="w-3 h-3"
+                          className="w-4 h-4"
                           dangerouslySetInnerHTML={{
                             __html: flow.icon.includes("<svg")
                               ? flow.icon
@@ -203,17 +203,25 @@ export const FlowsView = () => {
                       )}
                     </div>
                   ) : (
-                    <div className="w-6 h-6 rounded bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
-                      <ListTree size={12} />
+                    <div className="w-8 h-8 rounded-lg bg-zinc-900/40 flex items-center justify-center shrink-0 text-zinc-500 border border-zinc-700/50">
+                      <ListTree size={14} />
                     </div>
                   )}
-                  <h3
-                    className={`font-medium text-sm truncate ${editingFlow?.id === flow.id ? "text-indigo-400" : "text-zinc-200"}`}
-                  >
-                    {flow.name}
-                  </h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-medium text-zinc-200 leading-tight truncate">
+                      {flow.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-0.5 max-w-full min-w-0">
+                      <span className="text-xs text-zinc-500 truncate flex-1 min-w-0">
+                        {flow.description || "No description"}
+                      </span>
+                      <span className="text-[9px] uppercase tracking-wider font-medium text-zinc-600 bg-zinc-900 px-1.5 rounded-full border border-zinc-800 shrink-0">
+                        {flow.steps.length} Steps
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2 items-center shrink-0">
                   <CustomCheckbox
                     checked={flow.enabled !== false}
                     onChange={(val) => {
@@ -236,19 +244,11 @@ export const FlowsView = () => {
                       ahk.call("DeleteFlow", `flow_${flow.id}.json`);
                       if (editingFlow?.id === flow.id) setEditingFlow(null);
                     }}
-                    className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md transition-colors"
+                    className="text-zinc-600 hover:text-red-400 transition-colors"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
-              </div>
-              <p className="text-xs text-zinc-500 truncate">
-                {flow.description || "No description"}
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-wider font-medium text-zinc-600 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">
-                  {flow.steps.length} Steps
-                </span>
               </div>
             </div>
           ))}
