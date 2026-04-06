@@ -149,6 +149,7 @@ export const Titlebar = () => {
                     active={activeBrowserTabId === tab.id}
                     key={tab.id}
                     id={tab.id}
+                    title={tab.title || tab.url}
                     onClick={() => {
                       setActiveBrowserTabId(tab.id);
                       if (autoFocusPlayerOnTabChange && activeTab !== 'player') {
