@@ -208,13 +208,25 @@ export const DashboardView = () => {
                       const resolvedFormat = resolvePluginUrl(plugin.baseUrl, cfg.urlFormat);
                       const searchUrl = resolvedFormat.replace('{query}', encodeURIComponent(baseQuery));
                       try {
-                        // EXPLICIT REQUIREMENT: Enforce preflight authentication checks for EVERY search
-                        // so we never accidentally fetch unauthenticated pages!
                         try {
-                           const { ensureAuthForPlugin } = await import('../../lib/authHelper');
-                           await ensureAuthForPlugin(plugin, credentials);
+                           if (plugin.auth && plugin.auth.checkAuthJs && !plugin.auth.checkAuthOnSearch) {
+                               const { ensureAuthForPlugin } = await import('../../lib/authHelper');
+                               await ensureAuthForPlugin(plugin, credentials);
+                           }
                         } catch(authErr) {
                            console.error(`[Search] Background Auth Preflight failed for ${opName}:`, authErr);
+                        }
+                        
+                        let checkJsHeader = "";
+                        if (plugin.auth && plugin.auth.checkAuthJs && plugin.auth.checkAuthOnSearch) {
+                             checkJsHeader = `
+                                 try {
+                                     const isLoggedIn = (function() { ${plugin.auth.checkAuthJs} })();
+                                     if (!isLoggedIn) {
+                                         return { error: 'AUTH_REQUIRED' };
+                                     }
+                                 } catch(e) {}
+                             `;
                         }
                         
                         const isFormSearch = !!cfg.isFormSearch;
@@ -229,6 +241,7 @@ export const DashboardView = () => {
                         });
 
                         const jsQuery = `
+                                  ${checkJsHeader}
                                   if (!Document.prototype.$) Document.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
                                   if (!Document.prototype.$$) Document.prototype.$$ = function(s) { return this.querySelector(s); };
                                   if (!Element.prototype.$) Element.prototype.$ = function(s) { return Array.from(this.querySelectorAll(s)); };
@@ -391,6 +404,14 @@ export const DashboardView = () => {
 
                         const fetchResults: any = await (window as any).SmartFetch(searchUrl, jsQuery, plugin?.botCheckJs || "");
                         console.log(`[Search] ${opName} returned from SmartFetch:`, fetchResults);
+
+                        if (fetchResults && typeof fetchResults === 'object' && fetchResults.error === 'AUTH_REQUIRED') {
+                            console.log(`[Search] In-band authentication check failed on ${searchUrl}. Escalating to full auto-login flow...`);
+                            const { ensureAuthForPlugin } = await import('../../lib/authHelper');
+                            await ensureAuthForPlugin(plugin, credentials);
+                            searchOperationsQueue.push(op); // Retry this exact operation
+                            continue; // Skip the rest of the extraction for this pass
+                        }
 
                         if (Array.isArray(fetchResults) && fetchResults.length > 0) {
                           const validResults = fetchResults.filter(r => r.title && r.href);

@@ -871,6 +871,24 @@ export const PluginsView = () => {
                         className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono resize-y"
                       />
                     </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={!!editingPlugin.auth.checkAuthOnSearch}
+                        onChange={(e) =>
+                          updateEditingPlugin("auth", "checkAuthOnSearch", e.target.checked)
+                        }
+                        className="w-4 h-4 bg-zinc-900 border-zinc-800 rounded checked:bg-indigo-500"
+                      />
+                      <div className="flex flex-col">
+                        <label className="text-xs text-zinc-300">
+                          Check Login Status from Search URL
+                        </label>
+                        <span className="text-[10px] text-zinc-500">
+                           If enabled, avoids a separate pre-flight background fetch request to the base URL and evaluates the above Javascript directly on the requested Search URL.
+                        </span>
+                      </div>
+                    </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs text-zinc-500">

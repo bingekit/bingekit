@@ -206,6 +206,25 @@ export const PlayerView = () => {
     return () => { if(bc) bc.close(); };
   }, [url]);
 
+  // Live Auto-Login Session Nav-Injection Bridging handled natively in global.js
+
+  React.useEffect(() => {
+      const handleLiveMsg = (e: any) => {
+         if (e.data && e.data.type === 'bk-live-login-success') {
+             window.showToast("Live Auto-Login Completed Successfully!", "success");
+             ahk.asyncCall('CacheSet', '__bkLiveLoginScript', '');
+             try {
+                const bc = new BroadcastChannel('BingeKitAuthSync');
+                bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
+                bc.close();
+             } catch(e) {}
+             setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); 
+         }
+      };
+      window.addEventListener('message', handleLiveMsg);
+      return () => window.removeEventListener('message', handleLiveMsg);
+  }, [url]);
+
   React.useEffect(() => {
     if (activeTab !== 'player') return;
     const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
@@ -461,8 +480,9 @@ export const PlayerView = () => {
             </div>
           )}
           {authStatus !== 'loggedIn' && (
+            <div className="flex items-center gap-1.5 shrink-0">
             <button
-              title="Inject Login Credentials"
+              title="Auto Login (Background Worker)"
               onClick={async () => {
                 try {
                   const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
@@ -523,10 +543,82 @@ export const PlayerView = () => {
                   console.error("Auto-Login UI Click Exception:", err);
                 }
               }}
-              className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0"
+              className="text-xs font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
             >
-              <KeyRound size={14} /> Auto-Login
+              <KeyRound size={14} /> Auto-Login (Silent)
             </button>
+            <div className="w-1 h-1 rounded-full bg-zinc-700/50 mx-1" />
+            <button
+              title="Auto Login (Live Foreground Window)"
+              onClick={async () => {
+                try {
+                  const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+                  if (plugin) {
+                      const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
+                      const cred = credentials.find(c => {
+                          try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
+                      });
+                      
+                      if (!cred || (!cred.username && !cred.passwordBase64)) {
+                        window.showToast("No credentials found for this plugin's domains.", "error");
+                        return;
+                      }
+                      window.showToast("Initiating LIVE Auto-Login Flow...", "info");
+                      const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
+                      const { getAutoLoginScript } = await import('../../lib/authHelper');
+                      const loginJs = getAutoLoginScript(plugin, cred, rawPass);
+                      
+                      let targetUrl = resolvedLoginUrl;
+                      let waitForLinkJs = "";
+                      if (plugin.auth?.loginUrlJs) {
+                          targetUrl = plugin.baseUrl; // Start at base URL to let the crawler find the link natively
+                          waitForLinkJs = `
+                             const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
+                             if (!isAuthPage) {
+                                 const findLinkIvl = setInterval(() => {
+                                      try {
+                                          let link = (function() { ${plugin.auth.loginUrlJs} })();
+                                          if (link) {
+                                              clearInterval(findLinkIvl);
+                                              const finalUrl = link.startsWith('http') ? link : new URL(link, window.location.href).toString();
+                                              window.location.href = finalUrl;
+                                          }
+                                      } catch(e) {}
+                                 }, 1000);
+                             }
+                          `;
+                      }
+                      
+                      const wrappedJs = `
+                         ${waitForLinkJs}
+                         (async function() {
+                              if (window._bkLiveLoginHooked) return;
+                              window._bkLiveLoginHooked = true;
+                              const loginTask = async function() { ${loginJs} };
+                              try {
+                                 const result = await loginTask();
+                                 if (result) {
+                                    window.top.postMessage({ type: 'bk-live-login-success' }, '*');
+                                 }
+                              } catch(e) {}
+                         })();
+                      `;
+                      ahk.asyncCall('CacheSet', '__bkLiveLoginScript', wrappedJs);
+                      
+                      ahk.asyncCall('UpdatePlayerUrl', targetUrl);
+                  } else {
+                      window.showToast('No matching plugin configuration found.', 'error');
+                  }
+                } catch (e) {
+                  console.error(e);
+                  window.showToast("An error occurred starting live auto-login.", "error");
+                }
+              }}
+              className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
+            >
+              <MonitorPlay size={14} /> Live Setup
+            </button>
+            </div>
           )}
         </div>
       )}

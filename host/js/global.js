@@ -78,6 +78,12 @@
             "Title": document.title,
             "Referrer": document.referrer
         });
+
+        const liveJs = window.ahk.CacheGet("__bkLiveLoginScript");
+        if (liveJs && liveJs !== "") {
+            console.log("[BingeKit] Resuming persistent Live Setup task block from Cache...");
+            try { eval(liveJs); } catch (e) { console.error("[BingeKit] Live Setup evaluation error:", e); }
+        }
     });
 
     const bkParseM3U8Qualities = (txt, baseUrl) => {
