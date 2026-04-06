@@ -1,8 +1,6 @@
 global FetchTasks := Map()
 global FetcherGridSlots := Map()
 
-WindowSize := 300
-
 GetNextFetcherSlot() {
     global FetcherGridSlots
     slotIndex := 1
@@ -18,14 +16,14 @@ GetNextFetcherSlot() {
 GetFetcherCoords(slotIndex, &outX, &outY) {
     scrW := SysGet(0)
     scrH := SysGet(1)
-    cols := Floor(scrW / WindowSize)
+    cols := Floor(scrW / AboutConfig_FetcherDefaultSize)
     if (cols < 1)
         cols := 1
     index0 := slotIndex - 1
     col := Mod(index0, cols)
     row := Floor(index0 / cols)
-    outX := col * WindowSize
-    outY := row * WindowSize
+    outX := col * AboutConfig_FetcherDefaultSize
+    outY := row * AboutConfig_FetcherDefaultSize
 }
 
 DestroyFetcher(callbackId) {
@@ -85,7 +83,7 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
 
         global MainGuis, WebViewSettings, WVs
         hiddenGui := Gui("-Caption +ToolWindow -Resize +Owner" activeWindow, "SmartFetch Debug Window")
-        hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
+        hiddenWV := WebViewCtrl(hiddenGui, "w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize, WebViewSettings)
         
         hiddenGui.OnEvent("Size", (guiObj, minMax, w, h) => (
             minMax = -1 ? 0 : hiddenWV.Move(0, 0, w, h)
@@ -96,8 +94,8 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         if (AboutConfig_ShowFetcher) {
             slotIndex := GetNextFetcherSlot()
             GetFetcherCoords(slotIndex, &xpos, &ypos)
-            hiddenGui.Show("w" WindowSize " h" WindowSize " x" xpos " y" ypos)
-            hiddenWV.Move(0, 0, WindowSize, WindowSize)
+            hiddenGui.Show("w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize " x" xpos " y" ypos)
+            hiddenWV.Move(0, 0, AboutConfig_FetcherDefaultSize, AboutConfig_FetcherDefaultSize)
         } else {
             WinSetTransparent(0, hiddenGui)
             hiddenGui.Show("w1 h1 x0 y0")
@@ -112,15 +110,22 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         hostObj := {
             ReturnData: (data, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetch) window.resolveSmartFetch('" callbackId "', " data ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
             ReturnError: (err, _*) => (MainGuis.Has(windowId) ? MainGuis[windowId].Control.ExecuteScriptAsync("if(window.resolveSmartFetchError) window.resolveSmartFetchError('" callbackId "', " err ");") : "", SetTimer(() => DestroyFetcher(callbackId), -10)),
-            ShowFetcherWindow: (*) => (
-                WinSetTransparent("Off", hiddenGui),
-                hiddenGui.Title := "ATTENTION REQUIRED - BingeKit",
-                hiddenGui.Opt("+Caption -ToolWindow +Resize"),
-                hiddenGui.Show("w1000 h800 Center"),
-                hiddenWV.Move(0, 0, 1000, 800),
-                SoundPlay("*-1"),
-                WinActivate("ahk_id " hiddenGui.Hwnd)
-            )
+            UpdateWindow: (visible, title:="", w:=0, h:=0, zoom:=0, _*) => (
+                title ? hiddenGui.Title := title : "",
+                visible ? (
+                    WinSetTransparent("Off", hiddenGui),
+                    hiddenGui.Opt("+Caption -ToolWindow +Resize"),
+                    hiddenGui.Show("w" (w?w:AboutConfig_FetcherDefaultSize) " h" (h?h:AboutConfig_FetcherDefaultSize) " Center"),
+                    hiddenWV.Move(0, 0, (w?w:AboutConfig_FetcherDefaultSize), (h?h:AboutConfig_FetcherDefaultSize)),
+                    WinActivate("ahk_id " hiddenGui.Hwnd)
+                ) : (
+                    WinSetTransparent(0, hiddenGui),
+                    hiddenGui.Opt("-Caption +ToolWindow -Resize"),
+                    hiddenGui.Show("w1 h1")
+                ),
+                zoom ? hiddenWV.wv.ExecuteScript("document.documentElement.style.zoom = '" zoom "';", 0) : ""
+            ),
+            ShowFetcherWindow: (*) => (hostObj.UpdateWindow(true, "ATTENTION REQUIRED - BingeKit", 1000, 800), SoundPlay("*-1"))
         }
 
         FetchTasks[callbackId] := { gui: hiddenGui, wv: hiddenWV, obj: hostObj, slotIndex: slotIndex }
@@ -170,19 +175,33 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         wrapperJs .= "  return _origSend.apply(this, arguments); "
         wrapperJs .= " };"
         wrapperJs .= "}`n"
+        
+        if (AboutConfig_FetcherDefaultZoom != 1.0) {
+            wrapperJs .= "document.addEventListener('DOMContentLoaded', function() { document.documentElement.style.zoom = '" AboutConfig_FetcherDefaultZoom "'; });`n"
+        }
+
         wrapperJs .= "function __runSmartFetch() {`n"
         wrapperJs .= "    if (window.__sfRan) return; window.__sfRan = true;`n"
         wrapperJs .= "    console.log('[SmartFetch Debug] __runSmartFetch initialized.');`n"
+        
+        if (AboutConfig_FetcherTimeout > 0) {
+            wrapperJs .= "    window._svSfTo = setTimeout(function() {`n"
+            wrapperJs .= "        console.error('[SmartFetch Debug] Timeout Reached. Exposing Window.');`n"
+            wrapperJs .= "        window.chrome.webview.hostObjects." hostObjName ".UpdateWindow(true, 'SmartFetch Timeout Reached (" AboutConfig_FetcherTimeout "ms)', 1000, 800).catch(e => console.error(e));`n"
+            wrapperJs .= "    }, " AboutConfig_FetcherTimeout ");`n"
+        }
+
         wrapperJs .= "    window._svBotInterval = setInterval(function() {`n"
         wrapperJs .= "        try {`n"
         wrapperJs .= "            var t = document.title || '';`n"
         wrapperJs .= "            if(t.includes('Just a moment') || t.includes('Attention Required') || document.querySelector('.cf-browser-verification, #cf-wrapper, #challenges')) {`n"
         wrapperJs .= "                clearInterval(window._svBotInterval);`n"
+        wrapperJs .= "                if(window._svSfTo) clearTimeout(window._svSfTo);`n"
         wrapperJs .= "                window._svBotDetected = true;`n"
         wrapperJs .= "                window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e));`n"
         wrapperJs .= "            }`n"
         if (botCheckJs != "") {
-             wrapperJs .= "            try { var _svBotRes = (function() {" botCheckJs "`n})(); if(_svBotRes) { clearInterval(window._svBotInterval); window._svBotDetected = true; window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e)); } } catch(e) {}`n"
+             wrapperJs .= "            try { var _svBotRes = (function() {" botCheckJs "`n})(); if(_svBotRes) { clearInterval(window._svBotInterval); if(window._svSfTo) clearTimeout(window._svSfTo); window._svBotDetected = true; window.chrome.webview.hostObjects." hostObjName ".ShowFetcherWindow().catch(e => console.error(e)); } } catch(e) {}`n"
         }
         wrapperJs .= "        } catch(e) {}`n"
         wrapperJs .= "    }, 1000);`n"
@@ -195,18 +214,22 @@ AHK_StartSmartFetch(windowId, url, actionJs, callbackId, botCheckJs := "") {
         wrapperJs .= "                console.log('[SmartFetch Debug] Awaiting promise result...');`n"
         wrapperJs .= "                result.then(res => {`n"
         wrapperJs .= "                    console.log('[SmartFetch Debug] Promise resolved. Transmitting back to AHK...');`n"
+        wrapperJs .= "                    if(window._svSfTo) clearTimeout(window._svSfTo);`n"
         wrapperJs .= "                    window.chrome.webview.hostObjects." hostObjName ".ReturnData(JSON.stringify(res)).catch(e => console.error('[SmartFetch Debug] COM Transit Error:', e));`n"
         wrapperJs .= "                }).catch(e => {`n"
         wrapperJs .= "                    console.error('[SmartFetch Debug] Promise rejected:', e);`n"
+        wrapperJs .= "                    if(window._svSfTo) clearTimeout(window._svSfTo);`n"
         wrapperJs .= "                    window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(typeof e === 'object' && e !== null && e.message ? e.message : e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
         wrapperJs .= "                });`n"
         wrapperJs .= "            } else {`n"
         wrapperJs .= "                var jsonStr = typeof result === 'string' ? result : JSON.stringify(result);`n"
         wrapperJs .= "                console.log('[SmartFetch Debug] Transmitting synchronous result...');`n"
+        wrapperJs .= "                if(window._svSfTo) clearTimeout(window._svSfTo);`n"
         wrapperJs .= "                window.chrome.webview.hostObjects." hostObjName ".ReturnData(jsonStr).catch(e => console.error('[SmartFetch Debug] COM Transit Error:', e));`n"
         wrapperJs .= "            }`n"
         wrapperJs .= "        } catch(e) {`n"
         wrapperJs .= "            console.error('[SmartFetch Debug] Exception execution crashed:', e);`n"
+        wrapperJs .= "            if(window._svSfTo) clearTimeout(window._svSfTo);`n"
         wrapperJs .= "            window.chrome.webview.hostObjects." hostObjName ".ReturnError(JSON.stringify(typeof e === 'object' && e !== null && e.message ? e.message : e)).catch(err => console.error('[SmartFetch Debug] COM Error:', err));`n"
         wrapperJs .= "        }`n"
         wrapperJs .= "    }, 1000);`n"
@@ -235,14 +258,14 @@ AHK_StartRawFetchParse(windowId, url, actionJs, callbackId) {
             rawHtml := req.ResponseText
 
             hiddenGui := Gui("+Resize +ToolWindow +Owner" (MainGuis.Has(windowId) ? MainGuis[windowId].Hwnd : 0), "RawFetchParse Debug Window")
-            hiddenWV := WebViewCtrl(hiddenGui, "w" WindowSize " h" WindowSize, WebViewSettings)
+            hiddenWV := WebViewCtrl(hiddenGui, "w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize, WebViewSettings)
             global AboutConfig_ShowFetcher
             slotIndex := 0
             if (AboutConfig_ShowFetcher) {
                 slotIndex := GetNextFetcherSlot()
                 GetFetcherCoords(slotIndex, &xpos, &ypos)
-                hiddenGui.Show("w" WindowSize " h" WindowSize " x" xpos " y" ypos)
-                hiddenWV.Move(0, 0, WindowSize, WindowSize)
+                hiddenGui.Show("w" AboutConfig_FetcherDefaultSize " h" AboutConfig_FetcherDefaultSize " x" xpos " y" ypos)
+                hiddenWV.Move(0, 0, AboutConfig_FetcherDefaultSize, AboutConfig_FetcherDefaultSize)
             } else {
                 WinSetTransparent(0, hiddenGui)
                 hiddenGui.Show("w1 h1 x0 y0")

@@ -1787,6 +1787,9 @@
   .pt-6 {
     padding-top: calc(var(--spacing) * 6);
   }
+  .pt-10 {
+    padding-top: calc(var(--spacing) * 10);
+  }
   .pt-\[15vh\] {
     padding-top: 15vh;
   }
@@ -1813,6 +1816,9 @@
   }
   .pb-6 {
     padding-bottom: calc(var(--spacing) * 6);
+  }
+  .pb-10 {
+    padding-bottom: calc(var(--spacing) * 10);
   }
   .pb-20 {
     padding-bottom: calc(var(--spacing) * 20);
@@ -2773,6 +2779,16 @@
         background-color: var(--theme-text-main);
         @supports (color: color-mix(in lab, red, red)) {
           background-color: color-mix(in srgb,var(--theme-text-main) 8%,transparent);
+        }
+      }
+    }
+  }
+  .hover\:bg-\[color-mix\(in_srgb\,var\(--theme-text-main\)_10\%\,transparent\)\] {
+    &:hover {
+      @media (hover: hover) {
+        background-color: var(--theme-text-main);
+        @supports (color: color-mix(in lab, red, red)) {
+          background-color: color-mix(in srgb,var(--theme-text-main) 10%,transparent);
         }
       }
     }

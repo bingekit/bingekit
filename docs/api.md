@@ -35,7 +35,7 @@ BingeKit functions are securely bound to `window.chrome.webview.hostObjects.sync
 ### Web & Scraper Control
 *   **`UpdatePlayerUrl(url)`**: Forces the visible Player WebView to navigate identically as clicking a URL natively.
 *   **`PlayerGoBack()`** / **`PlayerGoForward()`** / **`PlayerReload()`**: Safely traverses Edge history stacks.
-*   **`StartSmartFetch(url, actionJs, callbackId)`**: Instantiates a hidden browser tab, directs it to `url`, waits out delays (such as Cloudflare verification), evalulates `actionJs` securely, and routes a JSON string securely back to `callbackId` via the global event emitter.
+*   **`StartSmartFetch(url, actionJs, callbackId)`**: Instantiates a hidden browser tab, directs it to `url`, waits out delays (such as Cloudflare verification), evalulates `actionJs` securely, and routes a JSON string securely back to `callbackId` via the global event emitter. Scripts executed inside this tab have access to `UpdateWindow(visible, title, width, height)` on their active COM host object to physically reveal themselves for manual intervention, which will natively occur automatically should the task stall against the global **SmartFetch Timeout** constraint.
 *   **`StartRawFetchParse(url, actionJs, callbackId)`**: Fast-tracks scraping by natively issuing an AHK `WinHttpRequest`. Bypasses Chromium layout completely (30ms vs 1.2s). Great for extracting raw DOM elements if no active javascript framework blocks it.
 *   **`RawFetchHTML(url)`**: Similar to above, but resolves synchronously returning exclusively the stringified body.
 

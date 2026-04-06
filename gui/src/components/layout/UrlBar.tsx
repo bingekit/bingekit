@@ -90,9 +90,17 @@ export const UrlBar = () => {
           <>
             <Search size={12} className="urlbar-icon flex-shrink-0" />
             <input
+              ref={(el) => {
+                if (el && isMultiTabEnabled && url === (homePage || 'https://bingekit.app/home/') && !el.dataset.focusedOnce) {
+                  el.focus();
+                  el.select();
+                  el.dataset.focusedOnce = 'true';
+                }
+              }}
               type="text"
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
+              onFocus={(e) => e.target.select()}
               placeholder="Search streams or enter URL..."
               spellCheck={false}
               autoComplete="off"

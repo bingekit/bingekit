@@ -82,14 +82,21 @@ BingeKit can manage native logins so you never have to type passwords.
    - \`submitSel\` (The login button).
 4. **\`checkAuthJs\`**: The host runs this snippet randomly to determine if the user is logged out. Return \`true\` if authenticated, \`false\` if the user is unauthenticated. If \`false\`, BingeKit natively routes to \`auth.loginUrl\` and injects your credentials into the selectors.
 
-#### \`botCheckJs\` (Cloudflare & Captcha Resilience)
-Sometimes, automated scraping hits Cloudflare captchas. Inject logic here to detect it. If this script evaluates and returns \`true\`, BingeKit will un-hide the invisible SmartFetch browser, center it on your screen, and sit idle to allow you to manually solve the Captcha before continuing its job.
+#### \`botCheckJs\` & \`SmartFetch\` Timeouts (Captcha Resilience)
+Sometimes, automated scraping hits Cloudflare captchas or stalled SPAs. 
+By default, BingeKit will **automatically reveal** the hidden \`SmartFetch\` window if your script fails to return data before the *SmartFetch Expiration Timeout* (configurable globally in \`about:config\`).
+
+You can also programmatically trigger this by accessing the native payload container. If your custom \`botCheckJs\` script evaluates to \`true\`, BingeKit forces the hidden window to become visible and centered so you can manually solve it:
+
 \`\`\`javascript
-// Example checking for Cloudflare Turnstile
+// Example checking for Cloudflare Turnstile inside botCheckJs
 if (document.body.innerHTML.includes('cf-turnstile') || document.querySelector('.cf-browser-verification')) {
-  return true;
+  return true; // Auto-exposes the internal WebView!
 }
 return false;
+
+// Example inside actionJs of a SmartFetch hook directly:
+// window.chrome.webview.hostObjects["fetchResult_" + payloadId].UpdateWindow(true, "Debug View", 1000, 800);
 \`\`\`
 
 ### 4. Basic Automation Snippets

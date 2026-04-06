@@ -3,6 +3,9 @@ global AboutConfig_ShowFetcher := false
 global AboutConfig_DebugMode := false
 global AboutConfig_AllowRightClick := true
 global AboutConfig_AllowDevtools := false
+global AboutConfig_FetcherDefaultSize := 300
+global AboutConfig_FetcherDefaultZoom := 1.0
+global AboutConfig_FetcherTimeout := 30000
 
 InitEnvironment() {
     global WebViewSettings
@@ -15,6 +18,9 @@ InitEnvironment() {
     allowRightClick := true
     allowDevtools := false
     debugMode := false
+    fetcherDefaultSize := 300
+    fetcherDefaultZoom := 1.0
+    fetcherTimeout := 30000
     try {
         parsedConf := JSON.parse(aboutConf)
         if (parsedConf.Has("DisableWebSecurity"))
@@ -29,6 +35,19 @@ InitEnvironment() {
             allowDevtools := parsedConf["AllowDevtools"]
         if (parsedConf.Has("DebugMode"))
             debugMode := parsedConf["DebugMode"]
+        if (parsedConf.Has("FetcherDefaultSize"))
+            tempSize := parsedConf["FetcherDefaultSize"]
+        if (parsedConf.Has("FetcherDefaultZoom"))
+            tempZoom := parsedConf["FetcherDefaultZoom"]
+        if (parsedConf.Has("FetcherTimeout"))
+            tempTimeout := parsedConf["FetcherTimeout"]
+            
+        if (IsSet(tempSize) && Type(tempSize) == "Integer")
+            fetcherDefaultSize := tempSize
+        if (IsSet(tempZoom))
+            fetcherDefaultZoom := tempZoom + 0.0
+        if (IsSet(tempTimeout) && Type(tempTimeout) == "Integer")
+            fetcherTimeout := tempTimeout
     } catch {
     }
 
@@ -36,6 +55,9 @@ InitEnvironment() {
     AboutConfig_DebugMode := debugMode
     AboutConfig_AllowRightClick := allowRightClick
     AboutConfig_AllowDevtools := allowDevtools
+    AboutConfig_FetcherDefaultSize := fetcherDefaultSize
+    AboutConfig_FetcherDefaultZoom := fetcherDefaultZoom
+    AboutConfig_FetcherTimeout := fetcherTimeout
 
     browserArgs := "--msWebView2CodeCache " .
         "--edge-webview-no-dpi-workaround " .

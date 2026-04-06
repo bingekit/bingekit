@@ -140,6 +140,7 @@ export const FlowsView = () => {
     "general" | "steps" | "metadata"
   >(cachedFlowsEditTab);
   const setEditTab = (val: typeof cachedFlowsEditTab) => { cachedFlowsEditTab = val; _setEditTab(val); };
+  const [deletePrompt, setDeletePrompt] = React.useState<any>(null);
 
   return (
     <div className="flex h-full w-full overflow-hidden">
@@ -239,10 +240,7 @@ export const FlowsView = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      const newFlows = flows.filter((f) => f.id !== flow.id);
-                      setFlows(newFlows);
-                      ahk.call("DeleteFlow", `flow_${flow.id}.json`);
-                      if (editingFlow?.id === flow.id) setEditingFlow(null);
+                      setDeletePrompt(flow);
                     }}
                     className="text-zinc-600 hover:text-red-400 transition-colors"
                   >
@@ -975,6 +973,43 @@ export const FlowsView = () => {
           </div>
         )}
       </div>
+
+      <Modal 
+        isOpen={!!deletePrompt} 
+        onClose={() => setDeletePrompt(null)} 
+        title="Confirm Deletion"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--theme-text-sec)]">
+            Are you absolutely sure you want to delete <span className="font-bold text-[var(--theme-text-main)]">"{deletePrompt?.name}"</span>?
+          </p>
+          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs leading-relaxed text-red-400">
+            This action cannot be undone and will permanently remove this flow from your workspace.
+          </div>
+          <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
+            <button 
+              onClick={() => setDeletePrompt(null)}
+              className="px-4 py-2 text-sm font-medium text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => {
+                if (deletePrompt) {
+                  const newFlows = flows.filter((f: any) => f.id !== deletePrompt.id);
+                  setFlows(newFlows);
+                  ahk.call("DeleteFlow", `flow_${deletePrompt.id}.json`);
+                  if (editingFlow?.id === deletePrompt.id) setEditingFlow(null);
+                }
+                setDeletePrompt(null);
+              }}
+              className="px-4 py-2 bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/20 rounded-lg text-sm font-medium shadow-sm transition-colors active:scale-95"
+            >
+              Confirm Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

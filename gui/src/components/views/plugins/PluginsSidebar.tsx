@@ -4,6 +4,7 @@ import { useAppContext } from "../../../context/AppContext";
 import { CustomCheckbox } from "../../ui/CustomCheckbox";
 import { ahk } from "../../../lib/ahk";
 import { DEFAULT_PLUGIN } from "../../../types";
+import { Modal } from "../../ui/Modal";
 
 let pluginsSidebarScrollPos = 0;
 
@@ -24,6 +25,7 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
   } = useAppContext();
 
   const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
+  const [deletePrompt, setDeletePrompt] = React.useState<any>(null);
 
   React.useEffect(() => {
     if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = pluginsSidebarScrollPos;
@@ -152,7 +154,7 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    deletePlugin(plugin);
+                    setDeletePrompt(plugin);
                   }}
                   className="text-zinc-600 hover:text-red-400 transition-colors"
                 >
@@ -170,6 +172,38 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
           </div>
         )}
       </div>
+
+      <Modal 
+        isOpen={!!deletePrompt} 
+        onClose={() => setDeletePrompt(null)} 
+        title="Confirm Deletion"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--theme-text-sec)]">
+            Are you absolutely sure you want to delete <span className="font-bold text-[var(--theme-text-main)]">"{deletePrompt?.name}"</span>?
+          </p>
+          <div className="bg-red-500/10 border border-red-500/20 p-3 rounded-lg text-xs leading-relaxed text-red-400">
+            This action cannot be undone and will permanently remove this site's configuration.
+          </div>
+          <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
+            <button 
+              onClick={() => setDeletePrompt(null)}
+              className="px-4 py-2 text-sm font-medium text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => {
+                if (deletePrompt) deletePlugin(deletePrompt);
+                setDeletePrompt(null);
+              }}
+              className="px-4 py-2 bg-red-500/20 text-red-500 hover:bg-red-500/30 border border-red-500/20 rounded-lg text-sm font-medium shadow-sm transition-colors active:scale-95"
+            >
+              Confirm Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

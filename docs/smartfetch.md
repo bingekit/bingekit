@@ -63,6 +63,27 @@ window.chrome.webview.hostObjects.sync.ahk.StartSmartFetch(
 > [!TIP]
 > **Use Case Context:** `SmartFetch` executes precisely like an automated Puppeteer script, seamlessly passing browser authentication challenges.
 
+### Hidden Window & Visibility Control (Debugging & Timeouts)
+
+By default, the `SmartFetch` browser is completely hidden off-screen physically. However, if your scrape runs into captchas or dead-locks, you can programmatically force it to reveal itself so users/developers can intervene or debug visually.
+
+#### The `UpdateWindow()` Payload
+While inside your `actionJs` script context executing inside the hidden browser, you have native access to its bounding container via the Host Object bridge:
+```javascript
+// Force the invisible window visible (width 1000px, height 800px)
+window.chrome.webview.hostObjects["fetchResult_" + callbackId].UpdateWindow(true, "ATTENTION - Captcha Detected", 1000, 800);
+
+// Re-hide the window
+window.chrome.webview.hostObjects["fetchResult_" + callbackId].UpdateWindow(false);
+```
+
+#### SmartFetch Expirations
+Because `SmartFetch` wraps your evaluation inside a `setTimeout`, a broken promise could permanently hang the invisible window out-of-bounds, consuming RAM silently.
+
+To prevent this, BingeKit exposes the **SmartFetch Expiration Timeout** via Advanced Preferences (default: 30 seconds). If your `actionJs` loop fails to naturally resolve before this interval drains, the hidden window will automatically snap to the center of your screen, playing an alert chime, enabling developers to visually identify exactly where the payload snagged!
+
+You can natively configure the default size and zoom CSS multiplier of revealed windows using the `about:config` System panel.
+
 ## Extreme Speed: `RawFetchHTML`
 
 If you are just parsing a simple XML feed, basic tags from Wikipedia, or non-SPA applications, `SmartFetch` is too slow because it waits for complete layout painting (~1-2 seconds per cycle).
