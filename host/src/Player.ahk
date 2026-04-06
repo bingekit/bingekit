@@ -87,7 +87,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
         }
 
         if (!PlayerGuis.Has(id)) {
-            PlayerGuis[id] := Gui("-Caption +ToolWindow +0x02000000 +0x04000000 +Owner" MainGuis[windowId].Hwnd)
+            PlayerGuis[id] := Gui("-Caption +ToolWindow +Owner" MainGuis[windowId].Hwnd)
             PlayerGuis[id].BackColor := AHK_GetThemeBgColor()
             PlayerGuis[id].OnEvent("Size", AHK_PlayerGuiResized)
             PlayerGuis[id].Show("Hide w" w " h" h)
@@ -184,7 +184,9 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 if (currentX != ScreenX || currentY != ScreenY || currentW != w || currentH != h) {
                     PlayerWVs[id].wvc.IsVisible := 1
                     PlayerWVs[id].Move(0, 0, w, h)
-                    PlayerWVs[id].wvc.Fill()
+                    RECT := Buffer(16)
+                    NumPut("Int", 0, "Int", 0, "Int", w, "Int", h, RECT)
+                    try ComCall(6, PlayerWVs[id].wvc, "Ptr", RECT)
                     PlayerGuis[id].Show("x" ScreenX " y" ScreenY " w" w " h" h " NA")
                 }
             }
@@ -199,7 +201,9 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                     if (PlayerWVs.Has(id)) {
                         PlayerWVs[id].wvc.IsVisible := 1
                         PlayerWVs[id].Move(0, 0, w, h)
-                        PlayerWVs[id].wvc.Fill()
+                        RECT := Buffer(16)
+                        NumPut("Int", 0, "Int", 0, "Int", w, "Int", h, RECT)
+                        try ComCall(6, PlayerWVs[id].wvc, "Ptr", RECT)
                     }
                     PlayerGuis[id].Show("x-9999 y-9999 w" w " h" h " NA")
                 }
@@ -240,7 +244,7 @@ AHK_SyncPlayers(windowId, keepIdsList) {
         for _, id in keepArr {
             keepMap[id] := true
         }
-        
+
         toClose := []
         for id, _ in PlayerGuis {
             if (!keepMap.Has(id)) {
@@ -261,7 +265,9 @@ AHK_PlayerGuiResized(guiObj, minMax, width, height) {
     for id, pwv in PlayerWVs {
         if (PlayerGuis.Has(id) && PlayerGuis[id].Hwnd == guiObj.Hwnd) {
             pwv.Move(0, 0, width, height)
-            pwv.wvc.Fill()
+            RECT := Buffer(16)
+            NumPut("Int", 0, "Int", 0, "Int", width, "Int", height, RECT)
+            try ComCall(6, pwv.wvc, "Ptr", RECT)
             break
         }
     }
@@ -650,7 +656,7 @@ AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
             }
 
             currentUrl := PlayerCurrentUrls.Has(foundId) ? PlayerCurrentUrls[foundId] : "unknown"
-            
+
             if (LastNavErrorState.Has(foundId) && LastNavErrorState[foundId] == currentUrl) {
                 return ; Lock-in the very first error captured for this URL attempt
             }
@@ -679,9 +685,9 @@ AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
                 errStr := "Connection Error (" webError ")"
 
             safeErr := StrReplace(errStr, "'", "\'")
-            
+
             codeStr := (httpCode > 0) ? String(httpCode) : String(webError)
-            
+
             js := "try { if(window.throwNavigationError) window.throwNavigationError('" codeStr "', '" safeErr "'); } catch(e){}"
             PlayerWVs[foundId].wv.ExecuteScriptAsync(js)
         } else {
@@ -692,7 +698,7 @@ AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
                 }
             } catch {
             }
-            
+
             foundId := "main"
             for id, pwv in PlayerWVs {
                 if (pwv.wv.ptr == ICoreWebView2.ptr) {

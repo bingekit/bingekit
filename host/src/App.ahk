@@ -6,7 +6,7 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
     global AboutConfig_AllowRightClick, AboutConfig_AllowDevtools
 
     try {
-        newGui := WebViewGui("+Resize -Caption +ToolWindow +0x02000000 +0x04000000", "BingeKit", , WebViewSettings)
+        newGui := WebViewGui("+MinSize850x500 +Resize -Caption +ToolWindow", "BingeKit", , WebViewSettings)
         MainGuis[windowId] := newGui
     } catch as err {
         if (SplashGui) {

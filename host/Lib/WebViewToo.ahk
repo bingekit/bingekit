@@ -68,6 +68,11 @@ class WebViewGui extends Gui {
         ; Resize the WebView2 to fit the GUI
         this.Control.Move(0, 0, Width, Height)
 
+        ; Aggressive bypass for high availability resizing bounds
+        RECT := Buffer(16)
+        NumPut("Int", 0, "Int", 0, "Int", Width, "Int", Height, RECT)
+        try ComCall(6, this.Control.wvc, "Ptr", RECT)
+
         ;Resize the sizing handles to fit the GUI
         this.Sizers.Move(0, 0, Width, Height)
 
