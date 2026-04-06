@@ -2,7 +2,7 @@
 
 Welcome to BingeKit! 
 
-BingeKit is a headless-capable, fully synchronized media automation platform. At its core, it is built on a high-privileged **AutoHotkey v2 (AHK)** foundation that physically orchestrates one or more native Microsoft Edge **WebView2** instances. The primary UI is driven by a beautiful **React** frontend, securely communicating over a custom IPC bridge.
+BingeKit is a headless-capable, fully synchronized media automation platform. At its core, it is built on a high-privileged **AutoHotkey v2 (AHK)** foundation that physically orchestrates multiple native Microsoft Edge **WebView2** instances. The primary UI is driven by a customizable **React** frontend, communicating over a custom IPC bridge.
 
 > [!NOTE]
 > BingeKit is not an Electron app. It is a native Windows application that uses edge rendering purely for presentation and web-scraping. This gives it immense power to manipulate OS-level windows, spawn hidden parsing browsers, natively download files, and intercept network traffic.
