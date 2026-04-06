@@ -477,11 +477,61 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (savedHomePage) {
       general.setHomePage(savedHomePage);
     }
-    setUrl(computedHomeUrl);
-    setInputUrl(computedHomeUrl);
-    tabs.setBrowserTabs(prev => [{ ...prev[0], url: computedHomeUrl, inputUrl: computedHomeUrl }]);
-    ahk.call('UpdatePlayerUrl', computeNavUrl(computedHomeUrl), 'main');
-    tabs.lastSyncUrls.current['main'] = computedHomeUrl;
+
+    let shouldRemember = true;
+    try {
+      const configStr = ahk.call('GetAboutConfig');
+      if (configStr) {
+        const parsed = JSON.parse(configStr);
+        if (parsed.RememberTabs !== undefined) shouldRemember = parsed.RememberTabs;
+      }
+    } catch(e) {}
+
+    let loadedTabs = false;
+    if (shouldRemember) {
+      const savedTabs = ahk.call('LoadData', 'active_tabs.json');
+      const savedTabId = ahk.call('LoadData', 'active_tab_id.txt');
+      // Wait for any UI flashes or state unmounts to clear before marking ready to save
+      if (savedTabs) {
+        try {
+          const parsedTabs = JSON.parse(savedTabs);
+          if (Array.isArray(parsedTabs) && parsedTabs.length > 0) {
+            tabs.setBrowserTabs(parsedTabs);
+            const initialTabId = savedTabId || parsedTabs[0].id;
+            tabs.setActiveBrowserTabId(initialTabId);
+            const activeTabObj = parsedTabs.find(t => t.id === initialTabId);
+            const safeUrl = activeTabObj ? activeTabObj.url : computedHomeUrl;
+            setUrl(safeUrl);
+            setInputUrl(safeUrl);
+
+            parsedTabs.forEach((t: any) => {
+               tabs.lastSyncUrls.current[t.id] = t.url;
+               ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(t.url), t.id);
+            });
+            ahk.call('SyncPlayers', parsedTabs.map((t: any) => t.id).join(','));
+            loadedTabs = true;
+          } else {
+             ahk.call('ShowToast', 'Parsed tabs was empty or not array.');
+          }
+        } catch(e: any) {
+           ahk.call('ShowToast', 'Failed to parse active_tabs.json: ' + String(e));
+        }
+      } else {
+         ahk.call('ShowToast', 'active_tabs.json was fully empty or missing!');
+      }
+    }
+
+    if (!loadedTabs) {
+      setUrl(computedHomeUrl);
+      setInputUrl(computedHomeUrl);
+      tabs.setBrowserTabs(prev => [{ ...prev[0], id: 'main', url: computedHomeUrl, inputUrl: computedHomeUrl }]);
+      tabs.setActiveBrowserTabId('main');
+      ahk.call('UpdatePlayerUrl', computeNavUrl(computedHomeUrl), 'main');
+      tabs.lastSyncUrls.current['main'] = computedHomeUrl;
+      ahk.call('SyncPlayers', 'main');
+    }
+
+    tabs.setIsReadyToSave(true);
 
     const savedNavButtons = ahk.call('LoadData', 'nav_buttons.json');
     if (savedNavButtons) {
@@ -537,9 +587,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsed.AutoFocusPlayerOnTabChange !== undefined) settings.setAutoFocusPlayerOnTabChange(parsed.AutoFocusPlayerOnTabChange);
         if (parsed.CtrlClickBackgroundTab !== undefined) settings.setCtrlClickBackgroundTab(parsed.CtrlClickBackgroundTab);
         if (parsed.AutoFocusVideo !== undefined) settings.setAutoFocusVideo(parsed.AutoFocusVideo);
+        if (parsed.RememberTabs !== undefined) settings.setRememberTabs(parsed.RememberTabs);
       }
     } catch (e) { }
-
     setTimeout(() => ahk.call('HideSplash'), 1500);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -23,6 +23,7 @@ export function useTabsState(
   const previousTabIdRef = useRef('main');
   const lastSyncUrls = useRef<Record<string, string>>({});
   const isInitialMultiTabMount = useRef(true);
+  const [isReadyToSave, setIsReadyToSave] = useState(false);
 
   useEffect(() => {
     if (activeBrowserTabIdRef.current !== activeBrowserTabId) {
@@ -38,6 +39,18 @@ export function useTabsState(
       }
     }
   }, [activeBrowserTabId, browserTabs, setInputUrl, setUrl]);
+
+  useEffect(() => {
+    if (isReadyToSave) {
+      ahk.call('SaveData', 'active_tab_id.txt', activeBrowserTabId);
+    }
+  }, [activeBrowserTabId, isReadyToSave]);
+
+  useEffect(() => {
+    if (isReadyToSave) {
+      ahk.call('SaveData', 'active_tabs.json', JSON.stringify(browserTabs));
+    }
+  }, [browserTabs, isReadyToSave]);
 
 
 
@@ -149,6 +162,7 @@ export function useTabsState(
     browserTabs, setBrowserTabs,
     activeBrowserTabId, setActiveBrowserTabId,
     tilingMode, setTilingMode,
-    lastSyncUrls
+    lastSyncUrls,
+    setIsReadyToSave // Expose the state setter instead of the ref
   };
 }

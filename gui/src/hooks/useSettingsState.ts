@@ -112,6 +112,7 @@ export function useSettingsState() {
   const [autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange] = useState(true);
   const [ctrlClickBackgroundTab, setCtrlClickBackgroundTab] = useState(true);
   const [autoFocusVideo, setAutoFocusVideo] = useState(true);
+  const [rememberTabs, setRememberTabs] = useState(true);
 
 
   return {
@@ -134,6 +135,7 @@ export function useSettingsState() {
     autoUpdatePlugins, setAutoUpdatePlugins,
     autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange,
     ctrlClickBackgroundTab, setCtrlClickBackgroundTab,
-    autoFocusVideo, setAutoFocusVideo
+    autoFocusVideo, setAutoFocusVideo,
+    rememberTabs, setRememberTabs
   };
 }

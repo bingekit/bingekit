@@ -134,6 +134,16 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     value: 'http://gui.localhost/index.html',
   },
   {
+    id: 'RememberTabs',
+    name: 'Remember Open Tabs',
+    type: 'boolean',
+    category: 'Application Behavior',
+    tags: ['tabs', 'startup', 'restore'],
+    description: 'Restore your previously open tabs when restarting BingeKit or reloading the UI.',
+    default: true,
+    value: true,
+  },
+  {
     id: 'InstalledDataPath',
     name: 'Workspace Storage Directory',
     type: 'folder',

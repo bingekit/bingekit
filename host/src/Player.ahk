@@ -230,6 +230,28 @@ AHK_ClosePlayer(windowId, id) {
     SetTimer(DoClose, -1)
 }
 
+AHK_SyncPlayers(windowId, keepIdsList) {
+    DoSync() {
+        global PlayerGuis
+        keepArr := StrSplit(keepIdsList, ",")
+        keepMap := Map()
+        for _, id in keepArr {
+            keepMap[id] := true
+        }
+        
+        toClose := []
+        for id, _ in PlayerGuis {
+            if (!keepMap.Has(id)) {
+                toClose.Push(id)
+            }
+        }
+        for _, id in toClose {
+            AHK_ClosePlayer(windowId, id)
+        }
+    }
+    SetTimer(DoSync, -1)
+}
+
 AHK_PlayerGuiResized(guiObj, minMax, width, height) {
     global PlayerWVs, PlayerGuis
     if (minMax = -1)

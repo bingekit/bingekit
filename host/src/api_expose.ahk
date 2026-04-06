@@ -55,6 +55,7 @@ BindApiToWindow(wvObj, windowId) {
         UpdatePlayerRect: AHK_UpdatePlayerRect.Bind(windowId),
         UpdatePlayerUrl: AHK_UpdatePlayerUrl.Bind(windowId),
         ClosePlayer: AHK_ClosePlayer.Bind(windowId),
+        SyncPlayers: AHK_SyncPlayers.Bind(windowId),
         SetActiveTabId: AHK_SetActiveTabId.Bind(windowId),
         UpdateURL: AHK_UpdateURL.Bind(windowId),
         UpdateUserscriptPayload: AHK_UpdateUserscriptPayload,
