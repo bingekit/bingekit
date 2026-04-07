@@ -521,7 +521,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
            ahk.call('ShowToast', 'Failed to parse active_tabs.json: ' + String(e));
         }
       } else {
-         ahk.call('ShowToast', 'active_tabs.json was fully empty or missing!');
+         // Graceful fallback internally managed, no toast required
       }
     }
 

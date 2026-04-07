@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 
+#Include src\setup_env.ahk
 #Include src\const.ahk
 
 #Include src\Splash.ahk

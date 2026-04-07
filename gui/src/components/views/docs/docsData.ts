@@ -10,7 +10,7 @@ This guide will walk you through starting from an absolute blank slate (no plugi
 ## The Blank Slate
 When you first run BingeKit, it knows absolutely nothing about the websites you want to visit. There are no built-in scrapers for Netflix, Hulu, or any other site. Instead, BingeKit provides a powerful **engine** that physically orchestrates hidden Microsoft Edge (\`WebView2\`) instances to do your bidding.
 
-To make BingeKit do anything useful, you need to configure [Plugins](#making_plugins), write [Userscripts](#logic_flows), or design [Logic Flows](#logic_flows).
+To make BingeKit do anything useful, you need to configure [Plugins](#making_plugins#how-to-make-your-own-plugin), write [Userscripts](#logic_flows#userscripts-tampermonkey-equivalent), or design [Logic Flows](#logic_flows).
 
 ## 1. Workspaces & Portable Mode
 BingeKit operates on the concept of **Workspaces**. All your data—configurations, downloaded plugins, bookmarks, and encrypted credentials—are isolated entirely within your configured workspace folder. 
@@ -18,7 +18,7 @@ BingeKit operates on the concept of **Workspaces**. All your data—configuratio
 - **Why this matters**: You can have a "Work" workspace and a "Personal" workspace, completely isolating your plugins, browsing data, and watch history.
 
 ## 2. Navigating the Interface
-- **Dashboard**: Your home base. You can initiate [Search Commands](#protips) here.
+- **Dashboard**: Your home base. You can initiate [Search Commands](#protips#search-modifiers--advanced-commands) here.
 - **Player**: The actual browser view where media plays natively.
 - **Extensions**: Where you manage, create, and update your Site Plugins.
 
@@ -96,7 +96,7 @@ if (document.body.innerHTML.includes('cf-turnstile') || document.querySelector('
 return false;
 
 // Example inside actionJs of a SmartFetch hook directly:
-// window.chrome.webview.hostObjects["fetchResult_" + payloadId].UpdateWindow(true, "Debug View", 1000, 800);
+// window.BK_EXPOSE_FETCHER("Debugging Hook", 1000, 800);
 \`\`\`
 
 ### 4. Basic Automation Snippets
@@ -123,6 +123,24 @@ You can inject CSS directly via the \`cssInject\` field. This is incredible for 
 /* Force fullscreen player */
 header, footer, .sidebar { display: none !important; }
 .player-wrapper { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; }
+\`\`\`
+
+#### Theme Native CSS Variables
+When a BingeKit plugin loads your site, it natively injects the host's current theme config into the \`:root\` DOM globally. You can use these variables inside your \`cssInject\` or tracking flows to instantly seamlessly standardise standard website elements to look native inside BingeKit!
+The following CSS root variables are updated live:
+- \`--theme-bg\`: The primary host dark/light background color.
+- \`--theme-text\`: The primary standard text color.
+- \`--theme-text-sec\`: A muted/secondary text color.
+- \`--theme-border\`: The color used for standard interface borders/dividers.
+- \`--theme-accent\`: The user's chosen brand highlight/accent color (e.g. vibrant purple, neon blue, etc.)
+
+\`\`\`css
+/* Easily theme Google's search bar to match the user's host! */
+input.gNO89b {
+   background-color: var(--theme-bg) !important;
+   border: 1px solid var(--theme-accent) !important;
+   color: var(--theme-text) !important;
+}
 \`\`\`
 
 ## Testing Your Plugin
@@ -380,5 +398,119 @@ This suggests the COM AHK Host failed to resolve the local \`index.html\` fronte
 1. **Domain Overlaps**: Validate your Plugin \`domain\`. Providing \`example.com\` when the site uses \`app.example.com\` will ignore hooks, unless you appropriately manage \`matchUrls\` with proper regular expressions.
 2. **The F12 Console Pivot**: Open the developer console natively on active players. BingeKit safely outputs isolated, prefix console logs (\`[BK-INJECT]\`) during phase executions. Syntax errors thrown during string evaluations are instantly caught here.
 3. **Invalid Selectors**: React apps actively mutate DOM class IDs dynamically. If your \`<video>\` selector was \`.player-xyz\`, it might now be \`.player-abc\`. Always map structural locators or stable IDs like \`[data-testid="player-window"]\` instead.`
+  }
+, {
+    id: 'examples',
+    content: `
+# Live Examples Playground
+
+This section provides interactive, working snippets of BingeKit's core APIs. Because you are viewing this page natively inside BingeKit, you can execute these directly within the application to see how they behave in real-time.
+
+## Native Toast Notification
+Test the native OS-level toast system that bypasses the browser UI entirely, making it globally visible even while gaming or playing media!
+
+\`\`\`runjs
+ahk.call('ShowToast', 'Hello from the BingeKit Documentation!', 'info');
+\`\`\`
+
+## Memory Cache (Set & Get)
+Very fast volatile memory operations mapped directly into the Host process RAM instead of disk. Useful for passing data without triggering I/O bottlenecks.
+
+\`\`\`runjs
+ahk.call('CacheSet', 'demoSessionKey', 'This string is persisting in the system RAM!');
+const result = ahk.call('CacheGet', 'demoSessionKey');
+ahk.call('ShowToast', 'Retrieved from Cache: ' + result, 'success');
+
+// Clean up test token immediately afterward
+ahk.call('CacheSet', 'demoSessionKey', '');
+\`\`\`
+
+## Synchronous Raw Fetch
+A blazing fast native HTTP request bypassing chromium document layout and the DOM.
+
+\`\`\`runjs
+// Fetch an API endpoint natively
+const result = ahk.call('RawFetchHTML', 'https://jsonplaceholder.typicode.com/todos/1');
+ahk.call('ShowToast', 'Fetched API Data! Check developer console for output.', 'success');
+console.log("RawFetchHTML Result:", JSON.parse(result));
+\`\`\`
+
+## Background SmartFetch (DOM Parsing)
+Spawns an invisible \`WebView2\` instance to execute Javascript inside an actual authentic Chromium lifecycle against a target URL. This enables Cloudflare bypassing and Javascript evaluation.
+
+\`\`\`runjs
+const url = "https://news.ycombinator.com/";
+const scraperScript = \`
+  return new Promise((resolve) => {
+    // We are now inside the invisible browser!
+    const links = document.querySelectorAll('a');
+    resolve({
+        totalLinks: links.length,
+        title: document.title
+    });
+  });
+\`;
+
+ahk.call("ShowToast", "Starting SmartFetch in background...", "info");
+
+// Fire the underlying SmartFetch promise wrapper
+window.SmartFetch(url, scraperScript)
+    .then(data => {
+        ahk.call("ShowToast", "Parsed " + data.totalLinks + " links from " + data.title + "!", "success");
+    })
+    .catch(err => {
+        ahk.call("ShowToast", "Fetch Failed: " + err, "error");
+    });
+\`\`\`
+
+## Open Native App Dialogs
+Because BingeKit is a real Windows app, you can seamlessly spawn generic local shell windows and listen to asynchronous events!
+
+\`\`\`runjs
+// Will invoke the Windows Folder Selector and pipe event back
+const handleFolder = (e) => {
+    if (e.detail && e.detail.id === 'demo-folder') {
+        window.removeEventListener('bk-folder-selected', handleFolder);
+        ahk.call('ShowToast', 'Selected Path: ' + e.detail.dir, 'success');
+    }
+};
+window.addEventListener('bk-folder-selected', handleFolder);
+ahk.call('PromptSelectFolder', 'demo-folder');
+\`\`\`
+
+## Synchronous RawParse Fetch
+Like SmartFetch, but it executes JS against a background WebView *synchronously* without the CloudFlare waiting checks, making it blisteringly fast for basic sites.
+
+\`\`\`runjs
+ahk.call("ShowToast", "Loading headless DOM wrapper...", "info");
+window.RawParseFetch('https://example.com', \`
+  return new Promise(res => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    res(meta ? meta.content : 'No view meta tag found');
+  });
+\`).then(data => {
+    ahk.call('ShowToast', 'Extracted viewport: ' + data, 'success');
+});
+\`\`\`
+
+## System UI Overrides (PiP)
+Interact with the Host's window system programmatically. Trigger Picture-in-Picture mode directly via JS.
+
+\`\`\`runjs
+ahk.call("ShowToast", "Toggling Global PiP Layout...", "info");
+ahk.call('TogglePiP');
+\`\`\`
+
+## Accessing Internal About:Config
+Programmatically iterate or check system-level flags safely via the Host memory API.
+
+\`\`\`runjs
+const flagsStr = ahk.call('GetAboutConfig');
+const flags = JSON.parse(flagsStr);
+
+ahk.call('ShowToast', \`Loaded \${Object.keys(flags).length} config keys!\`, 'success');
+console.log("System Config Flags:", flags);
+\`\`\`
+`
   }
 ];
