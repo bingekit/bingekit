@@ -130,7 +130,7 @@ export const MainLayout = () => {
         toggleBookmark();
       }
     };
-    
+
     window.addEventListener('keydown', handleGlobalKeyDown);
     window.addEventListener('bk-toggle-bookmark', toggleBookmark);
     return () => {
@@ -140,7 +140,7 @@ export const MainLayout = () => {
   }, [url, bookmarks, setBookmarks, fetchTitleForUrl]);
 
   return (
-    <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>
+    <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.main, color: theme.textMain }}>
       <ThemeStyles />
       <Titlebar />
 
@@ -158,7 +158,7 @@ export const MainLayout = () => {
             <div className={`w-full h-full absolute inset-0 ${activeTab === 'player' ? 'z-0' : 'pointer-events-none opacity-0 z-[-1]'}`}>
               <PlayerView />
             </div>
-            <div className={`w-full h-full absolute inset-0 ${activeTab === 'docs' ? 'z-10' : 'pointer-events-none opacity-0 z-[-1]'}`} style={{ backgroundColor: theme.mainBg }}>
+            <div className={`w-full h-full absolute inset-0 ${activeTab === 'docs' ? 'z-10' : 'pointer-events-none opacity-0 z-[-1]'}`} style={{ backgroundColor: theme.main }}>
               {/* Only render DocsView if it has been activated once to save resources, but keep it mounted. Actually it's simple enough to just render it */}
               <DocsView />
             </div>

@@ -5,7 +5,7 @@ export function useGeneralState() {
   const themeTimerRef = useRef<any>(null);
   const [theme, _setTheme] = useState({
     mode: 'dark',
-    titlebarBg: '#09090b', sidebarBg: '#09090b', mainBg: '#09090b',
+    titlebarBg: '#09090b', sidebarBg: '#09090b', main: '#09090b',
     border: '#27272a', accent: '#6366f1', textMain: '#fafafa', textSec: '#a1a1aa',
     titlebarText: '#a1a1aa', titlebarTextHover: '#fafafa', titlebarAccent: '#6366f1',
     titlebarAlt: '#18181b', titlebarAlt2: '#27272a', sidebarText: '#a1a1aa',

@@ -33,9 +33,9 @@ let globalDocsHighlightTarget: string | null = null;
 const InteractiveCodeBlock = ({ inline, className, children, theme, isDarkMode, handleCopy, copiedText, ...props }: any) => {
   const initialCode = String(children).replace(/\n$/, '');
   const [liveCode, setLiveCode] = useState(initialCode);
-  
+
   useEffect(() => {
-     setLiveCode(initialCode);
+    setLiveCode(initialCode);
   }, [initialCode]);
 
   const match = /language-(\w+)/.exec(className || '');
@@ -46,13 +46,13 @@ const InteractiveCodeBlock = ({ inline, className, children, theme, isDarkMode, 
   if (!inline && match) {
     const executeExample = async () => {
       try {
-         const executor = new Function('ahk', `return (async () => { ${liveCode} })();`);
-         await Promise.race([
-             executor(ahk),
-             new Promise((_, reject) => setTimeout(() => reject(new Error("Execution Timed Out!")), 10000))
-         ]);
-      } catch(err: any) {
-         ahk.call('ShowToast', "Error: " + err.message, "error");
+        const executor = new Function('ahk', `return (async () => { ${liveCode} })();`);
+        await Promise.race([
+          executor(ahk),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Execution Timed Out!")), 10000))
+        ]);
+      } catch (err: any) {
+        ahk.call('ShowToast', "Error: " + err.message, "error");
       }
     };
 
@@ -70,182 +70,182 @@ const InteractiveCodeBlock = ({ inline, className, children, theme, isDarkMode, 
         if (code.includes('ShowToast')) return 'ShowToast';
         return '';
       };
-      
+
       const primaryApi = getPrimaryApi(initialCode);
 
       if (primaryApi === 'ShowToast') {
         const toastPresets = [
-           { label: 'Basic Notification', value: "ahk.call('ShowToast', 'Hello from the BingeKit Documentation!', 'info');" },
-           { label: 'Error Alert', value: "ahk.call('ShowToast', 'Critical Failure', 'error');" },
-           { label: 'Theme Match', value: "ahk.call('ShowToast', 'System synced with theme.', 'theme');" },
-           { label: 'Custom JSON Config', value: "ahk.call('ShowToast', 'Custom Layout', '{ \"bgC\":\"18181b\", \"textC\":\"e4e4e7\", \"borderC\":\"ef4444\" }');" }
+          { label: 'Basic Notification', value: "ahk.call('ShowToast', 'Hello from the BingeKit Documentation!', 'info');" },
+          { label: 'Error Alert', value: "ahk.call('ShowToast', 'Critical Failure', 'error');" },
+          { label: 'Theme Match', value: "ahk.call('ShowToast', 'System synced with theme.', 'theme');" },
+          { label: 'Custom JSON Config', value: "ahk.call('ShowToast', 'Custom Layout', '{ \"bgC\":\"18181b\", \"textC\":\"e4e4e7\", \"borderC\":\"ef4444\" }');" }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>ShowToast</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect 
-                 options={toastPresets}
-                 value={toastPresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto break-words min-w-0" style={{ color: theme.textSec }}>
-               ahk.call('ShowToast', msg, type?, arg2?, arg3?)
-             </div>
+            <div className="flex items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>ShowToast</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={toastPresets}
+                value={toastPresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto break-words min-w-0" style={{ color: theme.textSec }}>
+              ahk.call('ShowToast', msg, type?, arg2?, arg3?)
+            </div>
           </div>
         );
       }
-      
+
       if (primaryApi === 'CacheSet') {
         const cachePresets = [
-           { label: 'Basic String Store', value: initialCode },
-           { label: 'Object State Syncing', value: `ahk.call('CacheSet', 'userPrefs', JSON.stringify({ theme: 'dark', vol: 80 }));\nconst prefs = JSON.parse(ahk.call('CacheGet', 'userPrefs'));\nahk.call('ShowToast', 'Theme is: ' + prefs.theme, 'info');` }
+          { label: 'Basic String Store', value: initialCode },
+          { label: 'Object State Syncing', value: `ahk.call('CacheSet', 'userPrefs', JSON.stringify({ theme: 'dark', vol: 80 }));\nconst prefs = JSON.parse(ahk.call('CacheGet', 'userPrefs'));\nahk.call('ShowToast', 'Theme is: ' + prefs.theme, 'info');` }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>Memory Cache</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex items-center gap-2 shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect
-                 options={cachePresets}
-                 value={cachePresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
-               ahk.call('CacheSet', key, val) | ahk.call('CacheGet', key)
-             </div>
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>Memory Cache</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={cachePresets}
+                value={cachePresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
+              ahk.call('CacheSet', key, val) | ahk.call('CacheGet', key)
+            </div>
           </div>
         );
       }
 
       if (primaryApi === 'RawFetchHTML') {
         const fetchPresets = [
-           { label: 'Basic GET Request', value: initialCode },
-           { label: 'Fetch Raw Text Size', value: `const html = ahk.call('RawFetchHTML', 'https://example.com');\nahk.call('ShowToast', 'Extracted ' + html.length + ' bytes of raw html!', 'success');` }
+          { label: 'Basic GET Request', value: initialCode },
+          { label: 'Fetch Raw Text Size', value: `const html = ahk.call('RawFetchHTML', 'https://example.com');\nahk.call('ShowToast', 'Extracted ' + html.length + ' bytes of raw html!', 'success');` }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>RawFetchHTML</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex items-center gap-2 shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect
-                 options={fetchPresets}
-                 value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
-               ahk.call('RawFetchHTML', targetURL)
-             </div>
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>RawFetchHTML</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={fetchPresets}
+                value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
+              ahk.call('RawFetchHTML', targetURL)
+            </div>
           </div>
         );
       }
 
       if (primaryApi === 'RawParseFetch') {
         const fetchPresets = [
-           { label: 'Headless DOM Exec', value: initialCode },
-           { label: 'Extract Meta Tags', value: `window.RawParseFetch('https://example.com', \`\n  return new Promise(res => {\n    const meta = document.querySelector('meta[name="viewport"]');\n    res(meta ? meta.content : 'none');\n  });\n\`).then(data => ahk.call('ShowToast', 'Viewport rule: ' + data, 'info'));` }
+          { label: 'Headless DOM Exec', value: initialCode },
+          { label: 'Extract Meta Tags', value: `window.RawParseFetch('https://example.com', \`\n  return new Promise(res => {\n    const meta = document.querySelector('meta[name="viewport"]');\n    res(meta ? meta.content : 'none');\n  });\n\`).then(data => ahk.call('ShowToast', 'Viewport rule: ' + data, 'info'));` }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>RawParseFetch</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex items-center gap-2 shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect
-                 options={fetchPresets}
-                 value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
-               window.RawParseFetch(url, script)
-             </div>
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>RawParseFetch</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={fetchPresets}
+                value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
+              window.RawParseFetch(url, script)
+            </div>
           </div>
         );
       }
-      
+
       if (primaryApi === 'PromptSelectFolder') {
         const folderPresets = [
-           { label: 'Native File Picker', value: initialCode },
-           { label: 'Store Picked Path in Cache', value: `const handleFolder = (e) => {\n    if (e.detail && e.detail.id === 'save-target') {\n        window.removeEventListener('bk-folder-selected', handleFolder);\n        ahk.call('CacheSet', 'TargetFolder', e.detail.dir);\n        ahk.call('ShowToast', 'Saved to cache!', 'success');\n    }\n};\nwindow.addEventListener('bk-folder-selected', handleFolder);\nahk.call('PromptSelectFolder', 'save-target');` }
+          { label: 'Native File Picker', value: initialCode },
+          { label: 'Store Picked Path in Cache', value: `const handleFolder = (e) => {\n    if (e.detail && e.detail.id === 'save-target') {\n        window.removeEventListener('bk-folder-selected', handleFolder);\n        ahk.call('CacheSet', 'TargetFolder', e.detail.dir);\n        ahk.call('ShowToast', 'Saved to cache!', 'success');\n    }\n};\nwindow.addEventListener('bk-folder-selected', handleFolder);\nahk.call('PromptSelectFolder', 'save-target');` }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>PromptSelectFolder</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex items-center gap-2 shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect
-                 options={folderPresets}
-                 value={folderPresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
-               ahk.call('PromptSelectFolder', eventId)
-             </div>
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>PromptSelectFolder</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={folderPresets}
+                value={folderPresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
+              ahk.call('PromptSelectFolder', eventId)
+            </div>
           </div>
         );
       }
-      
+
       if (primaryApi === 'SmartFetch') {
         const fetchPresets = [
-           { label: 'Cloudflare Link Scraper', value: initialCode },
-           { label: 'Extract Simple Title', value: `window.SmartFetch("https://google.com/", \`\n  return new Promise(resolve => resolve(document.title));\n\`).then(title => ahk.call("ShowToast", "Title: " + title, "success"));` },
-           { label: 'Force Reveal Window', value: `ahk.call("ShowToast", "Revealing invisible edge layer natively!", "info");\nwindow.SmartFetch("https://example.com/", \`\n  // Immediately forces the DWM to spawn it front-and-center\n  window.BK_EXPOSE_FETCHER("Debugging SmartFetch Interactively", 1200, 800);\n\n  return new Promise(resolve => {\n     setTimeout(() => resolve("Look at the screen!"), 5000);\n  });\n\`).then(msg => ahk.call("ShowToast", msg, "success"));` }
+          { label: 'Cloudflare Link Scraper', value: initialCode },
+          { label: 'Extract Simple Title', value: `window.SmartFetch("https://google.com/", \`\n  return new Promise(resolve => resolve(document.title));\n\`).then(title => ahk.call("ShowToast", "Title: " + title, "success"));` },
+          { label: 'Force Reveal Window', value: `ahk.call("ShowToast", "Revealing invisible edge layer natively!", "info");\nwindow.SmartFetch("https://example.com/", \`\n  // Immediately forces the DWM to spawn it front-and-center\n  window.BK_EXPOSE_FETCHER("Debugging SmartFetch Interactively", 1200, 800);\n\n  return new Promise(resolve => {\n     setTimeout(() => resolve("Look at the screen!"), 5000);\n  });\n\`).then(msg => ahk.call("ShowToast", msg, "success"));` }
         ];
 
         return (
           <div className="flex flex-wrap gap-x-4 gap-y-2 px-6 py-2.5 border-b border-black/10 items-center relative z-20" style={{ backgroundColor: theme.accent + '05', borderBottom: '1px solid ' + theme.border }}>
-             <div className="flex gap-2 items-center shrink-0">
-               <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>SmartFetch (Promise)</span>
-             </div>
-             <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
-             <div className="flex items-center gap-2 shrink-0">
-               <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
-               <CustomSelect
-                 options={fetchPresets}
-                 value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
-                 onChange={(newVal) => setLiveCode(newVal)}
-                 className="w-48 text-[11px]"
-                 placeholder="Custom Script..."
-               />
-             </div>
-             <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
-               window.SmartFetch(url, script)
-             </div>
+            <div className="flex gap-2 items-center shrink-0">
+              <span className="text-[11px] font-bold tracking-wider px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.accent + '20', color: theme.accent }}>SmartFetch (Promise)</span>
+            </div>
+            <div className="h-4 w-px opacity-30 shrink-0" style={{ backgroundColor: theme.textSec }} />
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-semibold" style={{ color: theme.textSec }}>Presets:</span>
+              <CustomSelect
+                options={fetchPresets}
+                value={fetchPresets.find(p => p.value === liveCode)?.value || ''}
+                onChange={(newVal) => setLiveCode(newVal)}
+                className="w-48 text-[11px]"
+                placeholder="Custom Script..."
+              />
+            </div>
+            <div className="text-[10px] italic opacity-50 ml-auto min-w-0" style={{ color: theme.textSec }}>
+              window.SmartFetch(url, script)
+            </div>
           </div>
         );
       }
@@ -420,19 +420,19 @@ export const DocsView = () => {
   useEffect(() => {
     // Scroll completely independently of highlighting if the target is an explicit element ID
     if (globalDocsHighlightTarget && globalDocsHighlightTarget.startsWith('elem-')) {
-       const slug = globalDocsHighlightTarget.substring(5);
-       setTimeout(() => {
-           const element = document.getElementById(slug);
-           if (element) {
-               element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-               // visually blink the text to show the anchor location optionally
-               element.style.transition = 'color 0.5s';
-               element.style.color = theme.accent;
-               setTimeout(() => { element.style.color = theme.textMain; }, 1000);
-           }
-           globalDocsHighlightTarget = null;
-       }, 50);
-       return;
+      const slug = globalDocsHighlightTarget.substring(5);
+      setTimeout(() => {
+        const element = document.getElementById(slug);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // visually blink the text to show the anchor location optionally
+          element.style.transition = 'color 0.5s';
+          element.style.color = theme.accent;
+          setTimeout(() => { element.style.color = theme.textMain; }, 1000);
+        }
+        globalDocsHighlightTarget = null;
+      }, 50);
+      return;
     }
 
     // @ts-ignore - CSS Highlight API types may not be present in the TS version natively
@@ -448,7 +448,7 @@ export const DocsView = () => {
     }
 
     const lowerQuery = query.toLowerCase();
-    
+
     // Slight delay to ensure React has fully committed the markdown DOM
     setTimeout(() => {
       if (!contentRef.current) return;
@@ -486,7 +486,7 @@ export const DocsView = () => {
   }, [searchQuery, activeDocId]);
 
   return (
-    <div className="flex h-full w-full overflow-hidden font-sans antialiased" style={{ backgroundColor: theme.mainBg, color: theme.textMain }}>
+    <div className="flex h-full w-full overflow-hidden font-sans antialiased" style={{ backgroundColor: theme.main, color: theme.textMain }}>
       <style>{`
         ::highlight(docs-search) {
           background-color: ${theme.accent};
@@ -546,8 +546,8 @@ export const DocsView = () => {
                       key={i}
                       onClick={() => handleDocClick(res.docId, true)}
                       className={`w-full text-left p-4 rounded-xl mb-3 border cursor-pointer transition-all duration-300 block ${isActive
-                          ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
-                          : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
+                        ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
+                        : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
                         }`}
                     >
                       <div className={`font-medium text-[14px] leading-tight truncate transition-colors ${isActive ? 'text-indigo-300' : 'text-zinc-200'}`}>
@@ -575,13 +575,13 @@ export const DocsView = () => {
                       key={section.id}
                       onClick={() => handleDocClick(section.id)}
                       className={`w-full flex items-center gap-3 p-4 rounded-xl border cursor-pointer transition-all duration-300 ${isActive
-                          ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
-                          : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
+                        ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
+                        : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"
                         }`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${isActive
-                          ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
-                          : "bg-zinc-900/40 text-zinc-500 border-zinc-700/50"
+                        ? "bg-indigo-500/20 text-indigo-400 border-indigo-500/30"
+                        : "bg-zinc-900/40 text-zinc-500 border-zinc-700/50"
                         }`}
                       >
                         <Icon className="w-[14px] h-[14px] flex-shrink-0" />
@@ -616,25 +616,25 @@ export const DocsView = () => {
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  h1: ({node, children, ...props}: any) => {
-                      const text = React.Children.toArray(children).join('');
-                      const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-                      return (
-                        <div className="mt-8 mb-12">
-                          <h1 id={slug} className="text-5xl font-black tracking-tighter leading-tight mb-6" style={{ color: theme.textMain }} {...props}>{children}</h1>
-                          <div className="h-1.5 w-24 rounded-full bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${theme.accent}, transparent)` }}></div>
-                        </div>
-                      );
+                  h1: ({ node, children, ...props }: any) => {
+                    const text = React.Children.toArray(children).join('');
+                    const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+                    return (
+                      <div className="mt-8 mb-12">
+                        <h1 id={slug} className="text-5xl font-black tracking-tighter leading-tight mb-6" style={{ color: theme.textMain }} {...props}>{children}</h1>
+                        <div className="h-1.5 w-24 rounded-full bg-gradient-to-r" style={{ backgroundImage: `linear-gradient(to right, ${theme.accent}, transparent)` }}></div>
+                      </div>
+                    );
                   },
-                  h2: ({node, children, ...props}: any) => {
-                      const text = React.Children.toArray(children).join('');
-                      const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-                      return <h2 id={slug} className="text-3xl font-bold tracking-tight mt-20 mb-8 border-b pb-4 drop-shadow-sm" style={{ color: theme.textMain, borderColor: theme.border + '50' }} {...props}>{children}</h2>;
+                  h2: ({ node, children, ...props }: any) => {
+                    const text = React.Children.toArray(children).join('');
+                    const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+                    return <h2 id={slug} className="text-3xl font-bold tracking-tight mt-20 mb-8 border-b pb-4 drop-shadow-sm" style={{ color: theme.textMain, borderColor: theme.border + '50' }} {...props}>{children}</h2>;
                   },
-                  h3: ({node, children, ...props}: any) => {
-                      const text = React.Children.toArray(children).join('');
-                      const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
-                      return <h3 id={slug} className="text-xl font-bold mb-6 mt-14 tracking-tight" style={{ color: theme.textMain }} {...props}>{children}</h3>;
+                  h3: ({ node, children, ...props }: any) => {
+                    const text = React.Children.toArray(children).join('');
+                    const slug = text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '');
+                    return <h3 id={slug} className="text-xl font-bold mb-6 mt-14 tracking-tight" style={{ color: theme.textMain }} {...props}>{children}</h3>;
                   },
                   h4: ({ node, ...props }) => (
                     <h4 className="text-xl font-bold tracking-tight mt-12 mb-4 opacity-95" style={{ color: theme.textMain }} {...props} />
@@ -649,21 +649,21 @@ export const DocsView = () => {
                     return (
                       <a
                         href={isHashHover ? '#' : href}
-                        onClick={(e) => { 
-                          if (isHashHover) { 
-                            e.preventDefault(); 
+                        onClick={(e) => {
+                          if (isHashHover) {
+                            e.preventDefault();
                             const fullHash = href.substring(1);
                             const parts = fullHash.split('#');
                             const targetDoc = parts[0];
                             const targetSectionSlug = parts.length > 1 ? parts[1] : null;
-                            
+
                             if (targetSectionSlug) {
-                                globalDocsHighlightTarget = 'elem-' + targetSectionSlug;
+                              globalDocsHighlightTarget = 'elem-' + targetSectionSlug;
                             } else {
-                                globalDocsHighlightTarget = e.currentTarget.textContent || null;
+                              globalDocsHighlightTarget = e.currentTarget.textContent || null;
                             }
-                            handleDocClick(targetDoc); 
-                          } 
+                            handleDocClick(targetDoc);
+                          }
                         }}
                         className={`font-bold underline underline-offset-[6px] decoration-2 hover:decoration-current transition-all duration-300 hover:opacity-80 py-0.5`}
                         style={linkStyle}

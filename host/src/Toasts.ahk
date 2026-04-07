@@ -43,8 +43,8 @@ AHK_ShowToast(windowId, msg, arg1 := "info", arg2 := "", arg3 := "") {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             tJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(tJson)
-            if (theme.Has("mainBg") && theme["mainBg"] != "")
-                bgC := StrReplace(theme["mainBg"], "#", "")
+            if (theme.Has("main") && theme["main"] != "")
+                bgC := StrReplace(theme["main"], "#", "")
             if (theme.Has("textMain") && theme["textMain"] != "")
                 textC := StrReplace(theme["textMain"], "#", "")
             if (theme.Has("border") && theme["border"] != "")

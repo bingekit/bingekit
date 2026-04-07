@@ -16,7 +16,7 @@
 
         window.addEventListener("DOMContentLoaded", () => {
             var style = document.createElement('style');
-            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
+            style.textContent = `body{background:var(--theme-main);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
             document.head.appendChild(style);
             document.body.innerHTML =
                 `<div style='display:flex;text-align:center;flex-direction:column;color:var(--theme-accent);justify-content:center;align-items:center;height:100%;font-size:2rem;'>
@@ -28,7 +28,7 @@
         // If already loaded, apply now
         if (document.readyState === "interactive" || document.readyState === "complete") {
             var style = document.createElement('style');
-            style.textContent = `body{background:var(--theme-mainBg);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
+            style.textContent = `body{background:var(--theme-main);color:var(--theme-textMain);font-family:sans-serif}::selection{        background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;        color: var(--theme-accent) !important;}`;
             try { document.head.appendChild(style); } catch (e) { }
             try {
                 document.body.innerHTML =

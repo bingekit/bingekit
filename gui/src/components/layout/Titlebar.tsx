@@ -160,7 +160,7 @@ export const Titlebar = () => {
                       e.preventDefault();
                       const screenX = window.screenX + (e.clientX || 0);
                       const screenY = window.screenY + (e.clientY || 0);
-                      ahk.call('ShowTabContextMenu', tab.id, screenX, screenY, tab.isMuted === true ? 1 : 0, theme.sidebarBg || '#27272a', theme.mainBg || '#18181b', theme.border || '#3f3f46', theme.textSec || '#a1a1aa', theme.textMain || '#ffffff', browserTabs.length);
+                      ahk.call('ShowTabContextMenu', tab.id, screenX, screenY, tab.isMuted === true ? 1 : 0, theme.sidebarBg || '#27272a', theme.main || '#18181b', theme.border || '#3f3f46', theme.textSec || '#a1a1aa', theme.textMain || '#ffffff', browserTabs.length);
                     }}
                     className={`h-[32px] titlebarTab overflow-hidden no-drag max-w-[220px] min-w-[120px] flex-1 px-3 flex items-center justify-between rounded-t-lg transition-colors duration-200 cursor-pointer border border-b-0 relative group ${activeBrowserTabId === tab.id
                       ? 'bg-[var(--theme-sidebar)] border-[color-mix(in_srgb,var(--theme-border)_40%,transparent)] text-[var(--theme-text-main)] shadow-[0_-4px_10px_rgba(0,0,0,0.2)]'

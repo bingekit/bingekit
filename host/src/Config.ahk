@@ -14,7 +14,7 @@ LoadAppConfig() {
 
 InitWorkspaces() {
     global CurrentWorkspace, WorkspaceBaseDir, WorkspaceDir
-    
+
     iniPath := A_ScriptDir "\config.ini"
     isPortable := 1
     customPath := ""
@@ -42,7 +42,7 @@ InitWorkspaces() {
             }
         }
     }
-    
+
     if (isPortable) {
         WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
     } else {
@@ -58,7 +58,7 @@ InitWorkspaces() {
             CurrentWorkspace := A_Args[A_Index + 1]
         }
     }
-    
+
     WorkspaceDir := WorkspaceBaseDir "\" CurrentWorkspace
 
     if (!DirExist(WorkspaceBaseDir))
@@ -90,7 +90,7 @@ InitWorkspaces() {
         try {
             fallbackVer := FileGetVersion(fallbackExe)
             currentVer := FileGetVersion(A_ScriptFullPath)
-            
+
             if (VerCompare(fallbackVer, currentVer) > 0) {
                 cmdLine := "`"" fallbackExe "`""
                 Loop A_Args.Length {
@@ -152,7 +152,7 @@ AHK_SaveData(filename, data) {
     if FileExist(filepath)
         FileDelete(filepath)
     FileAppend(data, filepath, "UTF-8")
-    
+
     if (filename == "downloads_loc.txt" && IsSet(MainGuis) && DirExist(data)) {
         for wid, g in MainGuis {
             try g.Control.BrowseFolder(data, "downloads.localhost")
@@ -213,14 +213,14 @@ AHK_CacheList(prefix := "") {
     dirPath := WorkspaceDir "\cache"
     if !DirExist(dirPath)
         return "[]"
-    
+
     files := []
     Loop Files, dirPath "\" prefix "*.txt"
     {
         name := StrReplace(A_LoopFileName, ".txt", "")
         files.Push(name)
     }
-    
+
     result := "["
     for k, v in files {
         if (k > 1)
@@ -387,18 +387,18 @@ AHK_SetStoragePath(path) {
 AHK_MigrateStorage(newPortableMode, newLocationPath) {
     global CurrentWorkspace, WorkspaceBaseDir
     iniPath := A_ScriptDir "\config.ini"
-    
+
     oldBaseDir := WorkspaceBaseDir
     newBaseDir := ""
-    
+
     newPortableMode := (newPortableMode == 1 || newPortableMode == "1" || newPortableMode == true)
-    
+
     if (newPortableMode) {
         newBaseDir := A_ScriptDir "\settings\workspaces"
     } else {
         newBaseDir := newLocationPath != "" ? newLocationPath : EnvGet("LOCALAPPDATA") "\BingeKit\workspaces"
     }
-    
+
     if (oldBaseDir != newBaseDir && DirExist(oldBaseDir)) {
         if (!DirExist(newBaseDir)) {
             try DirCreate(newBaseDir)
@@ -412,7 +412,7 @@ AHK_MigrateStorage(newPortableMode, newLocationPath) {
             }
         }
     }
-    
+
     IniWrite(newPortableMode ? 1 : 0, iniPath, "Storage", "PortableMode")
     IniWrite(newLocationPath, iniPath, "Storage", "InstalledDataPath")
     Run(A_ScriptFullPath " --workspace " CurrentWorkspace)
@@ -426,8 +426,8 @@ AHK_GetThemeBgColor() {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(themeJson)
-            if (theme.Has("mainBg") && theme["mainBg"] != "")
-                bgC := StrReplace(theme["mainBg"], "#", "")
+            if (theme.Has("main") && theme["main"] != "")
+                bgC := StrReplace(theme["main"], "#", "")
         }
     } catch {
     }
@@ -479,11 +479,11 @@ AHK_ApplyNativeDarkBackground(hwnd) {
         OnMessage(0x0014, AHK_OnEraseBkgnd)
     }
     try DllCall(A_PtrSize = 8 ? "User32.dll\SetClassLongPtrW" : "User32.dll\SetClassLongW", "Ptr", hwnd, "Int", -10, "Ptr", AHK_GlobalThemeBrush)
-    
+
     ; Apply immersive dark mode
     try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 20, "Int*", 1, "UInt", 4)
     try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 19, "Int*", 1, "UInt", 4)
-    
+
     ; Setup our 1px DWM outline directly mapped to Theme config
     try DllCall("Dwmapi.dll\DwmSetWindowAttribute", "Ptr", hwnd, "UInt", 34, "Int*", SystemBorderColorBGR, "UInt", 4)
 }

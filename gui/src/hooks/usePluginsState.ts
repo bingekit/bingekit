@@ -105,7 +105,7 @@ export function usePluginsState(
 
     const globalCss = `
 html {
-    background: var(--theme-mainBg);
+    background: var(--theme-main);
     color: var(--theme-textMain);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
 }

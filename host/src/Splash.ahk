@@ -13,8 +13,8 @@ InitSplashGui() {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(themeJson)
-            if (theme.Has("mainBg") && theme["mainBg"] != "")
-                bgC := StrReplace(theme["mainBg"], "#", "")
+            if (theme.Has("main") && theme["main"] != "")
+                bgC := StrReplace(theme["main"], "#", "")
             if (theme.Has("accent") && theme["accent"] != "")
                 accentC := StrReplace(theme["accent"], "#", "")
             if (theme.Has("textSec") && theme["textSec"] != "")

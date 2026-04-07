@@ -452,7 +452,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           mode: parsed.mode || 'dark',
           titlebarBg: parsed.titlebarBg || parsed.bgMain || '#09090b',
           sidebarBg: parsed.sidebarBg || parsed.bgSec || '#09090b',
-          mainBg: parsed.mainBg || parsed.bgMain || '#09090b',
+          main: parsed.main || parsed.bgMain || '#09090b',
           border: parsed.border || '#27272a',
           accent: parsed.accent || '#6366f1',
           textMain: parsed.textMain || '#fafafa',

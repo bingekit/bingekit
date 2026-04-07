@@ -9,8 +9,8 @@ export const ThemeStyles = () => {
       :root {
         --theme-titlebar: ${theme.titlebarBg};
         --theme-sidebar: ${theme.sidebarBg};
-        --theme-main: ${theme.mainBg};
-        --theme-mainBg: ${theme.mainBg};
+        --theme-main: ${theme.main};
+        --theme-main: ${theme.main};
         --theme-border: ${theme.border};
         --theme-accent: ${theme.accent};
         --theme-text-main: ${theme.textMain};
@@ -128,7 +128,7 @@ export const ThemeStyles = () => {
       #titlebar-region .multi-tab-toolbar .bg-zinc-800, #titlebar-region .multi-tab-toolbar .bg-zinc-900 { background-color: color-mix(in srgb, var(--theme-text-main) 7%, transparent) !important; }
       #titlebar-region .multi-tab-toolbar .hover\\:bg-zinc-800:hover, #titlebar-region .multi-tab-toolbar button.hover\\:bg-zinc-800:hover { background-color: color-mix(in srgb, var(--theme-text-main) 12%, transparent) !important; color: var(--theme-text-main) !important; }
       
-      #titlebar-region .multi-tab-toolbar form:focus-within { border-color: var(--theme-accent) !important; background-color: color-mix(in srgb, var(--theme-urlbarBg) 80%, var(--theme-mainBg)) !important; }
+      #titlebar-region .multi-tab-toolbar form:focus-within { border-color: var(--theme-accent) !important; background-color: color-mix(in srgb, var(--theme-urlbarBg) 80%, var(--theme-main)) !important; }
     `}</style>
   );
 };
