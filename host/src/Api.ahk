@@ -8,6 +8,7 @@ if (A_IsCompiled) {
     if (IsSet(GlobalHash) && GlobalHash != "") {
         if (SplashStatus)
             SplashStatus.Text := "VERIFYING GLOBAL SCRIPT"
+        UpdateSplashProgress(25)
         if (FileMD5(WebViewCtrl.TempDir "\js\global.js") != GlobalHash) {
             if (SplashGui)
                 SplashGui.Destroy()
@@ -19,6 +20,7 @@ if (A_IsCompiled) {
     if (IsSet(AdblockHash) && AdblockHash != "") {
         if (SplashStatus)
             SplashStatus.Text := "VERIFYING ADBLOCK SCRIPT"
+        UpdateSplashProgress(50)
         if (FileMD5(WebViewCtrl.TempDir "\js\adblock.js") != AdblockHash) {
             if (SplashGui)
                 SplashGui.Destroy()

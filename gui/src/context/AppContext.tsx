@@ -489,7 +489,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         const parsed = JSON.parse(configStr);
         if (parsed.RememberTabs !== undefined) shouldRemember = parsed.RememberTabs;
       }
-    } catch(e) {}
+    } catch (e) { }
 
     let loadedTabs = false;
     if (shouldRemember) {
@@ -509,19 +509,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             setInputUrl(safeUrl);
 
             parsedTabs.forEach((t: any) => {
-               tabs.lastSyncUrls.current[t.id] = t.url;
-               ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(t.url), t.id);
+              tabs.lastSyncUrls.current[t.id] = t.url;
+              ahk.asyncCall('UpdatePlayerUrl', computeNavUrl(t.url), t.id);
             });
             ahk.call('SyncPlayers', parsedTabs.map((t: any) => t.id).join(','));
             loadedTabs = true;
           } else {
-             ahk.call('ShowToast', 'Parsed tabs was empty or not array.');
+            ahk.call('ShowToast', 'Parsed tabs was empty or not array.');
           }
-        } catch(e: any) {
-           ahk.call('ShowToast', 'Failed to parse active_tabs.json: ' + String(e));
+        } catch (e: any) {
+          ahk.call('ShowToast', 'Failed to parse active_tabs.json: ' + String(e));
         }
       } else {
-         // Graceful fallback internally managed, no toast required
+        // Graceful fallback internally managed, no toast required
       }
     }
 

@@ -5,6 +5,7 @@ MainNavigationStartingHandler(sender, args) {
         SplashStatus.Text := "NAVIGATING TO FRONTEND..."
         Sleep(-1)
     }
+    UpdateSplashProgress(65)
 }
 try WVs["main"].add_NavigationStarting(MainNavigationStartingHandler)
 
@@ -14,6 +15,7 @@ MainSourceChangedHandler(sender, args) {
         SplashStatus.Text := "RESOLVING APPLICATION ROUTES..."
         Sleep(-1)
     }
+    UpdateSplashProgress(70)
 }
 try WVs["main"].add_SourceChanged(MainSourceChangedHandler)
 
@@ -23,6 +25,7 @@ MainContentLoadingHandler(sender, args) {
         SplashStatus.Text := "DOWNLOADING BUNDLE AND ASSETS..."
         Sleep(-1)
     }
+    UpdateSplashProgress(75)
 }
 try WVs["main"].add_ContentLoading(MainContentLoadingHandler)
 
@@ -32,6 +35,7 @@ MainDOMContentLoadedHandler(sender, args) {
         SplashStatus.Text := "INITIALIZING REACT COMPONENTS..."
         Sleep(-1)
     }
+    UpdateSplashProgress(90)
 }
 try WVs["main"].add_DOMContentLoaded(MainDOMContentLoadedHandler)
 
@@ -41,6 +45,7 @@ MainNavigationCompletedHandler(sender, args) {
         SplashStatus.Text := "WAITING FOR REACT FRAMEWORK READY SIGNAL..."
         Sleep(-1)
     }
+    UpdateSplashProgress(100)
 
     if (!args.IsSuccess && SplashGui) {
         errStatus := "Unknown Error: " args.WebErrorStatus
@@ -111,8 +116,10 @@ if (InStr(AppStartupUrl, "gui.localhost")) {
     }
 }
 
+;UpdateSplashProgress(100)
 SplashStatus.Text := A_IsCompiled ? "LOADING COMPILED UI BUNDLE" : "WAITING FOR FRONTEND BUILDER (MAY TAKE 10s)"
 Sleep(-1) ; Yield for repaint
+;UpdateSplashProgress(95)
 
 WVs["main"].Navigate(AppStartupUrl)
 MainGuis["main"].Show("w0 h0 x0 y0") ; Defer showing until Splash is hidden

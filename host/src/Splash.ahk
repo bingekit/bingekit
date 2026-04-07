@@ -3,7 +3,7 @@ global SplashStatus := ""
 
 InitSplashGui() {
     global SplashGui, SplashStatus, WorkspaceDir
-    
+
     bgC := "09090b"
     accentC := "818cf8"
     textC := "a1a1aa"
@@ -33,9 +33,14 @@ InitSplashGui() {
     SplashGui.Add("Text", "x0 y55 w400 center BackgroundTrans", "BingeKit")
     SplashGui.SetFont("s9 c" textC " norm", "Segoe UI")
     SplashStatus := SplashGui.Add("Text", "x0 y120 w400 center BackgroundTrans", "INITIALIZING ENGINE COMPONENTS")
-    SplashGui.Add("Progress", "x0 y0 w400 h5 c" accentC " Background" borderC, 100)
+    global progressBar := SplashGui.Add("Progress", "x0 y-1 w400 h5 c" accentC " Background" borderC, 0)
     SplashGui.Show("w400 h200 Center NoActivate")
     Try {
         WinSetRegion("0-0 w400 h200 r16-16", "ahk_id " SplashGui.Hwnd)
     }
+}
+
+UpdateSplashProgress(progress) {
+    global progressBar
+    progressBar.Value := progress
 }
