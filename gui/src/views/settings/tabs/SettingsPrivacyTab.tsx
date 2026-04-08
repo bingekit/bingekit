@@ -41,125 +41,125 @@ export const SettingsPrivacyTab = () => {
   return (
     <>
       <div className="space-y-6 animate-in fade-in duration-300">
-            <h3 className="text-xl font-medium text-[var(--theme-text-main)] mb-6 hidden md:block">Privacy & Data Management</h3>
+        <h3 className="text-xl font-medium text-[var(--theme-text-main)] mb-6 hidden md:block">Privacy & Data Management</h3>
 
-            <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-medium text-[var(--theme-text-main)] flex items-center gap-2"><Lock size={16} className="text-[var(--theme-accent)]" /> Credential Manager</h3>
-                  <p className="text-xs text-[var(--theme-text-sec)] mt-1">Manage logins for external sites (Auto-Login bypass).</p>
-                </div>
-                <button
-                  onClick={() => setShowCredModal(true)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--theme-accent)_20%,transparent)] text-[var(--theme-accent)] hover:bg-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)] rounded-lg text-xs font-medium transition-colors"
-                >
-                  <Plus size={14} /> Add New
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
-                  {credentials.map(c => (
-                    <div key={c.id} className="group relative flex justify-between items-center p-3.5 bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl transition-all">
-                      <div className="flex items-center gap-3 overflow-hidden">
-                        <div className="w-8 h-8 rounded bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] flex items-center justify-center flex-shrink-0 text-[var(--theme-text-sec)]">
-                          <KeyRound size={14} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[var(--theme-text-main)] truncate">{c.domain}</p>
-                          <p className="text-xs text-[var(--theme-text-sec)] truncate">{c.username}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          await deleteCredentialDB(c.id);
-                          setCredentials(credentials.filter(x => x.id !== c.id));
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-[var(--theme-text-sec)] hover:text-red-500 transition-all p-1.5 bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] rounded-lg"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                {credentials.length === 0 && (
-                  <div className="text-xs text-[var(--theme-text-sec)] italic py-6 text-center bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] rounded-xl border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)]">
-                    <Lock size={24} className="mx-auto mb-2 opacity-20" />
-                    No credentials saved.
-                  </div>
-                )}
-              </div>
+        <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-sm font-medium text-[var(--theme-text-main)] flex items-center gap-2"><Lock size={16} className="text-[var(--theme-accent)]" /> Credential Manager</h3>
+              <p className="text-xs text-[var(--theme-text-sec)] mt-1">Manage logins for external sites (Auto-Login bypass).</p>
             </div>
+            <button
+              onClick={() => setShowCredModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-[color-mix(in_srgb,var(--theme-accent)_20%,transparent)] text-[var(--theme-accent)] hover:bg-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)] rounded-lg text-xs font-medium transition-colors"
+            >
+              <Plus size={14} /> Add New
+            </button>
+          </div>
 
-            <div className="space-y-4 pt-4">
-              <h3 className="text-sm font-medium text-[var(--theme-text-main)] flex items-center gap-2 uppercase tracking-wider"><Save size={16} className="text-[var(--theme-accent)]" /> System Cache & History</h3>
-
-              <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-[var(--theme-text-main)]">History Tracking</h3>
-                    <p className="text-xs text-[var(--theme-text-sec)] mt-1">Record sites visited and your activity locally.</p>
-                  </div>
-                  <button
-                    onClick={() => setIsHistoryEnabled(!isHistoryEnabled)}
-                    className={`w-12 h-6 rounded-full transition-colors relative ${isHistoryEnabled ? 'bg-emerald-500' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isHistoryEnabled ? 'left-7' : 'left-1'}`} />
-                  </button>
-                </div>
-                <div className="flex justify-between items-center pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] mt-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Clear History</h3>
-                    <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all recorded URLs.</p>
-                  </div>
-                  <button onClick={async () => { if (await (window as any).showConfirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs font-medium transition-colors border border-red-500/20">Clear History</button>
-                </div>
-              </div>
-
-              <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Active Workspace</h3>
-                    <p className="text-xs text-[var(--theme-text-sec)] mt-1">You are currently using an isolated workspace save folder.</p>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <div className="w-[180px]">
-                      <CustomSelect
-                        options={workspaces.map(w => ({ value: w, label: w }))}
-                        value={currentWs}
-                        onChange={(val) => {
-                          if (val) ahk.call('RestartWorkspace', val);
-                        }}
-                        searchable
-                      />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto custom-scrollbar pr-2">
+              {credentials.map(c => (
+                <div key={c.id} className="group relative flex justify-between items-center p-3.5 bg-[color-mix(in_srgb,var(--theme-text-main)_3%,transparent)] hover:bg-[color-mix(in_srgb,var(--theme-text-main)_6%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl transition-all">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="w-8 h-8 rounded bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] flex items-center justify-center flex-shrink-0 text-[var(--theme-text-sec)]">
+                      <KeyRound size={14} />
                     </div>
-                    <button onClick={() => setShowWsModal(true)} className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--theme-accent)_20%,transparent)] text-[var(--theme-accent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)] text-xs font-medium transition-colors flex items-center gap-1">
-                      <Plus size={14} /> New
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Clear Runtime Data</h3>
-                    <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all system cached objects created by plugins or scripts.</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-[var(--theme-text-main)] truncate">{c.domain}</p>
+                      <p className="text-xs text-[var(--theme-text-sec)] truncate">{c.username}</p>
+                    </div>
                   </div>
                   <button
                     onClick={async () => {
-                      if (await (window as any).showConfirm('Are you sure you want to clear all system cache?')) {
-                        ahk.call('CacheClear');
-                      }
+                      await deleteCredentialDB(c.id);
+                      setCredentials(credentials.filter(x => x.id !== c.id));
                     }}
-                    className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-sm font-medium rounded-lg transition-colors border border-red-500/20"
+                    className="opacity-0 group-hover:opacity-100 text-[var(--theme-text-sec)] hover:text-red-500 transition-all p-1.5 bg-[color-mix(in_srgb,var(--theme-text-main)_5%,transparent)] rounded-lg"
                   >
-                    Clear Cache
+                    <Trash2 size={16} />
                   </button>
                 </div>
+              ))}
+            </div>
+            {credentials.length === 0 && (
+              <div className="text-xs text-[var(--theme-text-sec)] italic py-6 text-center bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] rounded-xl border border-[color-mix(in_srgb,var(--theme-border)_30%,transparent)]">
+                <Lock size={24} className="mx-auto mb-2 opacity-20" />
+                No credentials saved.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-4">
+          <h3 className="text-sm font-medium text-[var(--theme-text-main)] flex items-center gap-2 uppercase tracking-wider"><Save size={16} className="text-[var(--theme-accent)]" /> System Cache & History</h3>
+
+          <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--theme-text-main)]">History Tracking</h3>
+                <p className="text-xs text-[var(--theme-text-sec)] mt-1">Record sites visited and your activity locally.</p>
+              </div>
+              <button
+                onClick={() => setIsHistoryEnabled(!isHistoryEnabled)}
+                className={`w-12 h-6 rounded-full transition-colors relative ${isHistoryEnabled ? 'bg-emerald-500' : 'bg-[color-mix(in_srgb,var(--theme-text-main)_15%,transparent)]'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isHistoryEnabled ? 'left-7' : 'left-1'}`} />
+              </button>
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] mt-4">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Clear History</h3>
+                <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all recorded URLs.</p>
+              </div>
+              <button onClick={async () => { if (await (window as any).showConfirm('Clear browsing history?')) { setHistory([]); } }} className="px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-xs font-medium transition-colors border border-red-500/20">Clear History</button>
+            </div>
+          </div>
+
+          <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Active Workspace</h3>
+                <p className="text-xs text-[var(--theme-text-sec)] mt-1">You are currently using an isolated workspace save folder.</p>
+              </div>
+              <div className="flex gap-2 items-center">
+                <div className="w-[180px]">
+                  <CustomSelect
+                    options={workspaces.map(w => ({ value: w, label: w }))}
+                    value={currentWs}
+                    onChange={(val) => {
+                      if (val) ahk.call('RestartWorkspace', val);
+                    }}
+                    searchable
+                  />
+                </div>
+                <button onClick={() => setShowWsModal(true)} className="px-3 py-1.5 bg-[color-mix(in_srgb,var(--theme-accent)_20%,transparent)] text-[var(--theme-accent)] rounded hover:bg-[color-mix(in_srgb,var(--theme-accent)_30%,transparent)] text-xs font-medium transition-colors flex items-center gap-1">
+                  <Plus size={14} /> New
+                </button>
               </div>
             </div>
           </div>
+
+          <div className="p-5 bg-[color-mix(in_srgb,var(--theme-text-main)_2%,transparent)] border border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)] rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-[var(--theme-text-main)]">Clear Runtime Data</h3>
+                <p className="text-xs text-[var(--theme-text-sec)] mt-1">Deletes all system cached objects created by plugins or scripts.</p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (await (window as any).showConfirm('Are you sure you want to clear all system cache?')) {
+                    ahk.call('CacheClear');
+                  }
+                }}
+                className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 text-sm font-medium rounded-lg transition-colors border border-red-500/20"
+              >
+                Clear Cache
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <Modal isOpen={showCredModal} onClose={() => { setShowCredModal(false); setNewCred({ domain: '', username: '', password: '' }); }} title="Add Credential">
         <div className="space-y-4">
@@ -177,7 +177,26 @@ export const SettingsPrivacyTab = () => {
                   }}
                   options={[
                     { value: '', label: 'Select a known site...' },
-                    ...plugins.map(p => ({ value: p.baseUrl, label: `${p.name} (${p.baseUrl})` }))
+                    ...plugins.flatMap(p => {
+                      const opts = [{ value: p.baseUrl, label: `${p.name} (${p.baseUrl})` }];
+                      if (p.auth?.loginUrl && p.auth.loginUrl.startsWith('http')) {
+                        try {
+                          const loginHost = new URL(p.auth.loginUrl).hostname;
+                          const baseHost = new URL(p.baseUrl).hostname;
+                          if (loginHost !== baseHost) {
+                            opts.push({ value: p.auth.loginUrl, label: `${p.name} Login (${loginHost})` });
+                          }
+                        } catch (e) { }
+                      }
+                      if (p.auth?.oauthMatches && p.auth.oauthMatches.length > 0) {
+                        p.auth.oauthMatches.forEach(match => {
+                           if (match.pattern && match.name) {
+                              opts.push({ value: match.pattern, label: `${p.name} (${match.name})` });
+                           }
+                        });
+                      }
+                      return opts;
+                    })
                   ]}
                 />
               </div>

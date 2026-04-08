@@ -3,60 +3,68 @@ import { resolvePluginUrl } from './urlHelper';
 import { ahk } from './ahk';
 
 export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: CredentialItem[]) => {
-  console.log(`[AuthHelper] Starting ensureAuthForPlugin for ${plugin.name}`, { plugin, credentials });
+    console.log(`[AuthHelper] Starting ensureAuthForPlugin for ${plugin.name}`, { plugin, credentials });
 
-  if (!plugin.auth?.checkAuthJs || (!plugin.auth?.loginUrl && !plugin.auth?.loginUrlJs) || !window.SmartFetch) {
-      console.log(`[AuthHelper] Missing auth config or SmartFetch for ${plugin.name}, returning true`);
-      return true;
-  }
-  
-  window.showToast?.(`Checking auth state for ${plugin.name}...`, "info");
-  
-  let resolvedLoginUrl = plugin.baseUrl;
-  if (plugin.auth.loginUrl) {
-      resolvedLoginUrl = resolvePluginUrl(plugin.baseUrl, plugin.auth.loginUrl);
-  }
-  console.log(`[AuthHelper] Initial login url resolved to: ${resolvedLoginUrl}`);
+    if (!plugin.auth?.checkAuthJs || (!plugin.auth?.loginUrl && !plugin.auth?.loginUrlJs) || !window.SmartFetch) {
+        console.log(`[AuthHelper] Missing auth config or SmartFetch for ${plugin.name}, returning true`);
+        return true;
+    }
 
-  const isAuthJs = `return (function() { try { return !!(eval('(function(){' + ${JSON.stringify(plugin.auth.checkAuthJs)} + '})()')); } catch(e){return false;} })();`;
-  
-  const checkTargetUrl = plugin.baseUrl || resolvedLoginUrl;
-  console.log(`[AuthHelper] Checking if already authenticated via URL: ${checkTargetUrl}`);
-  
-  const isAuth = await window.SmartFetch(checkTargetUrl, isAuthJs, "", 300000).catch((e) => {
-      console.error(`[AuthHelper] isAuth check failed for ${plugin.name}:`, e);
-      return false;
-  });
-  
-  if (isAuth) {
-     console.log(`[AuthHelper] Already logged in to ${plugin.name}`);
-     window.showToast?.(`Already logged in to ${plugin.name}`, "success");
-     return true; // Already signed in
-  }
+    window.showToast?.(`Checking auth state for ${plugin.name}...`, "info");
 
-  const cred = credentials.find(c => {
-      try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
-  });
-  
-  if (!cred || (!cred.username && !cred.passwordBase64)) {
-      console.warn(`[AuthHelper] No credentials found for ${plugin.name}, skipping auto login.`);
-      window.showToast?.(`No credentials found for ${plugin.name}, skipping auto login.`, "warning");
-      return false; 
-  }
-  console.log(`[AuthHelper] Found credentials for ${cred.domain}, attempting login flow.`);
+    let resolvedLoginUrl = plugin.baseUrl;
+    if (plugin.auth.loginUrl) {
+        resolvedLoginUrl = resolvePluginUrl(plugin.baseUrl, plugin.auth.loginUrl);
+    }
+    console.log(`[AuthHelper] Initial login url resolved to: ${resolvedLoginUrl}`);
 
-  const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
-  
-  let combinedBotCheckJs = plugin.botCheckJs || "";
-  if (plugin.auth.captchaSel) {
-      const captchaSnippet = `if (document.querySelector('${plugin.auth.captchaSel.replace(/'/g, "\\'")}')) return true;`;
-      combinedBotCheckJs = (combinedBotCheckJs ? captchaSnippet + " " + combinedBotCheckJs : captchaSnippet);
-  }
+    const isAuthJs = `return (function() { try { return !!(eval('(function(){' + ${JSON.stringify(plugin.auth.checkAuthJs)} + '})()')); } catch(e){return false;} })();`;
 
-  if (plugin.auth.loginUrlJs) {
-      window.showToast?.(`Fetching dynamic login link for ${plugin.name}...`, "info");
-      console.log(`[AuthHelper] Evaluating dynamic loginUrlJs...`);
-      const evalJs = `
+    const checkTargetUrl = plugin.baseUrl || resolvedLoginUrl;
+    console.log(`[AuthHelper] Checking if already authenticated via URL: ${checkTargetUrl}`);
+
+    const isAuth = await window.SmartFetch(checkTargetUrl, isAuthJs, "", 300000).catch((e) => {
+        console.error(`[AuthHelper] isAuth check failed for ${plugin.name}:`, e);
+        return false;
+    });
+
+    if (isAuth) {
+        console.log(`[AuthHelper] Already logged in to ${plugin.name}`);
+        window.showToast?.(`Already logged in to ${plugin.name}`, "success");
+        return true; // Already signed in
+    }
+
+    const cred = credentials.find(c => {
+        try {
+            if (plugin.auth?.oauthMatches?.some(m => m.pattern === c.domain)) return true;
+
+            const cdom = c.domain.replace(/^www\./, '').toLowerCase();
+            const pb = new URL(plugin.baseUrl).hostname.replace(/^www\./, '').toLowerCase();
+            let pl = pb;
+            try { if (resolvedLoginUrl && resolvedLoginUrl.startsWith('http')) pl = new URL(resolvedLoginUrl).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) { }
+            return cdom === pb || cdom === pl || pb.includes(cdom) || pl.includes(cdom) || cdom.includes(pb) || cdom.includes(pl);
+        } catch (e) { return false; }
+    });
+
+    if (!cred || (!cred.username && !cred.passwordBase64)) {
+        console.warn(`[AuthHelper] No credentials found for ${plugin.name}, skipping auto login.`);
+        window.showToast?.(`No credentials found for ${plugin.name}, skipping auto login.`, "warning");
+        return false;
+    }
+    console.log(`[AuthHelper] Found credentials for ${cred.domain}, attempting login flow.`);
+
+    const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
+
+    let combinedBotCheckJs = plugin.botCheckJs || "";
+    if (plugin.auth.captchaSel) {
+        const captchaSnippet = `if (document.querySelector('${plugin.auth.captchaSel.replace(/'/g, "\\'")}')) return true;`;
+        combinedBotCheckJs = (combinedBotCheckJs ? captchaSnippet + " " + combinedBotCheckJs : captchaSnippet);
+    }
+
+    if (plugin.auth.loginUrlJs) {
+        window.showToast?.(`Fetching dynamic login link for ${plugin.name}...`, "info");
+        console.log(`[AuthHelper] Evaluating dynamic loginUrlJs...`);
+        const evalJs = `
           return new Promise((resolve) => {
               let attempts = 0;
               let i = setInterval(() => {
@@ -75,64 +83,44 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
               }, 500);
           });
       `;
-      const dynamicLink = await window.SmartFetch(plugin.baseUrl, evalJs, combinedBotCheckJs, 300000).catch((e) => {
-          console.error(`[AuthHelper] loginUrlJs fetch failed:`, e);
-          return null;
-      });
-      if (dynamicLink && typeof dynamicLink === 'string') {
-          resolvedLoginUrl = dynamicLink.startsWith('http') ? dynamicLink : resolvePluginUrl(plugin.baseUrl, dynamicLink);
-          console.log(`[AuthHelper] Dynamic login URL evaluated and resolved to: ${resolvedLoginUrl}`);
-      } else {
-          console.log(`[AuthHelper] Dynamic login URL evaluated to non-string:`, dynamicLink);
-      }
-  }
+        const dynamicLink = await window.SmartFetch(plugin.baseUrl, evalJs, combinedBotCheckJs, 300000).catch((e) => {
+            console.error(`[AuthHelper] loginUrlJs fetch failed:`, e);
+            return null;
+        });
+        if (dynamicLink && typeof dynamicLink === 'string') {
+            resolvedLoginUrl = dynamicLink.startsWith('http') ? dynamicLink : resolvePluginUrl(plugin.baseUrl, dynamicLink);
+            console.log(`[AuthHelper] Dynamic login URL evaluated and resolved to: ${resolvedLoginUrl}`);
+        } else {
+            console.log(`[AuthHelper] Dynamic login URL evaluated to non-string:`, dynamicLink);
+        }
+    }
 
-  window.showToast?.(`Initiating auto login for ${plugin.name}...`, "info");
-  console.log(`[AuthHelper] SmartFetch login payload starting at URL: ${resolvedLoginUrl}`);
+    window.showToast?.(`Initiating auto login for ${plugin.name}...`, "info");
+    console.log(`[AuthHelper] SmartFetch login payload starting at URL: ${resolvedLoginUrl}`);
 
-  const loginJs = getAutoLoginScript(plugin, cred, rawPass);
-  const result = await window.SmartFetch(resolvedLoginUrl, loginJs, combinedBotCheckJs, 300000).catch((e) => {
-      console.error(`[AuthHelper] SmartFetch login operation failed entirely:`, e);
-      return false;
-  });
-  
-  console.log(`[AuthHelper] Login sequence completed with result:`, result);
-  
-  if (result) window.showToast?.(`Login successful for ${plugin.name}!`, "success");
-  else window.showToast?.(`Login flow timed out or failed for ${plugin.name}.`, "error");
-  return result;
+    const loginJs = getAutoLoginScript(plugin, cred, rawPass);
+    const result = await window.SmartFetch(resolvedLoginUrl, loginJs, combinedBotCheckJs, 300000).catch((e) => {
+        console.error(`[AuthHelper] SmartFetch login operation failed entirely:`, e);
+        return false;
+    });
+
+    console.log(`[AuthHelper] Login sequence completed with result:`, result);
+
+    if (result) window.showToast?.(`Login successful for ${plugin.name}!`, "success");
+    else window.showToast?.(`Login flow timed out or failed for ${plugin.name}.`, "error");
+    return result;
 };
 
-export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, rawPass: string, useVars: boolean = false) => {
-  const un = cred?.username || "";
-  const pw = rawPass || "";
+export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, rawPass: string) => {
+    const un = cred.username || "";
+    const pw = rawPass || "";
 
-  let unStr = useVars ? 'window._svLiveUn' : `'${un.replace(/'/g, "\\'")}'`;
-  let pwStr = useVars ? 'window._svLivePw' : `'${pw.replace(/'/g, "\\'")}'`;
+    if (plugin.auth.customLoginJs) {
+        let customJsPayload = plugin.auth.customLoginJs
+            .replace(/\{username\}/g, un.replace(/'/g, "\\'"))
+            .replace(/\{password\}/g, pw.replace(/'/g, "\\'"));
 
-  if (plugin.auth.customLoginJs) {
-      if (useVars) {
-          return `
-              return new Promise(resolve => {
-                  try {
-                      console.log("[AutoLogin] Custom login JS start");
-                      var _cJs = ${JSON.stringify(plugin.auth.customLoginJs)};
-                      _cJs = _cJs.replace(/\\{username\\}/g, window._svLiveUn).replace(/\\{password\\}/g, window._svLivePw);
-                      var customFn = new Function(_cJs);
-                      customFn();
-                      setTimeout(() => resolve(true), 3000);
-                  } catch(e) {
-                      console.error("[AutoLogin] Custom JS Error:", e);
-                      resolve(false);
-                  }
-              });
-          `;
-      }
-      let customJsPayload = plugin.auth.customLoginJs
-          .replace(/\{username\}/g, un.replace(/'/g, "\\'"))
-          .replace(/\{password\}/g, pw.replace(/'/g, "\\'"));
-          
-      return `
+        return `
           return new Promise(resolve => {
               try {
                   console.log("[AutoLogin] Custom login JS start");
@@ -144,16 +132,45 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
               }
           });
       `;
-  }
+    }
 
-  return `
-      return new Promise(resolve => {
+    return `
+      return new Promise(async (resolve) => {
+          try {
+              window._svLivePw = (await window.chrome?.webview?.hostObjects?.ahk?.GetTempCredential('${cred.domain}')) || '';
+          } catch(e) { window._svLivePw = ''; }
+          
           let limit = 0;
-          let successCheckStr = ${JSON.stringify(plugin.auth.checkAuthJs || "")};
+          let successCheckStr = !${JSON.stringify(plugin.auth.checkAuthJs || "")};
           console.log("[AutoLogin] Starting default interval-based login hook");
           
           let i = setInterval(() => {
               try {
+                  const isHidden = (el) => (el.offsetParent === null) || window.getComputedStyle(el).display === "none";
+                  
+                  let errSel = ${JSON.stringify(plugin.auth.errorSel || "")};
+                  if (errSel) {
+                      let hasError = false;
+                      if (errSel.startsWith('js:')) {
+                           try {
+                               const jsPayload = errSel.substring(3);
+                               const fn = new Function(jsPayload);
+                               hasError = !!fn();
+                           } catch(e) {}
+                      } else {
+                           let errEl = document.querySelector(errSel);
+                           if (errEl && !isHidden(errEl)) {
+                               hasError = true;
+                           }
+                      }
+                      if (hasError) {
+                          console.error("[AutoLogin] Detected visual error prompt on screen. Aborting credential loop.");
+                          clearInterval(i);
+                          resolve(false);
+                          return;
+                      }
+                  }
+
                   let maxLimit = window._svBotDetected ? 600 : 80;
                   if (++limit > maxLimit) { // 5 minutes vs 40 seconds max per page without resolve
                       console.warn("[AutoLogin] Limit " + maxLimit + " reached, aborting. Final state -> userFilled: " + window._svUserFilled + ", passFilled: " + window._svPassFilled);
@@ -168,8 +185,7 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
 
                   if (successCheckStr) {
                       try {
-                          const checkFn = new Function(successCheckStr);
-                          if (checkFn()) { 
+                          if (eval('(function(){' + successCheckStr + '})()')) { 
                               console.log("[AutoLogin] Logged in successfully based on checkAuthJs");
                               clearInterval(i); 
                               resolve(true); 
@@ -182,8 +198,6 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
                   if (!['interactive', 'complete'].includes(document.readyState)) {
                       return;
                   }
-                  
-                  const isHidden = (el) => (el.offsetParent === null) || window.getComputedStyle(el).display === "none";
                   
                   let uSel = '${plugin.auth.userSel?.replace(/'/g, "\\'") || ""}';
                   let pSel = '${plugin.auth.passSel?.replace(/'/g, "\\'") || ""}';
@@ -227,7 +241,7 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
                   
                   window._svUserFilled = window._svUserFilled || false;
                   window._svPassFilled = window._svPassFilled || false;
-                  
+
                   // Override WebAuthn permanently in this context to completely neuter Amazon's IdentityWebAuthnAssets crash & Host Deadlock
                   try {
                       if (navigator.credentials) {
@@ -235,83 +249,43 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
                       }
                   } catch(e) {}
 
-                  let justInjected = false;
-
-                  const setNativeValue = (elem, val) => {
-                      elem.focus();
-                      elem.select();
-                      let lastV = elem.value;
-                      elem.value = val;
-                      let tracker = elem._valueTracker;
-                      if (tracker) tracker.setValue(lastV);
-                      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
-                      if (nativeSetter) nativeSetter.call(elem, val);
-                      elem.dispatchEvent(new Event('input', { bubbles: true }));
-                      elem.dispatchEvent(new Event('change', { bubbles: true }));
-                  };
-
                   if (u && !isHidden(u)) {
-                      if (u.value !== ${unStr}) {
+                      if (u.value !== '${un.replace(/'/g, "\\'")}') {
                           console.log("[AutoLogin] Identified username field dynamically, injecting credentials...");
-                          setNativeValue(u, ${unStr});
-                          justInjected = true;
+                          u.value = '${un.replace(/'/g, "\\'")}';
+                          u.dispatchEvent(new Event('input', {bubbles:true}));
+                          u.dispatchEvent(new Event('change', {bubbles:true}));
                       }
                       window._svUserFilled = true;
                   }
 
                   if (p && !isHidden(p)) {
-                      if (p.value !== ${pwStr}) {
+                      if (p.value !== window._svLivePw) {
                           console.log("[AutoLogin] Identified password field dynamically, injecting payload...");
-                          setNativeValue(p, ${pwStr});
-                          justInjected = true;
+                          p.value = window._svLivePw;
+                          p.dispatchEvent(new Event('input', {bubbles:true}));
+                          p.dispatchEvent(new Event('change', {bubbles:true}));
                       }
                       window._svPassFilled = true;
                   }
                   
                   // If we filled any required field that was visible, try to submit aggressively
                   if ((window._svUserFilled || window._svPassFilled)) {
-                      if (justInjected) {
-                          console.log("[AutoLogin] Yielding event loop for 500ms to allow SPA state (React/Vue/Amazon) to process the input events before submitting...");
-                          return;
-                      }
                       if (!btn && p && p.form) btn = p.form.querySelector('button[type="submit"], input[type="submit"]');
                       if (!btn && u && u.form) btn = u.form.querySelector('button[type="submit"], input[type="submit"]');
                       if (!btn) btn = document.querySelector('button[type="submit"], input[type="submit"]'); // Absolute fallback
 
                       if (btn && !isHidden(btn)) {
                           if (!window._svClickedBtn || (Date.now() - window._svClickedBtn) > 5000) {
-                              console.log("[AutoLogin] Found target button: ", btn);
-                              console.log("[AutoLogin] Firing submission hook on extracted form constraint.");
-                          
-                              window._svUserFilled = false; window._svPassFilled = false;
-                              const f = btn.closest('form');
-                              if (f) {
-                                  if (btn.name && btn.value && !f.querySelector('input[name="'+btn.name+'"]')) {
-                                      let hd = document.createElement('input'); hd.type = 'hidden'; hd.name = btn.name; hd.value = btn.value;
-                                      f.appendChild(hd);
-                                  }
-                                  let ev = new Event('submit', { bubbles: true, cancelable: true });
-                                  f.dispatchEvent(ev);
-                                  if (!ev.defaultPrevented) {
-                                      try { window.HTMLFormElement.prototype.submit.call(f); } catch(ex){}
-                                  }
-                              } else {
-                                  btn.click();
-                              }
-                              clearInterval(i);
-                              resolve(true);
+                              console.log("[AutoLogin] Firing submission hook on extracted button target.");
+                              btn.click();
                               window._svClickedBtn = Date.now();
                           }
                       } else {
                            if (!window._svClickedBtn || (Date.now() - window._svClickedBtn) > 5000) {
-                               if (p && p.form) { 
-                                  console.log("[AutoLogin] Button not found. Initiating raw semantic form.submit() override on Password Form.");
-                                  p.form.submit(); window._svClickedBtn = Date.now(); 
-                               }
-                               else if (u && u.form) { 
-                                  console.log("[AutoLogin] Button not found. Initiating raw semantic form.submit() override on User Form.");
-                                  u.form.submit(); window._svClickedBtn = Date.now(); 
-                               }
+                               console.log("[AutoLogin] Initiating raw semantic form.submit() override.");
+                               if (p && p.form) { p.form.submit(); window._svClickedBtn = Date.now(); }
+                               else if (u && u.form) { u.form.submit(); window._svClickedBtn = Date.now(); }
                            }
                       }
                   }
@@ -322,4 +296,3 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
       });
   `;
 };
-

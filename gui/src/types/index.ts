@@ -166,6 +166,8 @@ export interface SitePlugin extends BaseMetadata {
     checkAuthJs?: string;
     customLoginJs?: string;
     skipSel?: string;
+    errorSel?: string;
+    oauthMatches?: { name: string, pattern: string }[];
     checkAuthOnSearch?: boolean;
   };
   search: {
@@ -241,7 +243,7 @@ export const DEFAULT_PLUGIN: SitePlugin = {
   updateUrl: '',
   icon: '',
   baseUrl: 'https://',
-  auth: { loginUrl: '', loginUrlJs: '', captchaSel: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '', customLoginJs: '', skipSel: '', checkAuthOnSearch: false },
+  auth: { loginUrl: '', loginUrlJs: '', captchaSel: '', userSel: '', passSel: '', submitSel: '', usernameValue: '', passwordValue: '', encryptCreds: true, checkAuthJs: '', customLoginJs: '', skipSel: '', errorSel: '', oauthMatches: [], checkAuthOnSearch: false },
   search: { urlFormat: '', itemSel: '', titleSel: '', linkSel: '', imgSel: '', yearSel: '', typeSel: '', isFormSearch: false, formInputSel: '', formSubmitSel: '', searchWaitMode: 'navigation', formSubmitDelay: 2000, formExtraActions: [], costSel: '', rentBuySel: '', priceExtractJs: '' },
   additionalSearches: [],
   networkBlockers: [],

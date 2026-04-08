@@ -50,3 +50,39 @@ To prevent Ghost Scans, all new "Live Setup" routines are dynamically compiled w
 1. **Successful Authentication:** If the script successfully resolves the DOM structure and injects the credentials seamlessly, it instantly fires a `bk-live-login-success` signal. The React UI orchestrator listens for this and permanently purges the script from the cache block.
 2. **Scanner Timeout Grace Exhaustion:** If it scans the DOM sequentially on its internal tick interval and exhausts its `maxLimit` limit (usually ~40 seconds), it fires a fail State. The React UI purges the cache block gracefully.
 3. **Leaving the Credential Scope:** Most critically, the foreground payload parses its current Hostname against the `cred.domain` constraint dynamically on every evaluation frame. If the user wanders outside of the target domain boundary (e.g., abandoning the Netflix setup and opening `blank.localhost`), the script automatically recognizes the constraint failure. It instantly forces an abort signal, commanding the React UI to aggressively sanitize the cache, perfectly neutralizing the task before it attempts to scan irrelevant domains. 
+
+## Advanced Authentication & OAuth Mapping
+Some sites (like Fadr) use third-party OAuth providers (like Google or Facebook) hosted on completely different domains (`accounts.google.com`). BingeKit supports aggressively matching credentials across these domain bridges natively.
+
+### 1. Custom OAuth Login Domains
+If you add an OAuth Match pattern in the plugin's Authentication config (e.g., Name: `Google Auth`, Pattern: `https://accounts.google.com/*redirect_uri=*fadr.com*`), the BingeKit Credential Manager will detect this.
+When adding a credential, you can specifically assign your Google details to this "Fadr (Google Auth)" wildcard pattern. BingeKit will then successfully inject your credential even when navigating completely away from `fadr.com` into the Google Auth portal.
+
+### 2. Clicking OAuth Accounts natively via Custom Login JS 
+If you are already logged into Google natively in the background, you might encounter a "Choose an account" screen instead of a raw email/password box.
+You can use **Custom Login JS Override** to seamlessly parse the DOM and click the exact account list item matching your assigned generic `{username}` directly instead of waiting for inputs:
+
+`javascript
+// Example: Google "Choose an account" auto-clicker
+const email = '{username}'.toLowerCase();
+const accounts = document.querySelectorAll('div[data-identifier]'); // Google's account nodes
+
+let found = false;
+for (const acc of accounts) {
+    if (acc.getAttribute('data-identifier').toLowerCase() === email) {
+        acc.click(); // Click our specific user profile natively!
+        found = true;
+        break;
+    }
+}
+// Fallback: If we aren't in the list, tell Google to let us type our password
+if (!found) {
+    const useAnother = Array.from(document.querySelectorAll('div')).find(el => el.textContent === 'Use another account');
+    if (useAnother) useAnother.click();
+}
+``n
+### 3. Error Selector (Abort Loops)
+If an authentication flow reaches a site-specific error prompt (e.g. "Problem signing in" or a specific "Captcha Required" popup), BingeKit will by default attempt to loop indefinitely until the max timeout. To prevent this, define an `errorSel`.
+For dynamic SPAs where simple CSS isn't enough, use the `js:` prefix:
+`js:var a=document.querySelector(".notification"); return !!a ? a.textContent.includes("Problem") : false;`
+If this returns true, the Flow safely aborts and wipes its RAM credential footprint immediately.

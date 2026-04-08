@@ -250,6 +250,21 @@ AHK_CacheClear(*) {
     return true
 }
 
+global ActiveTempCredentials := Map()
+
+AHK_SetTempCredential(domain, pass) {
+    global ActiveTempCredentials
+    ActiveTempCredentials[domain] := pass
+    return true
+}
+
+AHK_GetTempCredential(domain) {
+    global ActiveTempCredentials
+    if (ActiveTempCredentials.Has(domain))
+        return ActiveTempCredentials[domain]
+    return ""
+}
+
 AHK_ListSites(*) {
     global WorkspaceDir
     if !DirExist(WorkspaceDir "\sites")

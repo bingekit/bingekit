@@ -140,6 +140,70 @@ export const PluginAuthTab: React.FC<TabProps> = ({ setIdeModalData, setIdeTempV
                         </span>
                       </div>
                     </div>
+                    <div className="border border-zinc-800/50 rounded-xl p-4 bg-zinc-900/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <label className="block text-xs text-zinc-400 font-medium flex items-center gap-2">
+                            Custom OAuth Login Domains
+                          </label>
+                          <p className="text-[10px] text-zinc-500 mt-1">
+                            Add patterns if login occurs on completely different third-party domains (e.g. Google OAuth).
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            const current = editingPlugin.auth.oauthMatches || [];
+                            updateEditingPlugin("auth", "oauthMatches", [...current, { name: '', pattern: '' }]);
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-2 py-1 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-colors rounded text-[10px] font-medium"
+                        >
+                          <Plus size={12} /> Add Rule
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        {(editingPlugin.auth.oauthMatches || []).map((match, idx) => (
+                           <div key={idx} className="flex gap-2 items-center bg-zinc-900 border border-zinc-800 p-2 rounded-lg">
+                             <input
+                               type="text"
+                               placeholder="Name (e.g. Google Auth)"
+                               value={match.name}
+                               onChange={(e) => {
+                                 const updated = [...(editingPlugin.auth.oauthMatches || [])];
+                                 updated[idx].name = e.target.value;
+                                 updateEditingPlugin("auth", "oauthMatches", updated);
+                               }}
+                               className="w-1/3 bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none placeholder:text-zinc-600"
+                             />
+                             <input
+                               type="text"
+                               placeholder="Wildcard URL Match (e.g. https://accounts.google.com/*redirect_uri=*fadr.com*)"
+                               value={match.pattern}
+                               onChange={(e) => {
+                                 const updated = [...(editingPlugin.auth.oauthMatches || [])];
+                                 updated[idx].pattern = e.target.value;
+                                 updateEditingPlugin("auth", "oauthMatches", updated);
+                               }}
+                               className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded px-2 py-1.5 text-xs text-zinc-200 focus:border-indigo-500 outline-none placeholder:text-zinc-600 font-mono"
+                             />
+                             <button
+                               onClick={() => {
+                                 const updated = [...(editingPlugin.auth.oauthMatches || [])];
+                                 updated.splice(idx, 1);
+                                 updateEditingPlugin("auth", "oauthMatches", updated);
+                               }}
+                               className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+                             >
+                               <Trash2 size={12} />
+                             </button>
+                           </div>
+                        ))}
+                        {(editingPlugin.auth.oauthMatches || []).length === 0 && (
+                          <div className="text-[10px] text-zinc-600 italic text-center py-2">
+                            No custom OAuth patterns defined.
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block text-xs text-zinc-500">
@@ -207,6 +271,25 @@ export const PluginAuthTab: React.FC<TabProps> = ({ setIdeModalData, setIdeTempV
                           updateEditingPlugin(
                             "auth",
                             "skipSel",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:border-indigo-500 outline-none font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-zinc-500 mb-1.5 flex items-center gap-2">
+                        Login Error Selector (Stops loop if found)
+                      </label>
+                      <p className="text-[10px] text-zinc-500 mb-2">CSS Selector OR <code className="bg-zinc-800 px-1 rounded">js:</code> prefix for custom Javascript evaluation. If an error is detected, the auto-login aborts immediately. E.g. <code className="bg-zinc-800 px-1 rounded">js:return document.body.innerText.includes('Problem');</code></p>
+                      <input
+                        type="text"
+                        value={editingPlugin.auth.errorSel || ""}
+                        placeholder="js:var a=document.querySelector('.err'); return !!a;"
+                        onChange={(e) =>
+                          updateEditingPlugin(
+                            "auth",
+                            "errorSel",
                             e.target.value,
                           )
                         }

@@ -222,6 +222,7 @@ export const PlayerView = () => {
           setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500);
         }
         if (targetDomain) {
+          ahk.asyncCall('SetTempCredential', targetDomain, '');
           ahk.asyncCall('CacheSet', 'bkLiveLogin_' + targetDomain, '');
         }
         // For legacy cleanup
@@ -231,28 +232,6 @@ export const PlayerView = () => {
     window.addEventListener('message', handleLiveMsg);
     return () => window.removeEventListener('message', handleLiveMsg);
   }, [url]);
-
-  // Secure Live Credential Resolver
-  React.useEffect(() => {
-    const handleStatusUpdate = async (e: any) => {
-      const { authStatus, title, tabId: evtTabId } = e.detail;
-      if (authStatus === 'bk-req-cred' && title) {
-        const tgtDomain = title;
-        const reqCred = credentials.find(c => c.domain === tgtDomain);
-             if (reqCred) {
-                  const u = reqCred.username || '';
-                  const p = await ahk.asyncCall('DecryptCredential', reqCred.passwordBase64) || '';
-                  const safeU = JSON.stringify(u).slice(1, -1);
-                  const safeP = JSON.stringify(p).slice(1, -1);
-                  ahk.asyncCall('EvalPlayerJS', `window.dispatchEvent(new CustomEvent('bk-cred-resolved', {detail: {u: "${safeU}", p: "${safeP}"}}))`, evtTabId);
-             } else {
-          ahk.asyncCall('EvalPlayerJS', `window.dispatchEvent(new CustomEvent('bk-cred-resolved', {detail: {u: "", p: ""}}))`, evtTabId);
-        }
-      }
-    };
-    window.addEventListener('player-status-update', handleStatusUpdate);
-    return () => window.removeEventListener('player-status-update', handleStatusUpdate);
-  }, [credentials]);
 
   React.useEffect(() => {
     if (activeTab !== 'player') return;
@@ -520,7 +499,15 @@ export const PlayerView = () => {
                       // We must use the exact robust background logic
                       const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
                       const cred = credentials.find(c => {
-                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch (e) { return false; }
+                        try {
+                          if (plugin.auth?.oauthMatches?.some(m => m.pattern === c.domain)) return true;
+                          
+                          const cdom = c.domain.replace(/^www\./, '').toLowerCase();
+                          const pb = new URL(plugin.baseUrl).hostname.replace(/^www\./, '').toLowerCase();
+                          let pl = pb;
+                          try { if (resolvedLoginUrl && resolvedLoginUrl.startsWith('http')) pl = new URL(resolvedLoginUrl).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) { }
+                          return cdom === pb || cdom === pl || pb.includes(cdom) || pl.includes(cdom) || cdom.includes(pb) || cdom.includes(pl);
+                        } catch (e) { return false; }
                       });
 
                       if (!cred) {
@@ -585,7 +572,15 @@ export const PlayerView = () => {
                     if (plugin) {
                       const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
                       const cred = credentials.find(c => {
-                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch (e) { return false; }
+                        try {
+                          if (plugin.auth?.oauthMatches?.some(m => m.pattern === c.domain)) return true;
+                          
+                          const cdom = c.domain.replace(/^www\./, '').toLowerCase();
+                          const pb = new URL(plugin.baseUrl).hostname.replace(/^www\./, '').toLowerCase();
+                          let pl = pb;
+                          try { if (resolvedLoginUrl && resolvedLoginUrl.startsWith('http')) pl = new URL(resolvedLoginUrl).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) { }
+                          return cdom === pb || cdom === pl || pb.includes(cdom) || pl.includes(cdom) || cdom.includes(pb) || cdom.includes(pl);
+                        } catch (e) { return false; }
                       });
 
                       if (!cred || (!cred.username && !cred.passwordBase64)) {
@@ -593,8 +588,9 @@ export const PlayerView = () => {
                         return;
                       }
                       window.showToast("Initiating LIVE Auto-Login Flow...", "info");
+                      const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
                       const { getAutoLoginScript } = await import('../lib/authHelper');
-                      const loginJs = getAutoLoginScript(plugin, cred, "", true); // Fetch credentials dynamically at executing-time
+                      const loginJs = getAutoLoginScript(plugin, cred, rawPass);
 
                       let targetUrl = resolvedLoginUrl;
                       let waitForLinkJs = `
@@ -631,90 +627,41 @@ export const PlayerView = () => {
                          
                          const tgtDomain = ${JSON.stringify(tgtDomainStr)};
                          const curHost = window.location.hostname.toLowerCase();
-                         
-                         const getRootDomain = (host) => {
-                             const parts = host.split('.');
-                             if (parts.length <= 2) return host;
-                             if (parts[parts.length-2] === 'co' || parts[parts.length-2] === 'com') return parts.slice(-3).join('.');
-                             return parts.slice(-2).join('.');
-                         };
-                         
-                         let isAllowed = false;
-                         if (!tgtDomain) {
-                             isAllowed = true;
-                         } else {
-                             const rootCurHost = getRootDomain(curHost);
-                             const rootTgtDomain = getRootDomain(tgtDomain.toLowerCase());
-                             
-                             if (curHost.includes(tgtDomain) || tgtDomain.includes(curHost) || rootCurHost === rootTgtDomain) {
-                                 isAllowed = true;
-                             } else {
-                                 const isSsoProvider = ['google', 'facebook', 'apple', 'amazon', 'microsoft'].some(sso => curHost.includes(sso));
-                                 if (isSsoProvider) isAllowed = true;
-                             }
-                         }
-
-                         if (!isAllowed) {
+                         if (tgtDomain && !curHost.includes(tgtDomain) && !curHost.includes('login') && !curHost.includes('auth') && !curHost.includes('account') && !curHost.includes('signin') && !curHost.includes('oauth')) {
                              window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
                              return;
                          }
 
                          ${waitForLinkJs}
                          
-                         // Safe cross-iframe mutex without crashing WebView2 locks queue natively
-                         try {
-                             if (localStorage.getItem('bk-live-lock-' + tgtDomain) === 'locked') return;
-                             localStorage.setItem('bk-live-lock-' + tgtDomain, 'locked');
-                             setTimeout(() => { try { localStorage.removeItem('bk-live-lock-' + tgtDomain); } catch(e){} }, 5000);
-                         } catch(e) {}
-                         
-                         executeLoginFlow();
+                         // Prevent parallel evaluation racing using Web Locks!
+                         if (window.navigator && window.navigator.locks) {
+                             window.navigator.locks.request("bk-live-setup-" + tgtDomain, { mode: "exclusive", ifAvailable: true }, async (lock) => {
+                                 if (!lock) { console.log("[AutoLogin] Another parallel tab holds the setup lock for " + tgtDomain + ". Yielding."); return; }
+                                 await executeLoginFlow();
+                             }).catch(() => executeLoginFlow());
+                         } else {
+                             executeLoginFlow();
+                         }
 
                          async function executeLoginFlow() {
                               if (window._bkLiveLoginHooked) return;
                               window._bkLiveLoginHooked = true;
+                              const loginTask = async function() { ${loginJs} };
                               try {
-                                  const res = await new Promise((resolve) => {
-                                      let isDone = false;
-                                      const h = (e) => {
-                                          if (e.detail && typeof e.detail.u === 'string') {
-                                              window.removeEventListener('bk-cred-resolved', h);
-                                              if (isDone) return;
-                                              isDone = true;
-                                              resolve(e.detail);
-                                          }
-                                      };
-                                      window.addEventListener('bk-cred-resolved', h);
-                                      try { window.chrome.webview.hostObjects.ahk.ReportPlayerStatus('bk-req-cred', false, tgtDomain); } catch(ex) {}
-                                      setTimeout(() => { if(!isDone) { isDone = true; resolve({error:'timeout'}); } }, 5000);
-                                  });
-                                  
-                                  if (res.error || (!res.u && !res.p)) {
-                                      console.error("[AutoLogin] Failed to fetch credentials dynamically:", res.error);
-                                      window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
-                                      return;
-                                  }
-                                  
-                                  window._svLiveUn = res.u;
-                                  window._svLivePw = res.p;
-                                  
-                                  let result = (function() { ${loginJs} })();
-                                  if (result instanceof Promise) {
-                                       await result;
-                                  }
-                                  
-                                  window._svLiveUn = "";
-                                  window._svLivePw = "";
-                                  
-                                  window.top.postMessage({ type: 'bk-live-login-success', domain: tgtDomain }, '*');
-                              } catch(err) {
-                                  window._svLiveUn = "";
-                                  window._svLivePw = "";
-                                  window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                                 const result = await loginTask();
+                                 if (result) {
+                                    window.top.postMessage({ type: 'bk-live-login-success', domain: tgtDomain }, '*');
+                                 } else {
+                                    window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                                 }
+                              } catch(e) {
+                                 window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
                               }
-                          }
-                       `;
+                         }
+                      `;
 
+                      ahk.asyncCall('SetTempCredential', tgtDomainStr, rawPass);
                       ahk.asyncCall('CacheSet', 'bkLiveLogin_' + tgtDomainStr, wrappedJs);
 
                       ahk.asyncCall('UpdatePlayerUrl', targetUrl);

@@ -21,6 +21,8 @@ BindApiToWindow(wvObj, windowId) {
         CacheGet: AHK_CacheGet,
         CacheClear: AHK_CacheClear,
         CacheList: AHK_CacheList,
+        SetTempCredential: AHK_SetTempCredential,
+        GetTempCredential: AHK_GetTempCredential,
         ListInterfaces: AHK_ListInterfaces,
         ListSites: AHK_ListSites,
         SaveSite: AHK_SaveSite,

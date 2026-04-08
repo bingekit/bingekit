@@ -117,6 +117,8 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
                 CacheList: AHK_CacheList,
+                SetTempCredential: AHK_SetTempCredential,
+                GetTempCredential: AHK_GetTempCredential,
                 RawFetchHTML: AHK_RawFetchHTML,
                 AddNetworkFilter: AHK_AddNetworkFilter,
                 GetSiteBlockers: AHK_GetSiteBlockers,

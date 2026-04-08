@@ -148,7 +148,44 @@ Always test your plugin iteratively:
 1. Open the **Extensions** tab and create a new plugin from scratch.
 2. Fill out the domain and CSS.
 3. Open the **Player** and navigate to the site.
-4. Use the custom Developer Tools (F12) in the Player to test your selectors using standard \`document.querySelector()\` tests before pasting them into the plugin configuration.`
+4. Use the custom Developer Tools (F12) in the Player to test your selectors using standard \`document.querySelector()\` tests before pasting them into the plugin configuration.
+
+## Advanced Authentication & OAuth Mapping
+Some sites (like Fadr) use third-party OAuth providers (like Google or Facebook) hosted on completely different domains (\`accounts.google.com\`). BingeKit supports aggressively matching credentials across these domain bridges natively.
+
+### 1. Custom OAuth Login Domains
+If you add an OAuth Match pattern in the plugin's Authentication config (e.g., Name: \`Google Auth\`, Pattern: \`https://accounts.google.com/*redirect_uri=*fadr.com*\`), the BingeKit Credential Manager will detect this.
+When adding a credential, you can specifically assign your Google details to this "Fadr (Google Auth)" wildcard pattern. BingeKit will then successfully inject your credential even when navigating completely away from \`fadr.com\` into the Google Auth portal.
+
+### 2. Clicking OAuth Accounts natively via Custom Login JS 
+If you are already logged into Google natively in the background, you might encounter a "Choose an account" screen instead of a raw email/password box.
+You can use **Custom Login JS Override** to seamlessly parse the DOM and click the exact account list item matching your assigned generic \`username\` directly instead of waiting for inputs:
+
+\`\`\`javascript
+// Example: Google "Choose an account" auto-clicker
+const email = '{username}'.toLowerCase();
+const accounts = document.querySelectorAll('div[data-identifier]'); // Google's account nodes
+
+let found = false;
+for (const acc of accounts) {
+    if (acc.getAttribute('data-identifier').toLowerCase() === email) {
+        acc.click(); // Click our specific user profile natively!
+        found = true;
+        break;
+    }
+}
+// Fallback: If we aren't in the list, tell Google to let us type our password
+if (!found) {
+    const useAnother = Array.from(document.querySelectorAll('div')).find(el => el.textContent === 'Use another account');
+    if (useAnother) useAnother.click();
+}
+\`\`\`
+
+### 3. Error Selector (Abort Loops)
+If an authentication flow reaches a site-specific error prompt (e.g. "Problem signing in" or a specific "Captcha Required" popup), BingeKit will by default attempt to loop indefinitely until the max timeout. To prevent this, define an \`errorSel\`.
+For dynamic SPAs where simple CSS isn't enough, use the \`js:\` prefix:
+\`js:var a=document.querySelector(".notification"); return !!a ? a.textContent.includes("Problem") : false;\`
+If this returns true, the Flow safely aborts and wipes its RAM credential footprint immediately.`
   },
   {
     id: 'adblocking',
