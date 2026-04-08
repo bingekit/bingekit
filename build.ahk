@@ -44,7 +44,7 @@ BuildGui.Add("Text", "w400 y+15", "Release Changelog:")
 EditChangelog := BuildGui.Add("Edit", "w400 h100 Multi vChangelog", "Fixed minor bugs.")
 
 ChkGithub := BuildGui.Add("Checkbox", "w400 y+15 vPushGithub Checked", "Auto-Push Release to GitHub (Push BingeKit.exe + update.json)")
-GithubUrl := BuildGui.Add("Edit", "w400 vGithubUrl Hidden", "https://github.com/owhs/bingekit/raw/main/app/build/BingeKit.exe")
+GithubUrl := BuildGui.Add("Edit", "w400 vGithubUrl Hidden", "https://github.com/bingekit/bingekit/raw/main/build/BingeKit.exe")
 
 BtnBuild := BuildGui.Add("Button", "w100 y+20 Default", "Start Build")
 BtnBuild.OnEvent("Click", StartBuild)
@@ -107,7 +107,7 @@ StartBuild(*) {
     jsonStr .= "      `"name`": `"BingeKit.exe`",`n"
     ; Replace the raw URL carefully. For Github raw links it follows github.com/user/repo/raw/branch/path
     ; We can default to the user's origin URL if possible. We'll use a standard path assuming repository: owhs/bingekit
-    jsonStr .= "      `"browser_download_url`": `"https://github.com/owhs/bingekit/raw/main/app/build/BingeKit.exe`"`n"
+    jsonStr .= "      `"browser_download_url`": `"https://github.com/bingekit/bingekit/raw/main/build/BingeKit.exe`"`n"
     jsonStr .= "    }`n"
     jsonStr .= "  ]`n"
     jsonStr .= "}"

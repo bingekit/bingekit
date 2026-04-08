@@ -76,8 +76,8 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     category: 'Plugins & Updates',
     tags: ['update', 'github', 'release', 'api'],
     description: 'The API endpoint to poll for new releases (GitHub Releases API format).',
-    default: 'https://api.github.com/repos/owhs/bingekit/releases/latest',
-    value: 'https://api.github.com/repos/owhs/bingekit/releases/latest',
+    default: 'https://api.github.com/repos/bingekit/bingekit/releases/latest',
+    value: 'https://api.github.com/repos/bingekit/bingekit/releases/latest',
   },
   {
     id: 'PluginRepoUrl',
@@ -86,8 +86,8 @@ const DEFAULT_CONFIG: ConfigItem[] = [
     category: 'Plugins & Updates',
     tags: ['plugins', 'repo', 'store', 'market'],
     description: 'The URL pointing to a repo.json manifest for the App Store.',
-    default: 'https://raw.githubusercontent.com/owhs/bingekit/main/repo_example/repo.json',
-    value: 'https://raw.githubusercontent.com/owhs/bingekit/main/repo_example/repo.json',
+    default: 'https://raw.githubusercontent.com/bingekit/repo/main/repo.json',
+    value: 'https://raw.githubusercontent.com/bingekit/repo/main/repo.json',
   },
   {
     id: 'AutoCheckPluginUpdates',

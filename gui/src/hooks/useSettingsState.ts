@@ -27,7 +27,7 @@ export function useSettingsState() {
   const setAdblockWhitelist = (val: React.SetStateAction<string[]>) => {
     _setAdblockWhitelist(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateAdblockWhitelist', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateAdblockWhitelist', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'adblock_whitelist.json', JSON.stringify(next));
       return next;
     });
@@ -37,7 +37,7 @@ export function useSettingsState() {
   const setNetworkFilters = (val: React.SetStateAction<Record<string, boolean>>) => {
     _setNetworkFilters(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateNetworkFilters', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateNetworkFilters', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'network_filters.json', JSON.stringify(next));
       return next;
     });
@@ -47,7 +47,7 @@ export function useSettingsState() {
   const setAdKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
     _setAdKeywords(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateAdKeywords', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateAdKeywords', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'ad_keywords.json', JSON.stringify(next));
       return next;
     });
@@ -57,7 +57,7 @@ export function useSettingsState() {
   const setRedirectKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
     _setRedirectKeywords(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateRedirectKeywords', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateRedirectKeywords', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'redirect_keywords.json', JSON.stringify(next));
       return next;
     });
@@ -67,7 +67,7 @@ export function useSettingsState() {
   const setInlineKeywords = (val: React.SetStateAction<Record<string, boolean>>) => {
     _setInlineKeywords(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateInlineKeywords', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateInlineKeywords', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'inline_keywords.json', JSON.stringify(next));
       return next;
     });
@@ -77,7 +77,7 @@ export function useSettingsState() {
   const setCssAdblockSelectors = (val: React.SetStateAction<Record<string, boolean>>) => {
     _setCssAdblockSelectors(prev => {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
-      try { ahk.call('UpdateCssAdblockSelectors', JSON.stringify(next)); } catch(e) {}
+      try { ahk.call('UpdateCssAdblockSelectors', JSON.stringify(next)); } catch (e) { }
       ahk.call('SaveData', 'css_adblock_selectors.json', JSON.stringify(next));
       return next;
     });
@@ -106,7 +106,7 @@ export function useSettingsState() {
   };
 
   const [installedInterfaces, setInstalledInterfaces] = useState<string[]>([]);
-  const [pluginRepoUrl, setPluginRepoUrl] = useState('https://raw.githubusercontent.com/owhs/bingekit/main/repo_example/repo.json');
+  const [pluginRepoUrl, setPluginRepoUrl] = useState('https://raw.githubusercontent.com/bingekit/repo/main/repo.json');
   const [autoCheckPluginUpdates, setAutoCheckPluginUpdates] = useState(true);
   const [autoUpdatePlugins, setAutoUpdatePlugins] = useState(false);
   const [autoFocusPlayerOnTabChange, setAutoFocusPlayerOnTabChange] = useState(true);
