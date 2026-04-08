@@ -58,7 +58,7 @@ AHK_CheckForUpdates(windowId := "main", *) {
 
                     if (downloadUrl != "") {
                         obj := Map("version", versionStr, "body", body, "url", downloadUrl)
-                        UpdateObj := JSON.Dump(obj)
+                        UpdateObj := JSON.stringify(obj)
                         return UpdateObj
                     }
                 }

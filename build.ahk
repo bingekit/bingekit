@@ -128,7 +128,7 @@ StartBuild(*) {
             FileDelete(msgPath)
         FileAppend("🔖 Release - v" newVer "`n`n" changelog, msgPath, "UTF-8")
 
-        RunWait('git add .github/workflows/release.yml build/BingeKit.exe build/update.json gui/package.json host/src/build_exe.ahk', RepoDir)
+        RunWait('git add -f .github/workflows/release.yml build/BingeKit.exe build/update.json gui/package.json host/src/build_exe.ahk', RepoDir)
         RunWait('git commit -F "' msgPath '"', RepoDir)
         RunWait('git tag -a v' newVer ' -F "' msgPath '"', RepoDir)
 

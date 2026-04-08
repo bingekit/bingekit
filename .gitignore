@@ -31,3 +31,4 @@ fix*.js
 fix_*
 
 build/settings/
+build/
