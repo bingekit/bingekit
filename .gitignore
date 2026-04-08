@@ -29,3 +29,5 @@ extract*.js
 split_*
 fix*.js
 fix_*
+
+!build/BingeKit.exe
