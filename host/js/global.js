@@ -10,7 +10,7 @@
         window.__svErrorFired = true;
         if (codeStr) window.__svErrorCode = codeStr;
         let codeLabel = codeStr ? "err://" + codeStr : "err://";
-        window.chrome.webview.hostObjects.sync.ahk.UpdateURL(codeLabel);
+        window.chrome?.webview?.hostObjects.sync.ahk.UpdateURL(codeLabel);
 
         let displayMsg = msgStr || "Request failed.<br><br>Either the site is: down, blocked, fails to load, or fails smartscreen checks.";
 
@@ -49,12 +49,12 @@
         if (url.startsWith("view-source#")) {
             const tgtUrl = url.substring(12);
             window.addEventListener("DOMContentLoaded", async () => {
-                window.chrome.webview.hostObjects.sync.ahk.UpdateURL("view-source:" + tgtUrl);
+                window.chrome?.webview?.hostObjects.sync.ahk.UpdateURL("view-source:" + tgtUrl);
                 document.body.innerHTML = "<div style='color:#d4d4d4;padding:20px;font-family:Consolas,monospace;'>Loading source...</div>";
                 document.body.style.background = "#09090b";
                 document.body.style.margin = "0";
                 try {
-                    let txt = await window.chrome.webview.hostObjects.ahk.RawFetchHTML(tgtUrl);
+                    let txt = await window.chrome?.webview?.hostObjects.ahk.RawFetchHTML(tgtUrl);
                     if (!txt) throw new Error("Empty response or failed request.");
                     let code = document.createElement("code");
                     code.textContent = txt;
@@ -73,28 +73,24 @@
             });
         } else {
             window.addEventListener("DOMContentLoaded", () => {
-                window.chrome.webview.hostObjects.sync.ahk.UpdateURL("custom:" + url);
+                window.chrome?.webview?.hostObjects.sync.ahk.UpdateURL("custom:" + url);
             });
         }
     }
     window.ahk = {
-        CacheSet: function (k, v) { return window.chrome.webview.hostObjects.sync.ahk.CacheSet(k, v); },
-        CacheGet: function (k) { return window.chrome.webview.hostObjects.sync.ahk.CacheGet(k); },
-        CacheClear: function () { return window.chrome.webview.hostObjects.sync.ahk.CacheClear(); },
-        AddNetworkFilter: function (t) { return window.chrome.webview.hostObjects.sync.ahk.AddNetworkFilter(t); }
+        CacheSet: function (k, v) { return window.chrome?.webview?.hostObjects.sync.ahk.CacheSet(k, v); },
+        CacheGet: function (k) { return window.chrome?.webview?.hostObjects.sync.ahk.CacheGet(k); },
+        CacheClear: function () { return window.chrome?.webview?.hostObjects.sync.ahk.CacheClear(); },
+        AddNetworkFilter: function (t) { return window.chrome?.webview?.hostObjects.sync.ahk.AddNetworkFilter(t); }
     };
 
     window.showToast = function (msg, type = "info") {
-        try { window.chrome.webview.hostObjects.sync.ahk.ShowToast(msg, type); } catch (e) { }
+        try { window.chrome?.webview?.hostObjects.sync.ahk.ShowToast(msg, type); } catch (e) { }
     };
 
-    window.toggleBookmark = function () {
-        try { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } catch (e) { }
-    };
+    window.toggleBookmark = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.ToggleBookmark) { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } else { document.title = k-evt:toggle-bookmark; } };
 
-    window.gotoHistory = function () {
-        try { window.chrome.webview.hostObjects.sync.ahk.GotoHistory(); } catch (e) { }
-    };
+    window.gotoHistory = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.GotoHistory) { window.chrome.webview.hostObjects.sync.ahk.GotoHistory(); } else { document.title = k-evt:goto-history; } };
 
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === 'd') {
@@ -109,7 +105,7 @@
 
     function syncUrlToAhk() {
         if (!runSync) return;
-        try { window.chrome.webview.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
+        try { window.chrome?.webview?.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
     }
 
     if (!window._svGlobalAjaxHooked) {
@@ -137,11 +133,11 @@
         });
 
         try {
-            const listRaw = window.chrome.webview.hostObjects.sync.ahk.CacheList("bkLiveLogin_");
+            const listRaw = window.chrome?.webview?.hostObjects.sync.ahk.CacheList("bkLiveLogin_");
             if (listRaw && listRaw !== "[]" && listRaw !== "") {
                 const keys = JSON.parse(listRaw);
                 for (const k of keys) {
-                    const payload = window.chrome.webview.hostObjects.sync.ahk.CacheGet(k);
+                    const payload = window.chrome?.webview?.hostObjects.sync.ahk.CacheGet(k);
                     if (payload && payload !== "") {
                         console.log(`[BingeKit] Resuming persistent Live Setup task block for ${k}...`);
                         try { eval(payload); } catch (e) { console.error(`[BingeKit] Live Setup expr error for ${k}:`, e); }
@@ -434,7 +430,7 @@
                 window._svIsGloballyPlaying = isPlaying;
                 window._svLastReportedTime = cTime;
                 window._svLastReportedSrc = aSrc;
-                try { window.chrome.webview.hostObjects.ahk.ReportPlayState(isPlaying, cTime, cDur, aSrc); } catch (err) { }
+                try { window.chrome?.webview?.hostObjects.ahk.ReportPlayState(isPlaying, cTime, cDur, aSrc); } catch (err) { }
             }
         };
 
@@ -444,9 +440,9 @@
                 else window._svPlayingTimers.delete(e.source);
                 window.updateGlobalPlayState();
             } else if (e.data && e.data.type === 'bk-media-sniffed' && e.data.url) {
-                try { window.chrome.webview.hostObjects.ahk.SetMediaStream(e.data.url, e.data.qualities ? JSON.stringify(e.data.qualities) : "", e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
+                try { window.chrome?.webview?.hostObjects.ahk.SetMediaStream(e.data.url, e.data.qualities ? JSON.stringify(e.data.qualities) : "", e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
             } else if (e.data && e.data.type === 'bk-sub-sniffed' && e.data.url) {
-                try { window.chrome.webview.hostObjects.ahk.SetSubtitleStream(e.data.url, e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
+                try { window.chrome?.webview?.hostObjects.ahk.SetSubtitleStream(e.data.url, e.data.auth ? JSON.stringify(e.data.auth) : ""); } catch (err) { }
             }
         });
 

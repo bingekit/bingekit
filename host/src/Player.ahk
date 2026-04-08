@@ -134,7 +134,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
             })
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
-            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome.webview.hostObjects.sync.ahk.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
+            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome?.webview?.hostObjects?.sync?.ahk?.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
             PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
             try {
                 PlayerWVs[id].wv.add_NavigationStarting(AHK_PlayerNavigationStarting)
@@ -330,6 +330,14 @@ AHK_PlayerTitleChanged(ICoreWebView2, *) {
 
     try {
         title := ICoreWebView2.DocumentTitle
+        if (title == "bk-evt:goto-history") {
+            AHK_GotoHistory("main", foundId)
+            return
+        }
+        if (title == "bk-evt:toggle-bookmark") {
+            AHK_ToggleBookmark("main", foundId)
+            return
+        }
         AHK_ReportPlayerStatus("unknown", false, title, foundId)
     } catch {
     }
@@ -712,6 +720,17 @@ AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
             }
             if (LastNavErrorState.Has(foundId)) {
                 LastNavErrorState.Delete(foundId)
+            }
+            
+            try {
+                uri := ICoreWebView2.Source
+                if (InStr(uri, "edge://") || InStr(uri, "about:") || InStr(uri, "chrome-error://")) {
+                    global UserscriptsScript
+                    if (UserscriptsScript != "") {
+                        PlayerWVs[foundId].wv.ExecuteScriptAsync(UserscriptsScript)
+                    }
+                }
+            } catch {
             }
         }
     } catch {

@@ -589,61 +589,62 @@ class WebView2 {
 				call: (this, resolve, reject) => !this.onSettled(resolve, err => reject(IsObject(err) ? err.Message : err)) })
 			script := '
 			(
-			(function () {
-				const { objectSerializer: OS, remoteMessenger: RM, remoteRefTracker: RRT } = (window.ahk = chrome.webview.hostObjects)._options;
-				if (Object.hasOwn(OS, 'createKnownRemoteProxy'))
-					return;
-				const ahk_fns = ['call', 'get', 'set'];
-				const { _serializationOptionsPropertyName: SOPN, createKnownRemoteProxy: CKRP } = OS;
-				ahk._options.forceLocalProperties.push(...ahk_fns);
-				OS.createKnownRemoteProxy = function (objId, thenable, sync, debugId, basis, hostKeyNames) {
-					const proxy = CKRP.call(OS, objId, thenable, sync, debugId, basis, hostKeyNames);
-					if (!basis && objId) {
-						for (const k of ahk_fns) proxy.setLocalProperty(k, invoke.bind(proxy, k === 'call' ? 'apply' : k))
-						thenable || proxy.setLocalProperty('then', then.bind(proxy));
-					}
-					return proxy;
-				};
-				function then(onfulfilled, onrejected) {
-					return new Promise(async (resolve, reject) => {
-						let thenable = this._debugId.at(-1) !== '\x05then()';
-						try { thenable && await invoke.call(this, 'apply', '\x05then', resolve, err => reject(new Error(err))); }
-						catch { thenable = false; }
-						thenable || (delete this.then, resolve(this));
-					}).then(onfulfilled, onrejected);
-				}
-				function invoke(operation, methodName, ...parameters) {
-					const debugId = this._debugId.concat(operation === 'apply' ? (methodName ??= '') + '()' : methodName ||= '__item');
-					if (!Object.hasOwn(this, '_resultObjectId')) {
-						const promise = RM.postRequestMessage(this._remoteObjectId, methodName, operation, parameters);
-						const resolve = getResult.bind(null, false, promise._callId, operation, debugId);
-						return promise.then(resolve, resolve);
-					}
-					const callId = RM._idGenerator.getNextId();
-					return getResult(true, operation, callId, debugId, RM._postRemoteProxyMessage(this._resultObjectId, methodName, {
-						kind: "request", options: { operation, typedArrayIndices: RM.GetTypedArrayParametersIndices(parameters) }, parameters,
-					}, callId, true));
-				}
-				function getResult(sync, operation, callId, debugId, rawResult) {
-					const { error, has_object, result } = rawResult.parameters;
-					if (error !== undefined)
-						throw new Error(OS.deserialize(sync, false, debugId, error));
-					if (has_object && result.hasOwnProperty(SOPN)) {
-						if (operation === 'get') {
-							const options = result[SOPN];
-							if (options.seq_no && options.cache_able && options.groupId === 'native') {
-								RRT.addSequenceId(options.seq_no), RRT._releaseObjectsCallback(RRT._maxRemoteSequenceId, options.remoteObjectId);
-								delete OS._paramTracker[callId];
-								return undefined;
-							}
+				(function () {
+					if (chrome.webview){
+					const { objectSerializer: OS, remoteMessenger: RM, remoteRefTracker: RRT } = (window.ahk = chrome.webview.hostObjects)._options;
+					if (Object.hasOwn(OS, 'createKnownRemoteProxy'))
+						return;
+					const ahk_fns = ['call', 'get', 'set'];
+					const { _serializationOptionsPropertyName: SOPN, createKnownRemoteProxy: CKRP } = OS;
+					ahk._options.forceLocalProperties.push(...ahk_fns);
+					OS.createKnownRemoteProxy = function (objId, thenable, sync, debugId, basis, hostKeyNames) {
+						const proxy = CKRP.call(OS, objId, thenable, sync, debugId, basis, hostKeyNames);
+						if (!basis && objId) {
+							for (const k of ahk_fns) proxy.setLocalProperty(k, invoke.bind(proxy, k === 'call' ? 'apply' : k))
+							thenable || proxy.setLocalProperty('then', then.bind(proxy));
 						}
-						result.callId = callId;
+						return proxy;
+					};
+					function then(onfulfilled, onrejected) {
+						return new Promise(async (resolve, reject) => {
+							let thenable = this._debugId.at(-1) !== '\x05then()';
+							try { thenable && await invoke.call(this, 'apply', '\x05then', resolve, err => reject(new Error(err))); }
+							catch { thenable = false; }
+							thenable || (delete this.then, resolve(this));
+						}).then(onfulfilled, onrejected);
 					}
-					const val = OS.deserialize(false, has_object, debugId, result);
-					delete OS._paramTracker[callId];
-					return val;
-				}
-			})();
+					function invoke(operation, methodName, ...parameters) {
+						const debugId = this._debugId.concat(operation === 'apply' ? (methodName ??= '') + '()' : methodName ||= '__item');
+						if (!Object.hasOwn(this, '_resultObjectId')) {
+							const promise = RM.postRequestMessage(this._remoteObjectId, methodName, operation, parameters);
+							const resolve = getResult.bind(null, false, promise._callId, operation, debugId);
+							return promise.then(resolve, resolve);
+						}
+						const callId = RM._idGenerator.getNextId();
+						return getResult(true, operation, callId, debugId, RM._postRemoteProxyMessage(this._resultObjectId, methodName, {
+							kind: "request", options: { operation, typedArrayIndices: RM.GetTypedArrayParametersIndices(parameters) }, parameters,
+						}, callId, true));
+					}
+					function getResult(sync, operation, callId, debugId, rawResult) {
+						const { error, has_object, result } = rawResult.parameters;
+						if (error !== undefined)
+							throw new Error(OS.deserialize(sync, false, debugId, error));
+						if (has_object && result.hasOwnProperty(SOPN)) {
+							if (operation === 'get') {
+								const options = result[SOPN];
+								if (options.seq_no && options.cache_able && options.groupId === 'native') {
+									RRT.addSequenceId(options.seq_no), RRT._releaseObjectsCallback(RRT._maxRemoteSequenceId, options.remoteObjectId);
+									delete OS._paramTracker[callId];
+									return undefined;
+								}
+							}
+							result.callId = callId;
+						}
+						const val = OS.deserialize(false, has_object, debugId, result);
+						delete OS._paramTracker[callId];
+						return val;
+					}
+				}})();
 			)'
 			this.ExecuteScriptAsync(script)
 			return this.AddScriptToExecuteOnDocumentCreatedAsync(script)

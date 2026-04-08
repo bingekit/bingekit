@@ -149,10 +149,10 @@ html {
                   if (!existingStyle) {
                     var style = document.createElement('style');
                     style.id = styleId;
-                    style.innerHTML = p.css;
+                    style.textContent = p.css;
                     target.appendChild(style);
-                  } else if (existingStyle.innerHTML !== p.css) {
-                    existingStyle.innerHTML = p.css;
+                  } else if (existingStyle.textContent !== p.css) {
+                    existingStyle.textContent = p.css;
                   }
                 }
               } catch(e) {}
@@ -165,8 +165,8 @@ html {
               tStyle.id = 'bk-theme-injection';
               target.appendChild(tStyle);
             }
-            if (tStyle.innerHTML !== \`:root { \${themeVars} }${globalCss}\`) {
-              tStyle.innerHTML = \`:root { \${themeVars} }${globalCss}\`;
+            if (tStyle.textContent !== \`:root { \${themeVars} }${globalCss}\`) {
+              tStyle.textContent = \`:root { \${themeVars} }${globalCss}\`;
             }
           }
 
