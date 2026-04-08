@@ -1,0 +1,10 @@
+﻿{
+  "tag_name": "v0.1.0",
+  "body": "Initial release",
+  "assets": [
+    {
+      "name": "BingeKit.exe",
+      "browser_download_url": "https://github.com/bingekit/bingekit/raw/main/build/BingeKit.exe"
+    }
+  ]
+}
