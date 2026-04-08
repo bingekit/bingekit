@@ -72,7 +72,7 @@ StartBuild(*) {
     AppDir := A_ScriptDir "\gui"
     if DirExist(AppDir) {
         TrayTip("Running Vite Frontend Build...", "BingeKit Build")
-        RunWait("bun run build", AppDir, "Hide")
+        RunWait("bun run ./build.js", AppDir, "Hide")
     }
 
     ; Step 4: Execute Ahk2Exe
@@ -106,7 +106,7 @@ StartBuild(*) {
     jsonStr .= "    {`n"
     jsonStr .= "      `"name`": `"BingeKit.exe`",`n"
     ; Replace the raw URL carefully. For Github raw links it follows github.com/user/repo/raw/branch/path
-    ; We can default to the user's origin URL if possible. We'll use a standard path assuming repository: owhs/bingekit
+    ; We can default to the user's origin URL if possible. We'll use a standard path assuming repository:
     jsonStr .= "      `"browser_download_url`": `"https://github.com/bingekit/bingekit/raw/main/build/BingeKit.exe`"`n"
     jsonStr .= "    }`n"
     jsonStr .= "  ]`n"

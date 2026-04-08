@@ -10,9 +10,7 @@ AHK_IsCompiled(*) {
 }
 
 AHK_CheckForUpdates(windowId := "main", *) {
-    global UpdateObj
-
-    updateUrl := ""
+    global UpdateObj, updateUrl
 
     if (!A_IsCompiled) {
         UpdateObj := "{ `"error`": true, `"unsupported`": true }"
