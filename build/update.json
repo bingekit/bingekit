@@ -1,6 +1,6 @@
 ﻿{
-  "tag_name": "v0.1.1",
-  "body": "Startup speed improvments",
+  "tag_name": "v0.1.1.1",
+  "body": "Fixed minor bugs.",
   "assets": [
     {
       "name": "BingeKit.exe",
