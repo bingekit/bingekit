@@ -1,6 +1,7 @@
 name: Publish Auto-Update Release
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "v*" # Triggers workflow only when a version tag like "v1.0.0" is pushed
