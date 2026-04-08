@@ -137,15 +137,20 @@
         });
 
         try {
-            const listRaw = window.chrome?.webview?.hostObjects.sync.ahk.CacheList("bkLiveLogin_");
-            if (listRaw && listRaw !== "[]" && listRaw !== "") {
+            // Only perform IPC queries strictly on the top window to prevent Iframe COM DDoS storms
+            const isSafeContext = window === window.top;
+            
+            if (isSafeContext) {
+                const listRaw = await window.chrome?.webview?.hostObjects.ahk.CacheList("bkLiveLogin_");
+                if (listRaw && listRaw !== "[]" && listRaw !== "") {
                 const keys = JSON.parse(listRaw);
                 for (const k of keys) {
-                    const payload = window.chrome?.webview?.hostObjects.sync.ahk.CacheGet(k);
+                    const payload = await window.chrome?.webview?.hostObjects.ahk.CacheGet(k);
                     if (payload && payload !== "") {
                         console.log(`[BingeKit] Resuming persistent Live Setup task block for ${k}...`);
                         try { eval(`(async function() { ${payload} })()`); } catch (e) { console.error(`[BingeKit] Live Setup expr error for ${k}:`, e); }
                     }
+                }
                 }
             }
         } catch (e) { 

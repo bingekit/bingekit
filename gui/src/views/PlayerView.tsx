@@ -191,46 +191,68 @@ export const PlayerView = () => {
     try {
       bc = new BroadcastChannel('BingeKitAuthSync');
       bc.onmessage = (ev) => {
-          if (ev.data && ev.data.hostname && ev.data.initiator !== initiatorId.current) {
-             try {
-                const currentH = new URL(url).hostname;
-                if (currentH === ev.data.hostname || currentH.includes(ev.data.hostname) || ev.data.hostname.includes(currentH)) {
-                    if (window.confirm(`A new login session was established for ${ev.data.hostname}.\n\nWould you like to refresh this window right now to apply the authenticated session?`)) {
-                        ahk.asyncCall('UpdatePlayerUrl', url);
-                    }
-                }
-             } catch(e) {}
-          }
+        if (ev.data && ev.data.hostname && ev.data.initiator !== initiatorId.current) {
+          try {
+            const currentH = new URL(url).hostname;
+            if (currentH === ev.data.hostname || currentH.includes(ev.data.hostname) || ev.data.hostname.includes(currentH)) {
+              if (window.confirm(`A new login session was established for ${ev.data.hostname}.\n\nWould you like to refresh this window right now to apply the authenticated session?`)) {
+                ahk.asyncCall('UpdatePlayerUrl', url);
+              }
+            }
+          } catch (e) { }
+        }
       };
-    } catch(e) {}
-    return () => { if(bc) bc.close(); };
+    } catch (e) { }
+    return () => { if (bc) bc.close(); };
   }, [url]);
 
   // Live Auto-Login Session Nav-Injection Bridging handled natively in global.js
 
   React.useEffect(() => {
-      const handleLiveMsg = async (e: any) => {
-         if (e.data && (e.data.type === 'bk-live-login-success' || e.data.type === 'bk-live-login-fail')) {
-             const targetDomain = e.data.domain;
-             if (e.data.type === 'bk-live-login-success') {
-                 window.showToast(`Live Auto-Login Completed Successfully!`, "success");
-                 try {
-                    const bc = new BroadcastChannel('BingeKitAuthSync');
-                    bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
-                    bc.close();
-                 } catch(err) {}
-                 setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); 
-             }
-             if (targetDomain) {
-                 ahk.asyncCall('CacheSet', 'bkLiveLogin_' + targetDomain, '');
-             }
-             // For legacy cleanup
-             ahk.asyncCall('CacheSet', '__bkLiveLoginScript', '');
-         }
-      };
-      window.addEventListener('message', handleLiveMsg);
-      return () => window.removeEventListener('message', handleLiveMsg);
+    const handleLiveMsg = async (e: any) => {
+      if (e.data && (e.data.type === 'bk-live-login-success' || e.data.type === 'bk-live-login-fail')) {
+        const targetDomain = e.data.domain;
+        if (e.data.type === 'bk-live-login-success') {
+          window.showToast(`Live Auto-Login Completed Successfully!`, "success");
+          try {
+            const bc = new BroadcastChannel('BingeKitAuthSync');
+            bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
+            bc.close();
+          } catch (err) { }
+          setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500);
+        }
+        if (targetDomain) {
+          ahk.asyncCall('CacheSet', 'bkLiveLogin_' + targetDomain, '');
+        }
+        // For legacy cleanup
+        ahk.asyncCall('CacheSet', '__bkLiveLoginScript', '');
+      }
+    };
+    window.addEventListener('message', handleLiveMsg);
+    return () => window.removeEventListener('message', handleLiveMsg);
   }, [url]);
+
+  // Secure Live Credential Resolver
+  React.useEffect(() => {
+    const handleStatusUpdate = async (e: any) => {
+      const { authStatus, title, tabId: evtTabId } = e.detail;
+      if (authStatus === 'bk-req-cred' && title) {
+        const tgtDomain = title;
+        const reqCred = credentials.find(c => c.domain === tgtDomain);
+             if (reqCred) {
+                  const u = reqCred.username || '';
+                  const p = await ahk.asyncCall('DecryptCredential', reqCred.passwordBase64) || '';
+                  const safeU = JSON.stringify(u).slice(1, -1);
+                  const safeP = JSON.stringify(p).slice(1, -1);
+                  ahk.asyncCall('EvalPlayerJS', `window.dispatchEvent(new CustomEvent('bk-cred-resolved', {detail: {u: "${safeU}", p: "${safeP}"}}))`, evtTabId);
+             } else {
+          ahk.asyncCall('EvalPlayerJS', `window.dispatchEvent(new CustomEvent('bk-cred-resolved', {detail: {u: "", p: ""}}))`, evtTabId);
+        }
+      }
+    };
+    window.addEventListener('player-status-update', handleStatusUpdate);
+    return () => window.removeEventListener('player-status-update', handleStatusUpdate);
+  }, [credentials]);
 
   React.useEffect(() => {
     if (activeTab !== 'player') return;
@@ -255,7 +277,7 @@ export const PlayerView = () => {
     const hItem = historyRef.current.find(h => h.url === url && h.type === 'watch');
     if (hItem && hItem.currentTime && hItem.currentTime > 15) {
       if (hItem.duration && hItem.currentTime > (hItem.duration * 0.9)) return;
-      
+
       lastResumeUrl.current = url;
       const cmd = `window.top.postMessage({ type: 'bk-seek-cmd', time: ${hItem.currentTime}, mainUrl: "${url}" }, '*');`;
       ahk.asyncCall('InjectJS', cmd);
@@ -488,49 +510,49 @@ export const PlayerView = () => {
           )}
           {authStatus !== 'loggedIn' && (
             <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              title="Auto Login (Background Worker)"
-              onClick={async () => {
-                try {
-                  const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
-                  
-                  if (plugin) {
-                    // We must use the exact robust background logic
-                    const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
-                    const cred = credentials.find(c => {
-                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
-                    });
-                    
-                    if (!cred) {
-                      window.showToast("No credentials found for this plugin's domains.", "error");
-                      return;
-                    }
-                    
-                    window.showToast("Initiating Smart Auto-Login Verification...", "info");
-                    
-                    // Do the robust SmartFetch sync
-                    const { ensureAuthForPlugin } = await import('../lib/authHelper');
-                    const authValid = await ensureAuthForPlugin(plugin, credentials);
-                    
-                    if (authValid) {
-                       window.showToast("Logged in successfully! Syncing session across active windows...", "success");
-                       try {
-                           const bc = new BroadcastChannel('BingeKitAuthSync');
-                           bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
-                           bc.close();
-                       } catch(e) {}
-                       setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); // Reload tab
+              <button
+                title="Auto Login (Background Worker)"
+                onClick={async () => {
+                  try {
+                    const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+
+                    if (plugin) {
+                      // We must use the exact robust background logic
+                      const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
+                      const cred = credentials.find(c => {
+                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch (e) { return false; }
+                      });
+
+                      if (!cred) {
+                        window.showToast("No credentials found for this plugin's domains.", "error");
+                        return;
+                      }
+
+                      window.showToast("Initiating Smart Auto-Login Verification...", "info");
+
+                      // Do the robust SmartFetch sync
+                      const { ensureAuthForPlugin } = await import('../lib/authHelper');
+                      const authValid = await ensureAuthForPlugin(plugin, credentials);
+
+                      if (authValid) {
+                        window.showToast("Logged in successfully! Syncing session across active windows...", "success");
+                        try {
+                          const bc = new BroadcastChannel('BingeKitAuthSync');
+                          bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
+                          bc.close();
+                        } catch (e) { }
+                        setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); // Reload tab
+                      } else {
+                        window.showToast("Auto-login completed, but could not confirm success.", "warning");
+                      }
                     } else {
-                       window.showToast("Auto-login completed, but could not confirm success.", "warning");
-                    }
-                  } else {
-                    // Try general credentials if no plugin matched
-                    const hostname = new URL(url).hostname;
-                    const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
-                    if (cred) {
-                      const plainPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64);
-                      const parsedPass = plainPass ? plainPass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
-                      const js = `
+                      // Try general credentials if no plugin matched
+                      const hostname = new URL(url).hostname;
+                      const cred = credentials.find(c => hostname.includes(c.domain) || c.domain.includes(hostname));
+                      if (cred) {
+                        const plainPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64);
+                        const parsedPass = plainPass ? plainPass.replace(/\\/g, '\\\\').replace(/"/g, '\\"') : '';
+                        const js = `
                                   (function() {
                                     const pass = "${parsedPass}";
                                     const userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"]');
@@ -539,50 +561,49 @@ export const PlayerView = () => {
                                     if (passInputs.length > 0) { passInputs[0].value = pass; passInputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
                                   })();
                                 `;
-                      ahk.asyncCall('InjectJS', js);
-                      window.showToast("Injected basic credential fallback.", "info");
-                    } else {
-                      window.showToast('No matching plugin or saved credentials found.', 'error');
+                        ahk.asyncCall('InjectJS', js);
+                        window.showToast("Injected basic credential fallback.", "info");
+                      } else {
+                        window.showToast('No matching plugin or saved credentials found.', 'error');
+                      }
                     }
+                  } catch (err: any) {
+                    window.showToast("Silent UI Error: " + (err.message || String(err)), "error");
+                    console.error("Auto-Login UI Click Exception:", err);
                   }
-                } catch(err: any) {
-                  window.showToast("Silent UI Error: " + (err.message || String(err)), "error");
-                  console.error("Auto-Login UI Click Exception:", err);
-                }
-              }}
-              className="text-xs font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
-            >
-              <KeyRound size={14} /> Auto-Login (Silent)
-            </button>
-            <div className="w-1 h-1 rounded-full bg-zinc-700/50 mx-1" />
-            <button
-              title="Auto Login (Live Foreground Window)"
-              onClick={async () => {
-                try {
-                  const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
-                  if (plugin) {
+                }}
+                className="text-xs font-medium text-zinc-400 hover:text-zinc-200 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
+              >
+                <KeyRound size={14} /> Auto-Login (Silent)
+              </button>
+              <div className="w-1 h-1 rounded-full bg-zinc-700/50 mx-1" />
+              <button
+                title="Auto Login (Live Foreground Window)"
+                onClick={async () => {
+                  try {
+                    const plugin = plugins.find(p => url.includes(p.baseUrl) || (() => { try { return p.baseUrl.includes(new URL(url).hostname); } catch { return false; } })());
+                    if (plugin) {
                       const resolvedLoginUrl = plugin.auth?.loginUrl || plugin.baseUrl;
                       const cred = credentials.find(c => {
-                          try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch(e) { return false; }
+                        try { return c.domain === new URL(plugin.baseUrl).hostname || c.domain === new URL(resolvedLoginUrl).hostname; } catch (e) { return false; }
                       });
-                      
+
                       if (!cred || (!cred.username && !cred.passwordBase64)) {
                         window.showToast("No credentials found for this plugin's domains.", "error");
                         return;
                       }
                       window.showToast("Initiating LIVE Auto-Login Flow...", "info");
-                      const rawPass = await ahk.asyncCall('DecryptCredential', cred.passwordBase64) || '';
                       const { getAutoLoginScript } = await import('../lib/authHelper');
-                      const loginJs = getAutoLoginScript(plugin, cred, rawPass);
-                      
+                      const loginJs = getAutoLoginScript(plugin, cred, "", true); // Fetch credentials dynamically at executing-time
+
                       let targetUrl = resolvedLoginUrl;
                       let waitForLinkJs = `
                          const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('auth') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
                          if (!isAuthPage) { return; }
                       `;
                       if (plugin.auth?.loginUrlJs) {
-                          targetUrl = plugin.baseUrl; // Start at base URL to let the crawler find the link natively
-                          waitForLinkJs = `
+                        targetUrl = plugin.baseUrl; // Start at base URL to let the crawler find the link natively
+                        waitForLinkJs = `
                              const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('auth') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
                              if (!isAuthPage) {
                                  const findLinkIvl = setInterval(() => {
@@ -599,7 +620,7 @@ export const PlayerView = () => {
                              }
                           `;
                       }
-                      
+
                       const tgtDomainStr = String(cred.domain || "");
                       const wrappedJs = `
                          // Immediately abort if navigation left the target credential scope
@@ -610,55 +631,105 @@ export const PlayerView = () => {
                          
                          const tgtDomain = ${JSON.stringify(tgtDomainStr)};
                          const curHost = window.location.hostname.toLowerCase();
-                         if (tgtDomain && !curHost.includes(tgtDomain) && !curHost.includes('login') && !curHost.includes('auth') && !curHost.includes('account') && !curHost.includes('signin') && !curHost.includes('oauth')) {
+                         
+                         const getRootDomain = (host) => {
+                             const parts = host.split('.');
+                             if (parts.length <= 2) return host;
+                             if (parts[parts.length-2] === 'co' || parts[parts.length-2] === 'com') return parts.slice(-3).join('.');
+                             return parts.slice(-2).join('.');
+                         };
+                         
+                         let isAllowed = false;
+                         if (!tgtDomain) {
+                             isAllowed = true;
+                         } else {
+                             const rootCurHost = getRootDomain(curHost);
+                             const rootTgtDomain = getRootDomain(tgtDomain.toLowerCase());
+                             
+                             if (curHost.includes(tgtDomain) || tgtDomain.includes(curHost) || rootCurHost === rootTgtDomain) {
+                                 isAllowed = true;
+                             } else {
+                                 const isSsoProvider = ['google', 'facebook', 'apple', 'amazon', 'microsoft'].some(sso => curHost.includes(sso));
+                                 if (isSsoProvider) isAllowed = true;
+                             }
+                         }
+
+                         if (!isAllowed) {
                              window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
                              return;
                          }
 
                          ${waitForLinkJs}
                          
-                         // Prevent parallel evaluation racing using Web Locks!
-                         if (window.navigator && window.navigator.locks) {
-                             window.navigator.locks.request("bk-live-setup-" + tgtDomain, { mode: "exclusive", ifAvailable: true }, async (lock) => {
-                                 if (!lock) { console.log("[AutoLogin] Another parallel tab holds the setup lock for " + tgtDomain + ". Yielding."); return; }
-                                 await executeLoginFlow();
-                             }).catch(() => executeLoginFlow());
-                         } else {
-                             executeLoginFlow();
-                         }
+                         // Safe cross-iframe mutex without crashing WebView2 locks queue natively
+                         try {
+                             if (localStorage.getItem('bk-live-lock-' + tgtDomain) === 'locked') return;
+                             localStorage.setItem('bk-live-lock-' + tgtDomain, 'locked');
+                             setTimeout(() => { try { localStorage.removeItem('bk-live-lock-' + tgtDomain); } catch(e){} }, 5000);
+                         } catch(e) {}
+                         
+                         executeLoginFlow();
 
                          async function executeLoginFlow() {
                               if (window._bkLiveLoginHooked) return;
                               window._bkLiveLoginHooked = true;
-                              const loginTask = async function() { ${loginJs} };
                               try {
-                                 const result = await loginTask();
-                                 if (result) {
-                                    window.top.postMessage({ type: 'bk-live-login-success', domain: tgtDomain }, '*');
-                                 } else {
-                                    window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
-                                 }
-                              } catch(e) {
-                                 window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                                  const res = await new Promise((resolve) => {
+                                      let isDone = false;
+                                      const h = (e) => {
+                                          if (e.detail && typeof e.detail.u === 'string') {
+                                              window.removeEventListener('bk-cred-resolved', h);
+                                              if (isDone) return;
+                                              isDone = true;
+                                              resolve(e.detail);
+                                          }
+                                      };
+                                      window.addEventListener('bk-cred-resolved', h);
+                                      try { window.chrome.webview.hostObjects.ahk.ReportPlayerStatus('bk-req-cred', false, tgtDomain); } catch(ex) {}
+                                      setTimeout(() => { if(!isDone) { isDone = true; resolve({error:'timeout'}); } }, 5000);
+                                  });
+                                  
+                                  if (res.error || (!res.u && !res.p)) {
+                                      console.error("[AutoLogin] Failed to fetch credentials dynamically:", res.error);
+                                      window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
+                                      return;
+                                  }
+                                  
+                                  window._svLiveUn = res.u;
+                                  window._svLivePw = res.p;
+                                  
+                                  let result = (function() { ${loginJs} })();
+                                  if (result instanceof Promise) {
+                                       await result;
+                                  }
+                                  
+                                  window._svLiveUn = "";
+                                  window._svLivePw = "";
+                                  
+                                  window.top.postMessage({ type: 'bk-live-login-success', domain: tgtDomain }, '*');
+                              } catch(err) {
+                                  window._svLiveUn = "";
+                                  window._svLivePw = "";
+                                  window.top.postMessage({ type: 'bk-live-login-fail', domain: tgtDomain }, '*');
                               }
-                         }
-                      `;
-                      
+                          }
+                       `;
+
                       ahk.asyncCall('CacheSet', 'bkLiveLogin_' + tgtDomainStr, wrappedJs);
-                      
+
                       ahk.asyncCall('UpdatePlayerUrl', targetUrl);
-                  } else {
+                    } else {
                       window.showToast('No matching plugin configuration found.', 'error');
+                    }
+                  } catch (e) {
+                    console.error(e);
+                    window.showToast("An error occurred starting live auto-login.", "error");
                   }
-                } catch (e) {
-                  console.error(e);
-                  window.showToast("An error occurred starting live auto-login.", "error");
-                }
-              }}
-              className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
-            >
-              <MonitorPlay size={14} /> Live Setup
-            </button>
+                }}
+                className="text-xs font-medium text-zinc-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors shrink-0 px-2 py-1 bg-zinc-800/30 hover:bg-zinc-800/50 rounded-lg"
+              >
+                <MonitorPlay size={14} /> Live Setup
+              </button>
             </div>
           )}
         </div>

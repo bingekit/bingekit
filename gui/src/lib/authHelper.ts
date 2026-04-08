@@ -103,11 +103,31 @@ export const ensureAuthForPlugin = async (plugin: SitePlugin, credentials: Crede
   return result;
 };
 
-export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, rawPass: string) => {
-  const un = cred.username || "";
+export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, rawPass: string, useVars: boolean = false) => {
+  const un = cred?.username || "";
   const pw = rawPass || "";
 
+  let unStr = useVars ? 'window._svLiveUn' : `'${un.replace(/'/g, "\\'")}'`;
+  let pwStr = useVars ? 'window._svLivePw' : `'${pw.replace(/'/g, "\\'")}'`;
+
   if (plugin.auth.customLoginJs) {
+      if (useVars) {
+          return `
+              return new Promise(resolve => {
+                  try {
+                      console.log("[AutoLogin] Custom login JS start");
+                      var _cJs = ${JSON.stringify(plugin.auth.customLoginJs)};
+                      _cJs = _cJs.replace(/\\{username\\}/g, window._svLiveUn).replace(/\\{password\\}/g, window._svLivePw);
+                      var customFn = new Function(_cJs);
+                      customFn();
+                      setTimeout(() => resolve(true), 3000);
+                  } catch(e) {
+                      console.error("[AutoLogin] Custom JS Error:", e);
+                      resolve(false);
+                  }
+              });
+          `;
+      }
       let customJsPayload = plugin.auth.customLoginJs
           .replace(/\{username\}/g, un.replace(/'/g, "\\'"))
           .replace(/\{password\}/g, pw.replace(/'/g, "\\'"));
@@ -148,7 +168,8 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
 
                   if (successCheckStr) {
                       try {
-                          if (eval('(function(){' + successCheckStr + '})()')) { 
+                          const checkFn = new Function(successCheckStr);
+                          if (checkFn()) { 
                               console.log("[AutoLogin] Logged in successfully based on checkAuthJs");
                               clearInterval(i); 
                               resolve(true); 
@@ -206,44 +227,91 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
                   
                   window._svUserFilled = window._svUserFilled || false;
                   window._svPassFilled = window._svPassFilled || false;
+                  
+                  // Override WebAuthn permanently in this context to completely neuter Amazon's IdentityWebAuthnAssets crash & Host Deadlock
+                  try {
+                      if (navigator.credentials) {
+                          navigator.credentials.get = function() { return Promise.resolve(null); };
+                      }
+                  } catch(e) {}
+
+                  let justInjected = false;
+
+                  const setNativeValue = (elem, val) => {
+                      elem.focus();
+                      elem.select();
+                      let lastV = elem.value;
+                      elem.value = val;
+                      let tracker = elem._valueTracker;
+                      if (tracker) tracker.setValue(lastV);
+                      const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+                      if (nativeSetter) nativeSetter.call(elem, val);
+                      elem.dispatchEvent(new Event('input', { bubbles: true }));
+                      elem.dispatchEvent(new Event('change', { bubbles: true }));
+                  };
 
                   if (u && !isHidden(u)) {
-                      if (u.value !== '${un.replace(/'/g, "\\'")}') {
+                      if (u.value !== ${unStr}) {
                           console.log("[AutoLogin] Identified username field dynamically, injecting credentials...");
-                          u.value = '${un.replace(/'/g, "\\'")}';
-                          u.dispatchEvent(new Event('input', {bubbles:true}));
-                          u.dispatchEvent(new Event('change', {bubbles:true}));
+                          setNativeValue(u, ${unStr});
+                          justInjected = true;
                       }
                       window._svUserFilled = true;
                   }
 
                   if (p && !isHidden(p)) {
-                      if (p.value !== '${pw.replace(/'/g, "\\'")}') {
+                      if (p.value !== ${pwStr}) {
                           console.log("[AutoLogin] Identified password field dynamically, injecting payload...");
-                          p.value = '${pw.replace(/'/g, "\\'")}';
-                          p.dispatchEvent(new Event('input', {bubbles:true}));
-                          p.dispatchEvent(new Event('change', {bubbles:true}));
+                          setNativeValue(p, ${pwStr});
+                          justInjected = true;
                       }
                       window._svPassFilled = true;
                   }
                   
                   // If we filled any required field that was visible, try to submit aggressively
                   if ((window._svUserFilled || window._svPassFilled)) {
+                      if (justInjected) {
+                          console.log("[AutoLogin] Yielding event loop for 500ms to allow SPA state (React/Vue/Amazon) to process the input events before submitting...");
+                          return;
+                      }
                       if (!btn && p && p.form) btn = p.form.querySelector('button[type="submit"], input[type="submit"]');
                       if (!btn && u && u.form) btn = u.form.querySelector('button[type="submit"], input[type="submit"]');
                       if (!btn) btn = document.querySelector('button[type="submit"], input[type="submit"]'); // Absolute fallback
 
                       if (btn && !isHidden(btn)) {
                           if (!window._svClickedBtn || (Date.now() - window._svClickedBtn) > 5000) {
-                              console.log("[AutoLogin] Firing submission hook on extracted button target.");
-                              btn.click();
+                              console.log("[AutoLogin] Found target button: ", btn);
+                              console.log("[AutoLogin] Firing submission hook on extracted form constraint.");
+                          
+                              window._svUserFilled = false; window._svPassFilled = false;
+                              const f = btn.closest('form');
+                              if (f) {
+                                  if (btn.name && btn.value && !f.querySelector('input[name="'+btn.name+'"]')) {
+                                      let hd = document.createElement('input'); hd.type = 'hidden'; hd.name = btn.name; hd.value = btn.value;
+                                      f.appendChild(hd);
+                                  }
+                                  let ev = new Event('submit', { bubbles: true, cancelable: true });
+                                  f.dispatchEvent(ev);
+                                  if (!ev.defaultPrevented) {
+                                      try { window.HTMLFormElement.prototype.submit.call(f); } catch(ex){}
+                                  }
+                              } else {
+                                  btn.click();
+                              }
+                              clearInterval(i);
+                              resolve(true);
                               window._svClickedBtn = Date.now();
                           }
                       } else {
                            if (!window._svClickedBtn || (Date.now() - window._svClickedBtn) > 5000) {
-                               console.log("[AutoLogin] Initiating raw semantic form.submit() override.");
-                               if (p && p.form) { p.form.submit(); window._svClickedBtn = Date.now(); }
-                               else if (u && u.form) { u.form.submit(); window._svClickedBtn = Date.now(); }
+                               if (p && p.form) { 
+                                  console.log("[AutoLogin] Button not found. Initiating raw semantic form.submit() override on Password Form.");
+                                  p.form.submit(); window._svClickedBtn = Date.now(); 
+                               }
+                               else if (u && u.form) { 
+                                  console.log("[AutoLogin] Button not found. Initiating raw semantic form.submit() override on User Form.");
+                                  u.form.submit(); window._svClickedBtn = Date.now(); 
+                               }
                            }
                       }
                   }

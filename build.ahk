@@ -21,7 +21,7 @@ PackageJson := A_ScriptDir "\gui\package.json"
 CurrentVersion := "0.0.0"
 if FileExist(PackageJson) {
     txt := FileRead(PackageJson, "UTF-8")
-    if (RegExMatch(txt, "`"version`"\s*:\s*`"([0-9]+\.[0-9]+\.[0-9]+)`"", &match)) {
+    if (RegExMatch(txt, "`"version`"\s*:\s*`"([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)`"", &match)) {
         CurrentVersion := match[1]
     }
 }
@@ -43,7 +43,7 @@ EditVersion := BuildGui.Add("Edit", "w400 vNewVersion", NextVersion)
 BuildGui.Add("Text", "w400 y+15", "Release Changelog:")
 EditChangelog := BuildGui.Add("Edit", "w400 h100 Multi vChangelog", "Fixed minor bugs.")
 
-ChkGithub := BuildGui.Add("Checkbox", "w400 y+15 vPushGithub Checked", "Auto-Push Release to GitHub (Push BingeKit.exe + update.json)")
+ChkGithub := BuildGui.Add("Checkbox", "w400 y+15 vPushGithub", "Auto-Push Release to GitHub (Push BingeKit.exe + update.json)")
 GithubUrl := BuildGui.Add("Edit", "w400 vGithubUrl Hidden", "https://github.com/bingekit/bingekit/raw/main/build/BingeKit.exe")
 
 BtnBuild := BuildGui.Add("Button", "w100 y+20 Default", "Start Build")
