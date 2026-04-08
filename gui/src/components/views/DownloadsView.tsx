@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Download, Play, Pause, FileVideo, HardDrive, Trash2, FolderOpen, X, Edit2, Volume2, VolumeX, Maximize, Subtitles } from 'lucide-react';
+import { Download, Play, Pause, FileVideo, HardDrive, Trash2, FolderOpen, X, Edit2, Volume2, VolumeX, Maximize, Subtitles, FileIcon } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
 
@@ -15,10 +15,11 @@ const formatDownloadDate = (timeStr: string) => {
 
 const DownloadItem = ({ f, isActive, onPlay, onRename, onDelete, onReveal }: any) => {
   const [duration, setDuration] = useState("");
-  const isSub = f.name.match(/\.(vtt|srt)$/i);
+  const isSub = f.name.match(/\.(vtt|srt|ass)$/i);
+  const isMedia = f.name.match(/\.(mp4|mkv|avi|webm|mov|flv|wmv|m4v)$/i);
 
   useEffect(() => {
-    if (!isSub) {
+    if (!isSub && isMedia) {
       const vid = document.createElement('video');
       vid.src = `http://downloads.localhost/${encodeURIComponent(f.name)}`;
       vid.onloadedmetadata = () => {
@@ -37,12 +38,14 @@ const DownloadItem = ({ f, isActive, onPlay, onRename, onDelete, onReveal }: any
   }, [f.name, isSub]);
 
   return (
-    <div className={`group flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${isActive ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-zinc-900/30 border-zinc-800/50 hover:bg-zinc-900/80 hover:border-zinc-700'}`} onClick={() => { if (!isSub) onPlay(f.path); }}>
+    <div className={`group flex items-center justify-between p-3 rounded-xl border transition-all ${isMedia ? 'cursor-pointer' : ''} ${isActive ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-zinc-900/30 border-zinc-800/50 hover:bg-zinc-900/80 hover:border-zinc-700'}`} onClick={() => { if (isMedia) onPlay(f.path); }}>
       <div className="flex items-center gap-3 min-w-0 pr-4">
         {isSub ? (
           <Subtitles size={14} className="text-zinc-600 shrink-0" />
-        ) : (
+        ) : isMedia ? (
           <FileVideo size={14} className={isActive ? 'text-indigo-400' : 'text-zinc-500 group-hover:text-zinc-400'} shrink-0 />
+        ) : (
+          <FileIcon size={14} className="text-zinc-600 shrink-0" />
         )}
         <div className="min-w-0">
           <p className="text-sm text-zinc-300 truncate">{f.name}</p>
@@ -88,6 +91,7 @@ export const DownloadsView = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [showSubtitles, setShowSubtitles] = useState(false);
   const [showSubList, setShowSubList] = useState(false);
+  const [showNonMedia, setShowNonMedia] = useState(false);
   const [deletePrompt, setDeletePrompt] = useState<any>(null);
   const [deleteSubsChecked, setDeleteSubsChecked] = useState(true);
   const [renamePrompt, setRenamePrompt] = useState<any>(null);
@@ -233,11 +237,26 @@ export const DownloadsView = () => {
           {/* Completed Files */}
           <div className="flex-1 flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Completed ({completedFiles.filter(f => !activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase()) && (showSubList ? true : !f.name.match(/\.(vtt|srt)$/i))).length})</h3>
-              <div className="flex items-center gap-2 group/cc cursor-pointer" onClick={() => setShowSubList(!showSubList)}>
-                <Subtitles size={12} className={showSubList ? "text-indigo-400" : "text-zinc-600"} />
-                <div className={`w-6 h-3 rounded-full transition-colors relative flex items-center ${showSubList ? 'bg-indigo-500/50' : 'bg-zinc-800'}`}>
-                  <div className={`w-2 h-2 bg-white rounded-full transition-all absolute ${showSubList ? 'left-[14px]' : 'left-[2px]'}`} />
+              <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Completed ({completedFiles.filter(f => {
+                if (activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase())) return false;
+                const isSub = f.name.match(/\.(vtt|srt|ass)$/i);
+                const isMedia = f.name.match(/\.(mp4|mkv|avi|webm|mov|flv|wmv|m4v)$/i);
+                if (isSub && !showSubList) return false;
+                if (!isSub && !isMedia && !showNonMedia) return false;
+                return true;
+              }).length})</h3>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 group/cc cursor-pointer" onClick={() => setShowNonMedia(!showNonMedia)} title="Show other files">
+                  <FileIcon size={12} className={showNonMedia ? "text-indigo-400" : "text-zinc-600"} />
+                  <div className={`w-6 h-3 rounded-full transition-colors relative flex items-center ${showNonMedia ? 'bg-indigo-500/50' : 'bg-zinc-800'}`}>
+                    <div className={`w-2 h-2 bg-white rounded-full transition-all absolute ${showNonMedia ? 'left-[14px]' : 'left-[2px]'}`} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 group/cc cursor-pointer" onClick={() => setShowSubList(!showSubList)} title="Show subtitles">
+                  <Subtitles size={12} className={showSubList ? "text-indigo-400" : "text-zinc-600"} />
+                  <div className={`w-6 h-3 rounded-full transition-colors relative flex items-center ${showSubList ? 'bg-indigo-500/50' : 'bg-zinc-800'}`}>
+                    <div className={`w-2 h-2 bg-white rounded-full transition-all absolute ${showSubList ? 'left-[14px]' : 'left-[2px]'}`} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -246,20 +265,34 @@ export const DownloadsView = () => {
               onScroll={(e) => downloadsScrollPos = e.currentTarget.scrollTop}
               className="space-y-2 flex-1 overflow-y-auto no-scrollbar"
             >
-              {completedFiles.filter(f => !activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase()) && (showSubList ? true : !f.name.match(/\.(vtt|srt)$/i))).length === 0 && (
+              {completedFiles.filter(f => {
+                if (activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase())) return false;
+                const isSub = f.name.match(/\.(vtt|srt|ass)$/i);
+                const isMedia = f.name.match(/\.(mp4|mkv|avi|webm|mov|flv|wmv|m4v)$/i);
+                if (isSub && !showSubList) return false;
+                if (!isSub && !isMedia && !showNonMedia) return false;
+                return true;
+              }).length === 0 && (
                 <div className="text-center p-8 text-sm text-zinc-600 border border-dashed border-zinc-800/50 rounded-xl">
                   No completed downloads.
                 </div>
               )}
-              {completedFiles.filter(f => !activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase()) && (showSubList ? true : !f.name.match(/\.(vtt|srt)$/i))).map(f => (
+              {completedFiles.filter(f => {
+                if (activeIds.map(id => activeDownloads[id].path.toLowerCase()).includes(f.path.toLowerCase())) return false;
+                const isSub = f.name.match(/\.(vtt|srt|ass)$/i);
+                const isMedia = f.name.match(/\.(mp4|mkv|avi|webm|mov|flv|wmv|m4v)$/i);
+                if (isSub && !showSubList) return false;
+                if (!isSub && !isMedia && !showNonMedia) return false;
+                return true;
+              }).map(f => (
                 <DownloadItem
                   key={f.path}
                   f={f}
                   isActive={playingFile === f.path}
                   onPlay={() => setPlayingFile(f.path)}
-                  onRename={(file) => setRenamePrompt({ ...file, newName: file.name })}
-                  onReveal={(path) => ahk.call('RevealPath', path)}
-                  onDelete={(file) => setDeletePrompt(file)}
+                  onRename={(file: any) => setRenamePrompt({ ...file, newName: file.name })}
+                  onReveal={(path: any) => ahk.call('RevealPath', path)}
+                  onDelete={(file: any) => setDeletePrompt(file)}
                 />
               ))}
             </div>

@@ -31,7 +31,7 @@ export const UrlBar = () => {
         {navButtons.home && (
           <div className="flex items-center">
             <TooltipWrapper text="Home">
-              <button type="button" onClick={() => { setUrl(homePage || 'https://bingekit.app/home/'); setInputUrl(homePage || 'https://bingekit.app/home/'); }} className="p-0.5 hover:urlbar-icon-hover transition-colors"><Home size={14} /></button>
+              <button type="button" onClick={() => navigateUrl(homePage || 'https://bingekit.app/home/')} className="p-0.5 hover:urlbar-icon-hover transition-colors"><Home size={14} /></button>
             </TooltipWrapper>
             {installedInterfaces.length > 0 && (
               <div className="relative flex items-center">

@@ -108,7 +108,7 @@
     });
 
     function syncUrlToAhk() {
-        if (!runSync) return;
+        if (!runSync || window !== window.top) return;
         try { window.chrome?.webview?.hostObjects.ahk.UpdateURL(location.href.replace(/\/index\.html?$/i, "/")); } catch (e) { }
     }
 
@@ -148,7 +148,11 @@
                     }
                 }
             }
-        } catch (e) { console.error("[BingeKit] Failed to fetch Live Setup cache keys:", e); }
+        } catch (e) { 
+            if (!String(e).includes("0x80070490")) {
+                console.error("[BingeKit] Failed to fetch Live Setup cache keys:", e); 
+            }
+        }
     });
 
     const bkParseM3U8Qualities = (txt, baseUrl) => {

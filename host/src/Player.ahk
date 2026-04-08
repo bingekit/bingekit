@@ -136,7 +136,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
             })
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(AdblockScript)
-            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome?.webview?.hostObjects?.sync?.ahk?.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { console.error('Userscript bootstrap error:', e); }")
+            PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync("try { var _usJs = window.chrome?.webview?.hostObjects?.sync?.ahk?.GetUserscriptPayload(); if(_usJs) { (function(){eval(_usJs)})(); } } catch(e) { if (!String(e).includes('0x80070490')) { console.error('Userscript bootstrap error:', e); } }")
             PlayerWVs[id].wv.add_ContainsFullScreenElementChanged(AHK_PlayerFullscreenChanged)
             try {
                 PlayerWVs[id].wv.add_NavigationStarting(AHK_PlayerNavigationStarting)
@@ -381,7 +381,7 @@ AHK_ReportPlayerFavicon(favUri, id := "") {
     }
 }
 
-AHK_PlayerGoBack(windowId, id := "main") {
+AHK_PlayerGoBack(windowId, id := "") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -393,7 +393,7 @@ AHK_PlayerGoBack(windowId, id := "main") {
     }
 }
 
-AHK_PlayerGoForward(windowId, id := "main") {
+AHK_PlayerGoForward(windowId, id := "") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {
@@ -405,7 +405,7 @@ AHK_PlayerGoForward(windowId, id := "main") {
     }
 }
 
-AHK_PlayerReload(windowId, id := "main") {
+AHK_PlayerReload(windowId, id := "") {
     global PlayerWVs, ActiveTabId
     id := id ? id : ActiveTabId
     if (PlayerWVs.Has(id)) {

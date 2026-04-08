@@ -306,9 +306,7 @@ AHK_ListDownloads() {
     files := "["
     Loop Files, downloadLoc "\*", "F"
     {
-        if (InStr(A_LoopFileExt, "mp4") || InStr(A_LoopFileExt, "mkv") || InStr(A_LoopFileExt, "avi") || InStr(A_LoopFileExt, "webm") || InStr(A_LoopFileExt, "vtt") || InStr(A_LoopFileExt, "srt")) {
-            files .= "{ `"name`": `"" A_LoopFileName "`", `"path`": `"" StrReplace(A_LoopFilePath, "\", "\\") "`", `"size`": " A_LoopFileSize ", `"time`": `"" A_LoopFileTimeCreated "`"},"
-        }
+        files .= "{ `"name`": `"" A_LoopFileName "`", `"path`": `"" StrReplace(A_LoopFilePath, "\", "\\") "`", `"size`": " A_LoopFileSize ", `"time`": `"" A_LoopFileTimeCreated "`"},"
     }
     files := RTrim(files, ",")
     files .= "]"
