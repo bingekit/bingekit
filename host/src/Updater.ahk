@@ -55,9 +55,14 @@ AHK_CheckForUpdates(windowId := "main", *) {
                     }
 
                     if (downloadUrl != "") {
-                        obj := Map("version", versionStr, "body", body, "url", downloadUrl)
-                        UpdateObj := JSON.stringify(obj)
-                        return UpdateObj
+                        if (VerCompare(versionStr, BINGEKIT_Version) > 0) {
+                            obj := Map("version", versionStr, "body", body, "url", downloadUrl)
+                            UpdateObj := JSON.stringify(obj)
+                            return UpdateObj
+                        } else {
+                            UpdateObj := ""
+                            return UpdateObj
+                        }
                     }
                 }
             }
