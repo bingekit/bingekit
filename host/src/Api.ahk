@@ -60,17 +60,30 @@ AHK_Close(windowId := "main") {
     AHK_CloseWindow(windowId)
 }
 
+
+global WindowLoadedStates := Map()
+
 AHK_HideSplash(windowId := "main") {
-    global SplashGui, MainGuis
+    global SplashGui, MainGuis, WindowLoadedStates, MinWidth, MinHeight
+
+    ; Check if this specific window has already been loaded
+    if (WindowLoadedStates.Has(windowId) && WindowLoadedStates[windowId] = true) {
+        return ; Exit the function early
+    }
+
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
     }
+
     if (MainGuis.Has(windowId)) {
         MainGuis[windowId].Opt("-ToolWindow")
         MainGuis[windowId].Show("w1280 h800 center")
         MainGuis[windowId].Opt("+MinSize" . MinWidth . "x" . MinHeight)
         WinSetTransparent(255, MainGuis[windowId].Hwnd)
+
+        ; Set the property to true so it doesn't run again for this windowId
+        WindowLoadedStates[windowId] := true
     }
 }
 
