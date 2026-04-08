@@ -126,7 +126,7 @@ StartBuild(*) {
         msgPath := A_Temp "\git_msg.txt"
         if FileExist(msgPath)
             FileDelete(msgPath)
-        FileAppend("🔖 Release - new v" newVer "`n`n" changelog, msgPath, "UTF-8")
+        FileAppend("🔖 Release - v" newVer "`n`n" changelog, msgPath, "UTF-8")
 
         RunWait('git add .github/workflows/release.yml build/BingeKit.exe build/update.json gui/package.json host/src/build_exe.ahk', RepoDir)
         RunWait('git commit -F "' msgPath '"', RepoDir)
