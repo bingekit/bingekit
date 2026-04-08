@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*" # Triggers workflow only when a version tag like "v1.0.0" is pushed
+      - "new v*" # Triggers workflow only when a version tag like "v1.0.0" is pushed
 
 jobs:
   build:
