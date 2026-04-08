@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, MutableRefObject } from 'react';
 import { ahk } from '../lib/ahk';
+import { addClosedTabDB } from '../lib/db';
 
 export function useTabsState(
   activeTab: string,
@@ -23,6 +24,7 @@ export function useTabsState(
   const previousTabIdRef = useRef('main');
   const lastSyncUrls = useRef<Record<string, string>>({});
   const isInitialMultiTabMount = useRef(true);
+  const previousTabsListRef = useRef<any[]>([]);
   const [isReadyToSave, setIsReadyToSave] = useState(false);
 
   useEffect(() => {
@@ -50,6 +52,19 @@ export function useTabsState(
     if (isReadyToSave) {
       ahk.call('SaveData', 'active_tabs.json', JSON.stringify(browserTabs));
     }
+  }, [browserTabs, isReadyToSave]);
+
+  useEffect(() => {
+    if (previousTabsListRef.current.length > browserTabs.length && isReadyToSave) {
+      const currentIds = new Set(browserTabs.map((t: any) => t.id));
+      const removedTabs = previousTabsListRef.current.filter((t: any) => !currentIds.has(t.id));
+      removedTabs.forEach((tabToClose: any) => {
+        if (tabToClose && tabToClose.url && tabToClose.url !== 'about:blank' && !tabToClose.url.startsWith('err://') && tabToClose.url !== 'https://bingekit.app/home/' && tabToClose.url !== 'http://blank.localhost/') {
+          addClosedTabDB({ id: Date.now().toString() + '_' + tabToClose.id, url: tabToClose.url, title: tabToClose.title, timestamp: Date.now() });
+        }
+      });
+    }
+    previousTabsListRef.current = browserTabs;
   }, [browserTabs, isReadyToSave]);
 
 

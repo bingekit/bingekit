@@ -576,11 +576,14 @@ export const PlayerView = () => {
                       const loginJs = getAutoLoginScript(plugin, cred, rawPass);
                       
                       let targetUrl = resolvedLoginUrl;
-                      let waitForLinkJs = "";
+                      let waitForLinkJs = `
+                         const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('auth') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
+                         if (!isAuthPage) { return; }
+                      `;
                       if (plugin.auth?.loginUrlJs) {
                           targetUrl = plugin.baseUrl; // Start at base URL to let the crawler find the link natively
                           waitForLinkJs = `
-                             const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
+                             const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('auth') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
                              if (!isAuthPage) {
                                  const findLinkIvl = setInterval(() => {
                                       try {
@@ -592,6 +595,7 @@ export const PlayerView = () => {
                                           }
                                       } catch(e) {}
                                  }, 1000);
+                                 return; // DO NOT aggressively execute login flow unless on auth page!
                              }
                           `;
                       }

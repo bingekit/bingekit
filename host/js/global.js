@@ -88,11 +88,15 @@
         try { window.chrome?.webview?.hostObjects.sync.ahk.ShowToast(msg, type); } catch (e) { }
     };
 
-    window.toggleBookmark = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.ToggleBookmark) { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } else { document.title = k-evt:toggle-bookmark; } };
+    window.toggleBookmark = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.ToggleBookmark) { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } else { document.title = "bk-evt:toggle-bookmark"; } };
 
-    window.gotoHistory = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.GotoHistory) { window.chrome.webview.hostObjects.sync.ahk.GotoHistory(); } else { document.title = k-evt:goto-history; } };
+    window.gotoHistory = function () { if (window.chrome?.webview?.hostObjects?.sync?.ahk?.GotoHistory) { window.chrome.webview.hostObjects.sync.ahk.GotoHistory(); } else { document.title = "bk-evt:goto-history"; } };
 
     window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 't') {
+            e.preventDefault();
+            if (window.chrome?.webview?.hostObjects?.sync?.ahk?.RestoreTab) { window.chrome.webview.hostObjects.sync.ahk.RestoreTab(); } else { document.title = "bk-evt:restore-tab"; }
+        }
         if (e.ctrlKey && e.key.toLowerCase() === 'd') {
             e.preventDefault();
             window.toggleBookmark();
@@ -140,7 +144,7 @@
                     const payload = window.chrome?.webview?.hostObjects.sync.ahk.CacheGet(k);
                     if (payload && payload !== "") {
                         console.log(`[BingeKit] Resuming persistent Live Setup task block for ${k}...`);
-                        try { eval(payload); } catch (e) { console.error(`[BingeKit] Live Setup expr error for ${k}:`, e); }
+                        try { eval(`(async function() { ${payload} })()`); } catch (e) { console.error(`[BingeKit] Live Setup expr error for ${k}:`, e); }
                     }
                 }
             }

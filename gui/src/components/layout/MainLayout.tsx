@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { ahk } from '../../lib/ahk';
 import { useAppContext } from '../../context/AppContext';
+import { popClosedTabDB } from '../../lib/db';
 
 // Layout bounds
 import { ThemeStyles } from './ThemeStyles';
@@ -29,7 +30,7 @@ export const MainLayout = () => {
   const {
     theme, activeTab, setActiveTab, browserTabs, setBrowserTabs, activeBrowserTabId,
     setActiveBrowserTabId, navigateUrl, homePage,
-    bookmarks, setBookmarks, url, fetchTitleForUrl
+    bookmarks, setBookmarks, url, fetchTitleForUrl, isMultiTabEnabled
   } = useAppContext();
 
   useEffect(() => {
@@ -125,6 +126,10 @@ export const MainLayout = () => {
     };
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        window.dispatchEvent(new CustomEvent('bk-restore-tab'));
+      }
       if (e.ctrlKey && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         toggleBookmark();
@@ -141,15 +146,25 @@ export const MainLayout = () => {
       setActiveTab('library');
     };
 
+    const handleRestoreTabEvent = async () => {
+      if (!isMultiTabEnabled) return;
+      const closedTab = await popClosedTabDB();
+      if (closedTab && closedTab.url) {
+        navigateUrl(closedTab.url, true, false);
+      }
+    };
+
     window.addEventListener('keydown', handleGlobalKeyDown);
     window.addEventListener('bk-toggle-bookmark', toggleBookmark);
     window.addEventListener('bk-goto-history', handleGotoHistory);
+    window.addEventListener('bk-restore-tab', handleRestoreTabEvent);
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('bk-toggle-bookmark', toggleBookmark);
       window.removeEventListener('bk-goto-history', handleGotoHistory);
+      window.removeEventListener('bk-restore-tab', handleRestoreTabEvent);
     };
-  }, [url, bookmarks, setBookmarks, fetchTitleForUrl, setActiveTab]);
+  }, [url, bookmarks, setBookmarks, fetchTitleForUrl, setActiveTab, isMultiTabEnabled]);
 
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.main, color: theme.textMain }}>

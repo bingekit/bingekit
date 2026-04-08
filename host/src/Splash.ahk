@@ -42,5 +42,6 @@ InitSplashGui() {
 
 UpdateSplashProgress(progress) {
     global progressBar
-    progressBar.Value := progress
+    try
+        progressBar.Value := progress
 }

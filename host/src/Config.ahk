@@ -208,7 +208,7 @@ AHK_CacheGet(key) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
-AHK_CacheList(prefix := "") {
+AHK_CacheList(prefix) {
     global WorkspaceDir
     dirPath := WorkspaceDir "\cache"
     if !DirExist(dirPath)

@@ -116,6 +116,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 CacheSet: AHK_CacheSet,
                 CacheGet: AHK_CacheGet,
                 CacheClear: AHK_CacheClear,
+                CacheList: AHK_CacheList,
                 RawFetchHTML: AHK_RawFetchHTML,
                 AddNetworkFilter: AHK_AddNetworkFilter,
                 GetSiteBlockers: AHK_GetSiteBlockers,
@@ -130,6 +131,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id),
                 ToggleBookmark: AHK_ToggleBookmark.Bind(windowId, id),
                 GotoHistory: AHK_GotoHistory.Bind(windowId, id),
+                RestoreTab: AHK_RestoreTab.Bind(windowId, id),
                 ShowToast: AHK_ShowToast
             })
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
@@ -332,6 +334,10 @@ AHK_PlayerTitleChanged(ICoreWebView2, *) {
         title := ICoreWebView2.DocumentTitle
         if (title == "bk-evt:goto-history") {
             AHK_GotoHistory("main", foundId)
+            return
+        }
+        if (title == "bk-evt:restore-tab") {
+            AHK_RestoreTab("main", foundId)
             return
         }
         if (title == "bk-evt:toggle-bookmark") {
@@ -721,7 +727,7 @@ AHK_PlayerNavigationCompleted(ICoreWebView2, args) {
             if (LastNavErrorState.Has(foundId)) {
                 LastNavErrorState.Delete(foundId)
             }
-            
+
             try {
                 uri := ICoreWebView2.Source
                 if (InStr(uri, "edge://") || InStr(uri, "about:") || InStr(uri, "chrome-error://")) {
@@ -778,6 +784,15 @@ AHK_GotoHistory(windowId, id := "main") {
     ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
     if (MainGuis.Has(ownerId)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-goto-history', { detail: { tabId: '" id "' } })) } catch(e) {}"
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
+    }
+}
+
+AHK_RestoreTab(windowId, id := "main") {
+    global MainGuis, PlayerOwners
+    ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
+    if (MainGuis.Has(ownerId)) {
+        js := "try { window.dispatchEvent(new CustomEvent('bk-restore-tab', { detail: { tabId: '" id "' } })) } catch(e) {}"
         MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }
