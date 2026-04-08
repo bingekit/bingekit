@@ -75,25 +75,36 @@ FileMD5(filePath) {
     if !FileExist(filePath)
         return ""
 
-    ; Define a temporary file to capture output
-    tempFile := A_Temp "\ahk_md5_capture.txt"
-
-    ; RunWait with the "Hide" parameter ensures no console window flashes
-    RunWait(A_ComSpec ' /c certutil -hashfile "' filePath '" MD5 > "' tempFile '"', , "Hide")
-
-    if !FileExist(tempFile)
+    try {
+        f := FileOpen(filePath, "r")
+        if !f
+            return ""
+        
+        DllCall("Bcrypt.dll\BCryptOpenAlgorithmProvider", "Ptr*", &hAlg:=0, "Str", "MD5", "Ptr", 0, "UInt", 0)
+        DllCall("Bcrypt.dll\BCryptCreateHash", "Ptr", hAlg, "Ptr*", &hHash:=0, "Ptr", 0, "UInt", 0, "Ptr", 0, "UInt", 0, "UInt", 0)
+        
+        chunkSize := 8192
+        BufferBlob := Buffer(chunkSize)
+        while !f.AtEOF {
+            bytesRead := f.RawRead(BufferBlob, chunkSize)
+            DllCall("Bcrypt.dll\BCryptHashData", "Ptr", hHash, "Ptr", BufferBlob, "UInt", bytesRead, "UInt", 0)
+        }
+        f.Close()
+        
+        DllCall("Bcrypt.dll\BCryptGetProperty", "Ptr", hAlg, "Str", "HashDigestLength", "UInt*", &hashLen:=0, "UInt", 4, "UInt*", &cbResult:=0, "UInt", 0)
+        hashBlob := Buffer(hashLen)
+        DllCall("Bcrypt.dll\BCryptFinishHash", "Ptr", hHash, "Ptr", hashBlob, "UInt", hashLen, "UInt", 0)
+        DllCall("Bcrypt.dll\BCryptDestroyHash", "Ptr", hHash)
+        DllCall("Bcrypt.dll\BCryptCloseAlgorithmProvider", "Ptr", hAlg, "UInt", 0)
+        
+        hashStr := ""
+        loop hashLen {
+            hashStr .= Format("{:02x}", NumGet(hashBlob, A_Index - 1, "UChar"))
+        }
+        return StrLower(hashStr)
+    } catch {
         return ""
-
-    text := FileRead(tempFile)
-    FileDelete(tempFile)
-
-    loop parse text, "`n", "`r"
-    {
-        line := StrReplace(Trim(A_LoopField), " ", "")
-        if (RegExMatch(line, "^[a-fA-F0-9]{32}$"))
-            return StrLower(line)
     }
-    return ""
 }
 
 global guiPath := ""

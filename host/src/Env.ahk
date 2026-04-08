@@ -73,8 +73,9 @@ InitEnvironment() {
         "--deny-permission-prompts " .
         "--disable-domain-reliability " .
         "--disable-sync " .
-        "--proxy-bypass-list=`"<-loopback>;gui.localhost;interface.localhost;downloads.localhost;localhost`" " .
-        "--IsSwipeNavigationEnabled=0 "
+        "--proxy-bypass-list=`"<-loopback>;gui.localhost;interface.localhost;downloads.localhost;127.0.0.1;localhost`" " .
+        "--IsSwipeNavigationEnabled=0 " .
+        "--disable-background-networking "
 
     if (disableGPU) {
         browserArgs .= "--disable-gpu "

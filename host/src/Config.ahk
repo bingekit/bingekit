@@ -166,6 +166,17 @@ AHK_LoadData(filename) {
     return FileExist(filepath) ? FileRead(filepath, "UTF-8") : ""
 }
 
+AHK_LoadStartupState(fileList) {
+    global WorkspaceDir
+    files := StrSplit(fileList, "|")
+    result := Map()
+    for _, filename in files {
+        if FileExist(WorkspaceDir "\" filename)
+            result[filename] := FileRead(WorkspaceDir "\" filename, "UTF-8")
+    }
+    return JSON.stringify(result)
+}
+
 AHK_DeleteData(filename) {
     global WorkspaceDir
     filepath := WorkspaceDir "\" filename
