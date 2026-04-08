@@ -128,10 +128,10 @@ StartBuild(*) {
             FileDelete(msgPath)
         FileAppend("🔖 Release v" newVer "`n`n" changelog, msgPath, "UTF-8")
 
-        RunWait('git add app/.github/workflows/release.yml app/build/BingeKit.exe app/build/update.json app/gui/package.json app/host/src/build_exe.ahk', RepoDir, "Hide")
-        RunWait('git commit -F "' msgPath '"', RepoDir, "Hide")
-        RunWait('git tag -a v' newVer ' -F "' msgPath '"', RepoDir, "Hide")
-        RunWait('git push origin main --tags', RepoDir, "Hide")
+        RunWait('git add .github/workflows/release.yml build/BingeKit.exe build/update.json gui/package.json host/src/build_exe.ahk', RepoDir)
+        RunWait('git commit -F "' msgPath '"', RepoDir)
+        RunWait('git tag -a v' newVer ' -F "' msgPath '"', RepoDir)
+        RunWait('git push origin main --tags', RepoDir)
 
         MsgBox("Build & Push Complete!`n`nVersion: " newVer "`nNew executable and update.json pushed to GitHub.", "Release Complete", 64)
     } else {
