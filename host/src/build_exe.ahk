@@ -1,5 +1,5 @@
 ;! VERSION
-BINGEKIT_Version := "0.0.1"
+BINGEKIT_Version := "0.1.0"
 ;@Ahk2Exe-Obey U_V, = "%A_PriorLine~U)^(.+")(.*)".*$~$2%" ? "SetVersion" : "Nop"
 ;@Ahk2Exe-%U_V%        %A_PriorLine~U)^(.+")(.*)".*$~$2%
 
