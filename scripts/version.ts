@@ -9,7 +9,7 @@ if (!newVersion) {
 }
 
 // 1. Update app/package.json
-const packageJsonPath = path.resolve(import.meta.dir, "../app/package.json");
+const packageJsonPath = path.resolve(import.meta.dir, "../gui/package.json");
 if (fs.existsSync(packageJsonPath)) {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
     pkg.version = newVersion;
