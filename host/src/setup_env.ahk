@@ -37,7 +37,8 @@ if (!A_IsCompiled) {
     for hwnd in WinGetList(A_ScriptFullPath " ahk_class AutoHotkey") {
         ; Close any instance that is not the current one
         if (hwnd != A_ScriptHwnd)
-            WinClose hwnd
+            try
+                WinClose hwnd
     }
 }
 
