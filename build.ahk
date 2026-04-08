@@ -120,7 +120,7 @@ StartBuild(*) {
 
     if (pushGithub) {
         TrayTip("Pushing Release to GitHub...", "BingeKit Build")
-        RepoDir := A_ScriptDir "\.."
+        RepoDir := A_ScriptDir
 
         ; Git commands
         msgPath := A_Temp "\git_msg.txt"
