@@ -92,10 +92,18 @@
         try { window.chrome.webview.hostObjects.sync.ahk.ToggleBookmark(); } catch (e) { }
     };
 
+    window.gotoHistory = function () {
+        try { window.chrome.webview.hostObjects.sync.ahk.GotoHistory(); } catch (e) { }
+    };
+
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === 'd') {
             e.preventDefault();
             window.toggleBookmark();
+        }
+        if (e.ctrlKey && e.key.toLowerCase() === 'h') {
+            e.preventDefault();
+            window.gotoHistory();
         }
     });
 

@@ -7,10 +7,22 @@ import { useAppContext } from '../../../context/AppContext';
 
 let cachedLibrarySubTab = 'bookmarks';
 
+export const setLibrarySubTab = (tab: string) => {
+  cachedLibrarySubTab = tab;
+  window.dispatchEvent(new CustomEvent('bk-library-subtab-change', { detail: tab }));
+};
+
 export const LibraryView = () => {
   const { isHistoryEnabled } = useAppContext();
-  const [activeSubTab, _setActiveSubTab] = useState(cachedLibrarySubTab);
-  const setActiveSubTab = (val: string) => { cachedLibrarySubTab = val; _setActiveSubTab(val); };
+  const [activeSubTab, _setActiveSubTab] = React.useState(cachedLibrarySubTab);
+  
+  React.useEffect(() => {
+    const handleSubTabChange = (e: any) => _setActiveSubTab(e.detail);
+    window.addEventListener('bk-library-subtab-change', handleSubTabChange);
+    return () => window.removeEventListener('bk-library-subtab-change', handleSubTabChange);
+  }, []);
+  
+  const setActiveSubTab = (val: string) => setLibrarySubTab(val);
 
   return (
     <div className="w-full h-full flex flex-col relative bg-transparent">

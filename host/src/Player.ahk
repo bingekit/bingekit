@@ -129,6 +129,7 @@ AHK_UpdatePlayerRect(windowId, x, y, w, h, visible, id := "main") {
                 SetMediaStream: (v, q := "", a := "") => AHK_SetMediaStream(v, q, a, id),
                 SetSubtitleStream: (v, a := "") => AHK_SetSubtitleStream(v, a, id),
                 ToggleBookmark: AHK_ToggleBookmark.Bind(windowId, id),
+                GotoHistory: AHK_GotoHistory.Bind(windowId, id),
                 ShowToast: AHK_ShowToast
             })
             PlayerWVs[id].AddScriptToExecuteOnDocumentCreatedAsync(GlobalScript)
@@ -749,6 +750,15 @@ AHK_ToggleBookmark(windowId, id := "main") {
     ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
     if (MainGuis.Has(ownerId)) {
         js := "try { window.dispatchEvent(new CustomEvent('bk-toggle-bookmark', { detail: { tabId: '" id "' } })) } catch(e) {}"
+        MainGuis[ownerId].Control.ExecuteScriptAsync(js)
+    }
+}
+
+AHK_GotoHistory(windowId, id := "main") {
+    global MainGuis, PlayerOwners
+    ownerId := PlayerOwners.Has(id) ? PlayerOwners[id] : "main"
+    if (MainGuis.Has(ownerId)) {
+        js := "try { window.dispatchEvent(new CustomEvent('bk-goto-history', { detail: { tabId: '" id "' } })) } catch(e) {}"
         MainGuis[ownerId].Control.ExecuteScriptAsync(js)
     }
 }

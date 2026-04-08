@@ -13,7 +13,7 @@ import { GlobalConfirm } from '../ui/GlobalConfirm';
 import { DashboardView } from '../views/DashboardView';
 import { PlayerView } from '../views/PlayerView';
 import { SettingsView } from '../views/settings/SettingsView';
-import { LibraryView } from '../views/library/LibraryView';
+import { LibraryView, setLibrarySubTab } from '../views/library/LibraryView';
 import { ExploreView } from '../views/explore/ExploreView';
 import { ExtensionsView } from '../views/plugins/ExtensionsView';
 import { DownloadsView } from '../views/DownloadsView';
@@ -27,7 +27,7 @@ declare global {
 
 export const MainLayout = () => {
   const {
-    theme, activeTab, browserTabs, setBrowserTabs, activeBrowserTabId,
+    theme, activeTab, setActiveTab, browserTabs, setBrowserTabs, activeBrowserTabId,
     setActiveBrowserTabId, navigateUrl, homePage,
     bookmarks, setBookmarks, url, fetchTitleForUrl
   } = useAppContext();
@@ -129,15 +129,27 @@ export const MainLayout = () => {
         e.preventDefault();
         toggleBookmark();
       }
+      if (e.ctrlKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setLibrarySubTab('history');
+        setActiveTab('library');
+      }
+    };
+
+    const handleGotoHistory = () => {
+      setLibrarySubTab('history');
+      setActiveTab('library');
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     window.addEventListener('bk-toggle-bookmark', toggleBookmark);
+    window.addEventListener('bk-goto-history', handleGotoHistory);
     return () => {
       window.removeEventListener('keydown', handleGlobalKeyDown);
       window.removeEventListener('bk-toggle-bookmark', toggleBookmark);
+      window.removeEventListener('bk-goto-history', handleGotoHistory);
     };
-  }, [url, bookmarks, setBookmarks, fetchTitleForUrl]);
+  }, [url, bookmarks, setBookmarks, fetchTitleForUrl, setActiveTab]);
 
   return (
     <div className="flex flex-col h-screen w-full font-sans overflow-hidden" style={{ backgroundColor: theme.main, color: theme.textMain }}>
