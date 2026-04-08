@@ -642,13 +642,14 @@ export const DocsView = () => {
                   strong: ({ node, ...props }) => <strong className="font-extrabold tracking-tight" style={{ color: theme.textMain }} {...props} />,
                   a: ({ node, href, children, ...props }: any) => {
                     const isHashHover = href?.startsWith('#');
+                    const isSearchLink = href?.startsWith('?search=');
                     const linkStyle: any = {
                       color: theme.accent,
                       textDecorationColor: theme.accent + '40',
                     };
                     return (
                       <a
-                        href={isHashHover ? '#' : href}
+                        href={isHashHover || isSearchLink ? '#' : href}
                         onClick={(e) => {
                           if (isHashHover) {
                             e.preventDefault();
@@ -663,12 +664,19 @@ export const DocsView = () => {
                               globalDocsHighlightTarget = e.currentTarget.textContent || null;
                             }
                             handleDocClick(targetDoc);
+                          } else if (isSearchLink) {
+                            e.preventDefault();
+                            const params = new URLSearchParams(href.split('?')[1]);
+                            const query = params.get('search');
+                            if (query) {
+                              setSearchQuery(query);
+                            }
                           }
                         }}
                         className={`font-bold underline underline-offset-[6px] decoration-2 hover:decoration-current transition-all duration-300 hover:opacity-80 py-0.5`}
                         style={linkStyle}
-                        target={isHashHover ? undefined : "_blank"}
-                        rel={isHashHover ? undefined : "noreferrer"}
+                        target={isHashHover || isSearchLink ? undefined : "_blank"}
+                        rel={isHashHover || isSearchLink ? undefined : "noreferrer"}
                         {...props}
                       >
                         {children}

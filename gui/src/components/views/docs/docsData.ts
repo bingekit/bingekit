@@ -10,7 +10,7 @@ This guide will walk you through starting from an absolute blank slate (no plugi
 ## The Blank Slate
 When you first run BingeKit, it knows absolutely nothing about the websites you want to visit. There are no built-in scrapers for Netflix, Hulu, or any other site. Instead, BingeKit provides a powerful **engine** that physically orchestrates hidden Microsoft Edge (\`WebView2\`) instances to do your bidding.
 
-To make BingeKit do anything useful, you need to configure [Plugins](#making_plugins#how-to-make-your-own-plugin), write [Userscripts](#logic_flows#userscripts-tampermonkey-equivalent), or design [Logic Flows](#logic_flows).
+To make BingeKit do anything useful, you need to configure [Plugins](?search=How+To+Make+Your+Own+Plugin), write [Userscripts](?search=Userscripts+\(Tampermonkey+Equivalent\)), or design [Logic Flows](#logic_flows).
 
 ## 1. Workspaces & Portable Mode
 BingeKit operates on the concept of **Workspaces**. All your data—configurations, downloaded plugins, bookmarks, and encrypted credentials—are isolated entirely within your configured workspace folder. 
@@ -18,7 +18,7 @@ BingeKit operates on the concept of **Workspaces**. All your data—configuratio
 - **Why this matters**: You can have a "Work" workspace and a "Personal" workspace, completely isolating your plugins, browsing data, and watch history.
 
 ## 2. Navigating the Interface
-- **Dashboard**: Your home base. You can initiate [Search Commands](#protips#search-modifiers--advanced-commands) here.
+- **Dashboard**: Your home base. You can initiate [Search Commands](?search=Search+Modifiers+%26+Advanced+Commands) here.
 - **Player**: The actual browser view where media plays natively.
 - **Extensions**: Where you manage, create, and update your Site Plugins.
 
@@ -48,7 +48,7 @@ Credentials are natively encrypted using the Windows **Data Protection API (DPAP
 
 ## 4. SmartFetch and Invisible Browsers
 Unlike standard HTTP web scrapers (like Python's BeautifulSoup or standard \`fetch()\`), BingeKit utilizes **SmartFetch**. 
-When you request BingeKit to perform a [Deep Search](#protips) or execute a flow, it spins up a completely invisible Edge browser, executes real JavaScript, defeats Cloudflare, waits for the DOM to settle, and then extracts what you need. This means SPAs (Single Page Applications) and heavily obfuscated sites are scraped just as easily as static HTML.
+When you request BingeKit to perform a [Deep Search](?search=Deep+Scan+Engine) or execute a flow, it spins up a completely invisible Edge browser, executes real JavaScript, defeats Cloudflare, waits for the DOM to settle, and then extracts what you need. This means SPAs (Single Page Applications) and heavily obfuscated sites are scraped just as easily as static HTML.
 
 ## 5. The Unified Playback State
 When a video plays in BingeKit's \`PlayerView\`, the AHK host injects tracking scripts directly into the page. These scripts listen for video events (\`play\`, \`pause\`, \`timeupdate\`, \`ended\`) and report them back. This allows BingeKit to maintain a globally synchronized watch history, even across deeply nested iframes.`
@@ -75,7 +75,7 @@ To track watch history, BingeKit needs to know exactly where the \`<video>\` tag
 
 ### 3. Automated Authentication & Encryption
 BingeKit can manage native logins so you never have to type passwords. 
-1. The user inputs their credentials in the UI via the "Manage Auth" modal (these are instantly [DPAPI Encrypted](#principles)).
+1. The user inputs their credentials in the UI via the "Manage Auth" modal (these are instantly [DPAPI Encrypted](?search=DPAPI+Credential+Security)).
 2. In your plugin, configure the \`auth\` object. Set \`auth.encryptCreds = true\`.
 3. Provide the CSS selectors so BingeKit knows what to automatically fill:
    - \`userSel\` and \`passSel\` (e.g., \`#email\`, \`#password\`).
@@ -186,7 +186,7 @@ If a site's video player breaks entirely when Adblock is enabled, it means your 
     id: 'logic_flows',
     content: `# Logic Flows & Userscripts
 
-If Site Plugins define *how* to interact natively with a site, **[Custom Flows](#types)** define *architectural chains of actions* across systems.
+If Site Plugins define *how* to interact natively with a site, **[Custom Flows](?search=FlowStep+Schema)** define *architectural chains of actions* across systems.
 
 A Custom Flow is a strict JSON array definition of sequential actions.
 
@@ -399,7 +399,7 @@ This suggests the COM AHK Host failed to resolve the local \`index.html\` fronte
 2. **The F12 Console Pivot**: Open the developer console natively on active players. BingeKit safely outputs isolated, prefix console logs (\`[BK-INJECT]\`) during phase executions. Syntax errors thrown during string evaluations are instantly caught here.
 3. **Invalid Selectors**: React apps actively mutate DOM class IDs dynamically. If your \`<video>\` selector was \`.player-xyz\`, it might now be \`.player-abc\`. Always map structural locators or stable IDs like \`[data-testid="player-window"]\` instead.`
   }
-, {
+  , {
     id: 'examples',
     content: `
 # Live Examples Playground
