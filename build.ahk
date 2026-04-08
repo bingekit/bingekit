@@ -34,7 +34,7 @@ if (oVer.Length >= 3) {
 }
 
 ; Build GUI
-BuildGui := Gui("+AllowSettings +OwnDialogs", "BingeKit Build Manager")
+BuildGui := Gui("-MinimizeBox -MaximizeBox", "BingeKit Build Manager")
 BuildGui.Add("Text", "w400", "Current Version: " CurrentVersion)
 
 BuildGui.Add("Text", "w400 y+15", "New Version String (e.g. 0.0.10):")

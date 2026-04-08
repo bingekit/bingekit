@@ -3,14 +3,14 @@ name: Publish Auto-Update Release
 on:
   push:
     tags:
-      - 'v*' # Triggers workflow only when a version tag like "v1.0.0" is pushed
+      - "v*" # Triggers workflow only when a version tag like "v1.0.0" is pushed
 
 jobs:
   build:
     permissions:
       contents: write # Needed to create the GitHub release
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
