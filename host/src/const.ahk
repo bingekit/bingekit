@@ -5,3 +5,6 @@ MinHeight := 600
 
 ToastWidth := 300
 ToastHeight := 48
+
+
+;updateUrl := "https://api.github.com/repos/owhs/bingekit/releases/latest"
