@@ -596,7 +596,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         if (parsed.Incognito !== undefined) settings.setIncognito(parsed.Incognito);
       }
     } catch (e) { }
-    setTimeout(() => ahk.call('HideSplash'), 1500);
+    // De-bounce the Splash Hide so that components have realistically mounted after the massive synchronous event loop parsing. 150ms is visually seamless.
+    setTimeout(() => ahk.call('HideSplash'), 150);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

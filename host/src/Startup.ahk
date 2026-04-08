@@ -64,12 +64,12 @@ CheckSplashTimeout() {
     if (SplashGui) {
         SplashGui.Destroy()
         SplashGui := ""
-        MsgBox("Critical Error: BingeKit UI did not respond within 10 seconds.`n`nThis usually indicates the frontend development server/URL is not available or is taking too long to compile. Please verify the URL or try reloading.", "BingeKit Timeout", 16)
+        MsgBox("Critical Error: BingeKit UI did not respond within 30 seconds.`n`nThis usually indicates the frontend development server/URL is not available or is taking too long to compile. Please verify the URL or try reloading.", "BingeKit Timeout", 16)
         ExitApp()
     }
 }
 ; Wait 30 seconds for React frontend to reply (Vite cold starts)
-SetTimer(CheckSplashTimeout, -10000)
+SetTimer(CheckSplashTimeout, -30000)
 
 FileMD5(filePath) {
     if !FileExist(filePath)

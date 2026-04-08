@@ -99,4 +99,8 @@ InitEnvironment() {
     } else {
         WebViewSettings := { DataDir: WorkspaceDir "\webview" }
     }
+
+    ; Pre-create the WebView2 Environment to vastly speed up browser window instantiations
+    dllP := WebViewSettings.HasProp("DllPath") ? WebViewSettings.DllPath : "WebView2Loader.dll"
+    WebViewSettings.CreatedEnvironment := WebView2.CreateEnvironmentAsync(0, WebViewSettings.DataDir, "", dllP).await()
 }
