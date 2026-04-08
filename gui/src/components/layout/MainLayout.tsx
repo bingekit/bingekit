@@ -11,14 +11,14 @@ import { GlobalPrompt } from '../ui/GlobalPrompt';
 import { GlobalConfirm } from '../ui/GlobalConfirm';
 
 // Views
-import { DashboardView } from '../views/DashboardView';
-import { PlayerView } from '../views/PlayerView';
-import { SettingsView } from '../views/settings/SettingsView';
-import { LibraryView, setLibrarySubTab } from '../views/library/LibraryView';
-import { ExploreView } from '../views/explore/ExploreView';
-import { ExtensionsView } from '../views/plugins/ExtensionsView';
-import { DownloadsView } from '../views/DownloadsView';
-import { DocsView } from '../views/DocsView';
+import { DashboardView } from '../../views/DashboardView';
+import { PlayerView } from '../../views/PlayerView';
+import { SettingsView } from '../../views/settings/SettingsView';
+import { LibraryView, setLibrarySubTab } from '../../views/library/LibraryView';
+import { ExploreView } from '../../views/explore/ExploreView';
+import { ExtensionsView } from '../../views/plugins/ExtensionsView';
+import { DownloadsView } from '../../views/DownloadsView';
+import { DocsView } from '../../views/DocsView';
 
 declare global {
   interface Window {
