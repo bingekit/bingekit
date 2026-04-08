@@ -43,13 +43,13 @@ AHK_ShowToast(windowId, msg, arg1 := "info", arg2 := "", arg3 := "") {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             tJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(tJson)
-            if (theme.Has("main") && theme["main"] != "")
+            if (theme.Has("main") && theme["main"] != "" && !InStr(theme["main"], "("))
                 bgC := StrReplace(theme["main"], "#", "")
-            if (theme.Has("textMain") && theme["textMain"] != "")
+            if (theme.Has("textMain") && theme["textMain"] != "" && !InStr(theme["textMain"], "("))
                 textC := StrReplace(theme["textMain"], "#", "")
-            if (theme.Has("border") && theme["border"] != "")
+            if (theme.Has("border") && theme["border"] != "" && !InStr(theme["border"], "("))
                 ringC := StrReplace(theme["border"], "#", "")
-            if (theme.Has("accent") && theme["accent"] != "")
+            if (theme.Has("accent") && theme["accent"] != "" && !InStr(theme["accent"], "("))
                 brandC := StrReplace(theme["accent"], "#", "")
         }
     } catch {

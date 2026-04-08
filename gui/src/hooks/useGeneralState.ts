@@ -16,7 +16,28 @@ export function useGeneralState() {
       const next = typeof val === 'function' ? (val as any)(prev) : val;
       if (themeTimerRef.current) clearTimeout(themeTimerRef.current);
       themeTimerRef.current = setTimeout(() => {
-        try { ahk.call('SaveData', 'theme.json', JSON.stringify(next)); } catch (e) { }
+        try {
+          const resolvedNext = { ...next };
+          for (const k in resolvedNext) {
+            const valStr = resolvedNext[k];
+            if (typeof valStr === 'string' && (valStr.includes('var(') || valStr.includes('color-mix(') || valStr.startsWith('hsl') || valStr.startsWith('rgb'))) {
+              const div = document.createElement('div');
+              div.style.display = 'none';
+              div.style.color = valStr;
+              document.body.appendChild(div);
+              const computed = window.getComputedStyle(div).color;
+              document.body.removeChild(div);
+              const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+              if (match) {
+                const r = parseInt(match[1], 10).toString(16).padStart(2, '0');
+                const g = parseInt(match[2], 10).toString(16).padStart(2, '0');
+                const b = parseInt(match[3], 10).toString(16).padStart(2, '0');
+                resolvedNext[k] = `#${r}${g}${b}`;
+              }
+            }
+          }
+          ahk.call('SaveData', 'theme.json', JSON.stringify(resolvedNext));
+        } catch (e) { }
       }, 500);
       return next;
     });

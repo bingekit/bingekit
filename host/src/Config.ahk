@@ -426,7 +426,7 @@ AHK_GetThemeBgColor() {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(themeJson)
-            if (theme.Has("main") && theme["main"] != "")
+            if (theme.Has("main") && theme["main"] != "" && !InStr(theme["main"], "("))
                 bgC := StrReplace(theme["main"], "#", "")
         }
     } catch {
@@ -452,7 +452,7 @@ AHK_GetThemeBorderColor() {
         if (IsSet(WorkspaceDir) && WorkspaceDir != "" && FileExist(WorkspaceDir "\theme.json")) {
             themeJson := FileRead(WorkspaceDir "\theme.json", "UTF-8")
             theme := JSON.parse(themeJson)
-            if (theme.Has("borders") && theme["borders"] != "")
+            if (theme.Has("borders") && theme["borders"] != "" && !InStr(theme["borders"], "("))
                 borderC := StrReplace(theme["borders"], "#", "")
         }
     } catch {
