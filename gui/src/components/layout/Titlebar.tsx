@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Minus, Square, X, Plus, LayoutGrid, Columns, Rows, Globe, Music, VolumeX, Zap } from 'lucide-react';
+import { Film, Minus, Square, X, Plus, LayoutGrid, Columns, Rows, Globe, Music, VolumeX, Zap, Copy, PictureInPicture2 } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -63,6 +63,20 @@ export const Titlebar = () => {
   } = useAppContext();
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  useEffect(() => {
+    const checkMaximized = () => {
+      // Robust checker: frameless window is maximized when it fills the available screen
+      setIsMaximized(
+        window.outerWidth >= window.screen.availWidth - 10 && 
+        window.outerHeight >= window.screen.availHeight - 10
+      );
+    };
+    checkMaximized();
+    window.addEventListener('resize', checkMaximized);
+    return () => window.removeEventListener('resize', checkMaximized);
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -220,9 +234,9 @@ export const Titlebar = () => {
                 <Minus size={14} />
               </button>
             </TooltipWrapper>
-            <TooltipWrapper text="Maximize">
+            <TooltipWrapper text={isMaximized ? "Restore" : "Maximize"}>
               <button onClick={() => ahk.call('Maximize')} className="px-4 h-[32px] text-zinc-500 hover:bg-zinc-800 transition-colors">
-                <Square size={12} />
+                {isMaximized ? <Copy size={12} /> : <Square size={12} />}
               </button>
             </TooltipWrapper>
             <TooltipWrapper text="Close">
@@ -264,7 +278,7 @@ export const Titlebar = () => {
               )}
               {activeTab === 'player' && (
                 <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
+                  <PictureInPicture2 size={16} strokeWidth={2} />
                 </button>
               )}
               {activeTab === 'player' && (
@@ -282,9 +296,9 @@ export const Titlebar = () => {
                   <Minus size={14} />
                 </button>
               </TooltipWrapper>
-              <TooltipWrapper text="Maximize">
+              <TooltipWrapper text={isMaximized ? "Restore" : "Maximize"}>
                 <button onClick={() => ahk.call('Maximize')} className="px-5 h-[39px] text-zinc-500 hover:bg-zinc-800 transition-colors">
-                  <Square size={12} />
+                  {isMaximized ? <Copy size={12} /> : <Square size={12} />}
                 </button>
               </TooltipWrapper>
               <TooltipWrapper text="Close">
@@ -322,7 +336,7 @@ export const Titlebar = () => {
                 </button>
               )}
               <button title="Toggle PiP Mode" onClick={() => ahk.call('TogglePiP')} className="px-5 h-[39px] transition-colors text-zinc-500 hover:text-indigo-400 hover:bg-indigo-500/10">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><rect x="8" y="21" width="8" height="0"></rect><path d="M12 17v4"></path><path d="M16 11h2"></path><path d="M16 7h2"></path></svg>
+                <PictureInPicture2 size={16} strokeWidth={2} />
               </button>
               <TooltipWrapper text={isQuickOptionsHidden ? "Show Quick Menu" : "Hide Quick Menu"}>
                 <button

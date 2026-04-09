@@ -112,6 +112,22 @@ Escape::
         g.Control.ExecuteScriptAsync(js)
     }
 }
+$#Left::
+{
+    g := GetActiveMainGui()
+    if (g && !WinActive("ahk_id " g.Hwnd)) {
+        WinActivate("ahk_id " g.Hwnd)
+    }
+    Send("{LWin down}{Left}{LWin up}")
+}
+$#Right::
+{
+    g := GetActiveMainGui()
+    if (g && !WinActive("ahk_id " g.Hwnd)) {
+        WinActivate("ahk_id " g.Hwnd)
+    }
+    Send("{LWin down}{Right}{LWin up}")
+}
 #HotIf
 
 #HotIf IsSet(IsPiPMode) && IsPiPMode && isAppActive()
