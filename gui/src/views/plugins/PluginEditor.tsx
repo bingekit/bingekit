@@ -5,7 +5,7 @@ import {
   Plus, Puzzle, Save, Trash2, Download, Upload, KeyRound, Code,
   ListTree, MonitorPlay, Activity, RefreshCw, Bell, Compass, Zap,
   Clock, Folder, Lock, EyeOff, Eye, Globe, Copy, Store,
-  DownloadCloud, CheckCircle2, Package
+  DownloadCloud, CheckCircle2, Package, ChevronDown
 } from 'lucide-react';
 import { useAppContext } from '../../context/AppContext';
 import { ahk } from '../../lib/ahk';
@@ -37,27 +37,50 @@ export const PluginEditor = () => {
     savePlugin,
     flows,
     testSearchQuery,
-    setTestSearchQuery
+    setTestSearchQuery,
+    isPluginDirty,
+    pluginBaselineStr,
+    setPluginBaselineStr
   } = useAppContext();
 
   const [editTab, _setEditTab] = React.useState<
     "general" | "auth" | "search" | "media" | "tracking" | "functions" | "metadata"
   >(cachedPluginsEditTab);
   const setEditTab = (val: typeof cachedPluginsEditTab) => { cachedPluginsEditTab = val; _setEditTab(val); };
-  
+
   const [ideModalData, setIdeModalData] = React.useState<{
     title: string;
     value: string;
     mode: "javascript" | "css";
     onChange: (val: string) => void;
   } | null>(null);
-  
+
   const [ideTempVal, setIdeTempVal] = React.useState("");
-  
+
   const editorScrollRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
     if (editorScrollRef.current) editorScrollRef.current.scrollTop = pluginsEditorScrollPos;
   }, [editTab, editingPlugin]);
+
+  const [showSaveOptions, setShowSaveOptions] = React.useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = React.useState(false);
+
+  // Sync baseline right after explicit save to clear dirty state
+  const handleExplicitSave = (closeEditor: boolean) => {
+    savePlugin(closeEditor);
+  };
+
+  React.useEffect(() => {
+    if (autoSaveEnabled && editingPlugin && isPluginDirty) {
+      const timer = setTimeout(() => {
+        savePlugin(false);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [editingPlugin, autoSaveEnabled, isPluginDirty]);
+
+  // Sync baseline right after explicit save to clear dirty state
+
 
   if (!editingPlugin) {
     return (
@@ -70,96 +93,142 @@ export const PluginEditor = () => {
 
   return (
     <>
-<div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
-            <div className="flex items-center justify-between mb-8 pHeader bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
-              <div>
-                <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
-                  {editingPlugin.id ? editingPlugin.name : "New Plugin"}
-                </h2>
-                <p className="text-sm text-zinc-400 mt-1">
-                  {editingPlugin.baseUrl}
-                </p>
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setEditingPlugin(null)}
-                  className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={savePlugin}
-                  className="flex items-center gap-2 px-6 py-2 text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors shadow-lg shadow-indigo-500/20"
-                >
-                  <Save size={16} /> Save Plugin
-                </button>
-              </div>
-            </div>
-
-            <div className="flex gap-2 border-b border-zinc-800/50 mb-6 overflow-x-auto no-scrollbar shrink-0">
-              {[
-                { id: "general", label: "General & CSS", icon: Settings },
-                { id: "search", label: "Search Targets", icon: Search },
-                { id: "media", label: "Media Parsing", icon: ListTree },
-                { id: "tracking", label: "Tracking", icon: Activity },
-                { id: "auth", label: "Authentication", icon: KeyRound },
-                { id: "functions", label: "Custom JS", icon: Code },
-                { id: "metadata", label: "Metadata", icon: Puzzle },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = editTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setEditTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? "border-indigo-500 text-indigo-400 bg-indigo-500/5" : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30"}`}
-                  >
-                    <Icon
-                      size={16}
-                      className={isActive ? "text-indigo-400" : "text-zinc-600"}
-                    />{" "}
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div
-              ref={editorScrollRef}
-              onScroll={(e) => pluginsEditorScrollPos = e.currentTarget.scrollTop}
-              className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
-            >
-              {editTab === "general" && <PluginGeneralTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Authentication Flow */}
-              {editTab === "auth" && <PluginAuthTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Search Parsing */}
-              {editTab === "search" && <PluginSearchTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Details Parsing */}
-              {editTab === "media" && <PluginMediaTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Tracking Parsing */}
-              {editTab === "tracking" && <PluginTrackingTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Player & Styling */}
-              {editTab === "functions" && <PluginFunctionsTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
-
-              {/* Metadata Tab */}
-              {editTab === "metadata" && (
-                <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <MetadataEditor
-                    metadata={editingPlugin}
-                    onChange={(key, val) =>
-                      updateEditingPlugin("root", key as any, val)
-                    }
-                  />
+      <div className="max-w-6xl mx-auto w-full flex-1 flex flex-col">
+        <div className="flex items-center justify-between mb-8 pHeader bg-zinc-950 z-10 pb-4 border-b border-zinc-900">
+          <div>
+            <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
+              {editingPlugin.id ? editingPlugin.name : "New Plugin"}
+              {isPluginDirty && !autoSaveEnabled && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] uppercase font-bold tracking-wider rounded-full self-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Unsaved
                 </div>
+              )}
+              {autoSaveEnabled && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] uppercase font-bold tracking-wider rounded-full self-center">
+                  <CheckCircle2 size={10} /> Auto-Saving
+                </div>
+              )}
+            </h2>
+            <p className="text-sm text-zinc-400 mt-1">
+              {editingPlugin.baseUrl}
+            </p>
+          </div>
+          <div className="flex gap-3 relative">
+            <button
+              onClick={() => setEditingPlugin(null)}
+              className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <div className="relative inline-flex flex-col items-stretch isolate">
+              <div className="flex items-stretch rounded-lg shadow-lg shadow-indigo-500/20 overflow-visible z-10 transition-transform active:scale-[0.98]">
+                <button
+                  onClick={() => handleExplicitSave(false)}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-indigo-500 hover:bg-indigo-600 text-white rounded-l-lg transition-colors border-r border-indigo-600/50"
+                >
+                  <Save size={16} /> Save
+                </button>
+                <button
+                  onClick={() => setShowSaveOptions(!showSaveOptions)}
+                  className="flex items-center px-2 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-r-lg transition-colors"
+                >
+                  <ChevronDown size={16} className={`transition-transform duration-200 ${showSaveOptions ? "rotate-180" : ""}`} />
+                </button>
+              </div>
+
+              {showSaveOptions && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowSaveOptions(false)} />
+                  <div className="absolute top-12 right-0 w-48 bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-xl shadow-2xl z-50 overflow-hidden animate-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => {
+                        handleExplicitSave(true);
+                        setShowSaveOptions(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-zinc-200 hover:bg-zinc-900/30 transition-colors border-b border-zinc-800/50 flex items-center gap-2"
+                    >
+                      <Save size={14} className="text-indigo-400" /> Save & Close
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAutoSaveEnabled(!autoSaveEnabled);
+                        setShowSaveOptions(false);
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-zinc-200 hover:bg-zinc-900/30 transition-colors flex items-center gap-2"
+                    >
+                      {autoSaveEnabled ? <Square size={14} className="text-zinc-500" /> : <CustomCheckbox checked={autoSaveEnabled} onChange={() => { }} />} Toggle Auto-Save
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
-{/* IDE Modal */}
+        </div>
+
+        <div className="flex gap-2 border-b border-zinc-800/50 mb-6 overflow-x-auto no-scrollbar shrink-0">
+          {[
+            { id: "general", label: "General & CSS", icon: Settings },
+            { id: "search", label: "Search Targets", icon: Search },
+            { id: "media", label: "Media Parsing", icon: ListTree },
+            { id: "tracking", label: "Tracking", icon: Activity },
+            { id: "auth", label: "Authentication", icon: KeyRound },
+            { id: "functions", label: "Custom JS", icon: Code },
+            { id: "metadata", label: "Metadata", icon: Puzzle },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = editTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setEditTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${isActive ? "border-indigo-500 text-indigo-400 bg-indigo-500/5" : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/30"}`}
+              >
+                <Icon
+                  size={16}
+                  className={isActive ? "text-indigo-400" : "text-zinc-600"}
+                />{" "}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          ref={editorScrollRef}
+          onScroll={(e) => pluginsEditorScrollPos = e.currentTarget.scrollTop}
+          className="flex-1 pb-20 overflow-y-auto no-scrollbar pr-4"
+        >
+          {editTab === "general" && <PluginGeneralTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Authentication Flow */}
+          {editTab === "auth" && <PluginAuthTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Search Parsing */}
+          {editTab === "search" && <PluginSearchTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Details Parsing */}
+          {editTab === "media" && <PluginMediaTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Tracking Parsing */}
+          {editTab === "tracking" && <PluginTrackingTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Player & Styling */}
+          {editTab === "functions" && <PluginFunctionsTab setIdeModalData={setIdeModalData} setIdeTempVal={setIdeTempVal} />}
+
+          {/* Metadata Tab */}
+          {editTab === "metadata" && (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <MetadataEditor
+                metadata={editingPlugin}
+                onChange={(key, val) =>
+                  updateEditingPlugin("root", key as any, val)
+                }
+              />
+            </div>
+          )}
+        </div>
+      </div>
+      {/* IDE Modal */}
       {ideModalData && (
         <Modal
           isOpen={!!ideModalData}

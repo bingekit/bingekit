@@ -394,16 +394,16 @@ AHK_DownloadSubtitle(windowId, url, targetFilename) {
     SetTimer(dlSub, -1)
 }
 
-AHK_InstallExtensionZip(url, targetFolder := "sites") {
-    global WorkspaceBaseDir
-    if (url == "" || WorkspaceBaseDir == "")
+AHK_InstallExtensionZip(windowId, url, targetFolder := "sites") {
+    global WorkspaceDir
+    if (url == "" || WorkspaceDir == "")
         return false
 
     validFolders := Map("sites", 1, "flows", 1, "scripts", 1)
     if (!validFolders.Has(targetFolder))
         targetFolder := "sites"
 
-    destDir := WorkspaceBaseDir "\" targetFolder
+    destDir := WorkspaceDir "\" targetFolder
     if !DirExist(destDir)
         try DirCreate(destDir)
 
@@ -424,7 +424,7 @@ AHK_InstallExtensionZip(url, targetFolder := "sites") {
         zipFile := shell.NameSpace(tmpZip)
         destination := shell.NameSpace(tmpExtract)
         destination.CopyHere(zipFile.Items(), 4 | 16)
-        
+
         ; Move JSON artifacts to the corresponding folder
         Loop Files, tmpExtract "\*.json", "R"
         {
@@ -434,7 +434,7 @@ AHK_InstallExtensionZip(url, targetFolder := "sites") {
     } catch {
         success := false
     }
-    
+
     try FileDelete(tmpZip)
     try DirDelete(tmpExtract, 1)
 

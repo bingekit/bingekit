@@ -32,6 +32,8 @@ interface AppContextType {
   isCheckingUpdates: boolean; setIsCheckingUpdates: React.Dispatch<React.SetStateAction<boolean>>;
   plugins: SitePlugin[]; setPlugins: React.Dispatch<React.SetStateAction<SitePlugin[]>>;
   editingPlugin: SitePlugin | null; setEditingPlugin: React.Dispatch<React.SetStateAction<SitePlugin | null>>;
+  pluginBaselineStr: string; setPluginBaselineStr: React.Dispatch<React.SetStateAction<string>>;
+  isPluginDirty: boolean;
   testSearchQuery: string; setTestSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   testSearchResults: any; setTestSearchResults: React.Dispatch<React.SetStateAction<any>>;
   isTestingSearch: boolean; setIsTestingSearch: React.Dispatch<React.SetStateAction<boolean>>;
@@ -64,7 +66,7 @@ interface AppContextType {
   pageTitle: string;
   navButtons: NavButtonsConfig; setNavButtons: React.Dispatch<React.SetStateAction<NavButtonsConfig>>;
   installedInterfaces: string[];
-  savePlugin: () => void;
+  savePlugin: (closeEditor?: boolean) => void;
   deletePlugin: (plugin: SitePlugin) => void;
   updateEditingPlugin: (section: keyof SitePlugin | 'root', field: string, value: any) => void;
   fetchTitleForUrl: (targetUrl: string) => string;

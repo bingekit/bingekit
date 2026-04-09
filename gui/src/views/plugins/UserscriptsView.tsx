@@ -30,6 +30,16 @@ export const UserscriptsView = () => {
   const [activeSubTab, setActiveSubTab] = React.useState<'code' | 'metadata'>('code');
   const [deletePrompt, setDeletePrompt] = React.useState<any>(null);
 
+  const saveUserscript = (script: Userscript) => {
+    const filename = (script as any)._originalFilename || `script_${script.id}.json`;
+    if ((script as any)._originalFilename && (script as any)._originalFilename !== filename) {
+      ahk.call('DeleteScript', (script as any)._originalFilename);
+    }
+    const toSave = { ...script };
+    delete (toSave as any)._originalFilename;
+    ahk.call('SaveScript', filename, JSON.stringify(toSave, null, 2));
+  };
+
   return (
 
     <div className="flex w-full h-full bg-zinc-950 overflow-hidden">
@@ -94,7 +104,7 @@ export const UserscriptsView = () => {
                     onChange={(enabled) => {
                       const updated = { ...s, enabled };
                       setUserscripts(userscripts.map(u => u.id === s.id ? updated : u));
-                      ahk.call('SaveScript', `script_${s.id}.json`, JSON.stringify(updated, null, 2));
+                      saveUserscript(updated);
                     }}
                   />
                   <button
@@ -123,7 +133,7 @@ export const UserscriptsView = () => {
                   const s = userscripts.find(u => u.id === editingUserscriptId)!;
                   const updated = { ...s, name: e.target.value };
                   setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
-                  ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                  saveUserscript(updated);
                 }}
                 className="bg-transparent border-none text-sm font-medium text-zinc-200 outline-none min-w-[150px]"
               />
@@ -155,7 +165,7 @@ export const UserscriptsView = () => {
                         const s = userscripts.find(u => u.id === editingUserscriptId)!;
                         const updated = { ...s, domains };
                         setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
-                        ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                        saveUserscript(updated);
                       }}
                     />
                     <p className="text-xs text-zinc-600 mt-1">Use <code>*</code> for all domains or exact hostnames like <code>example.com</code></p>
@@ -167,7 +177,7 @@ export const UserscriptsView = () => {
                       const s = userscripts.find(u => u.id === editingUserscriptId)!;
                       const updated = { ...s, [key]: val };
                       setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
-                      ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                      saveUserscript(updated);
                     }}
                   />
                 </div>
@@ -179,7 +189,7 @@ export const UserscriptsView = () => {
                       const s = userscripts.find(u => u.id === editingUserscriptId)!;
                       const updated = { ...s, code };
                       setUserscripts(userscripts.map(u => u.id === editingUserscriptId ? updated : u));
-                      ahk.call('SaveScript', `script_${updated.id}.json`, JSON.stringify(updated, null, 2));
+                      saveUserscript(updated);
                     }}
                     highlight={code => Prism.highlight(code, Prism.languages.javascript, 'javascript')}
                     padding={24}
@@ -224,7 +234,8 @@ export const UserscriptsView = () => {
             <button 
               onClick={() => {
                 if (deletePrompt) {
-                  ahk.call('DeleteScript', `script_${deletePrompt.id}.json`);
+                  const filename = (deletePrompt as any)._originalFilename || `script_${deletePrompt.id}.json`;
+                  ahk.call('DeleteScript', filename);
                   setUserscripts(userscripts.filter((u: any) => u.id !== deletePrompt.id));
                   if (editingUserscriptId === deletePrompt.id) setEditingUserscriptId(null);
                 }

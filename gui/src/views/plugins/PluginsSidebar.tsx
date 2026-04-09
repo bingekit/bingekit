@@ -22,10 +22,49 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
     deletePlugin,
     pluginUpdateCount,
     checkPluginUpdates,
+    isPluginDirty,
+    savePlugin,
+    setPluginBaselineStr,
   } = useAppContext();
 
   const sidebarScrollRef = React.useRef<HTMLDivElement>(null);
   const [deletePrompt, setDeletePrompt] = React.useState<any>(null);
+  const [pendingNavPlugin, setPendingNavPlugin] = React.useState<any>(null); // "NEW", "GALLERY", or plugin object
+
+  const handleNav = (target: any) => {
+    if (isPluginDirty) {
+      setPendingNavPlugin(target);
+    } else {
+      executeNav(target);
+    }
+  };
+
+  const executeNav = (target: any) => {
+    if (target === "NEW") {
+      const newPlug = { ...DEFAULT_PLUGIN, id: Date.now().toString() };
+      setEditingPlugin(newPlug);
+      setPluginBaselineStr(JSON.stringify(newPlug));
+      setViewMode("editor");
+    } else if (target === "GALLERY") {
+      setViewMode(viewMode === "gallery" ? "editor" : "gallery");
+      setEditingPlugin(null);
+      setPluginBaselineStr("");
+    } else {
+      const safePlugin = {
+        ...DEFAULT_PLUGIN,
+        ...target,
+        search: {
+          ...DEFAULT_PLUGIN.search,
+          ...(target.search || {}),
+        },
+        additionalSearches: target.additionalSearches || [],
+        enabled: target.enabled !== false,
+      };
+      setEditingPlugin(safePlugin);
+      setPluginBaselineStr(JSON.stringify(safePlugin));
+      setViewMode("editor");
+    }
+  };
 
   React.useEffect(() => {
     if (sidebarScrollRef.current) sidebarScrollRef.current.scrollTop = pluginsSidebarScrollPos;
@@ -45,10 +84,7 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
           <p className="text-xs text-zinc-500 mt-1">Custom site integrations.</p>
         </div>
         <button
-          onClick={() => {
-            setEditingPlugin({ ...DEFAULT_PLUGIN, id: Date.now().toString() });
-            setViewMode("editor");
-          }}
+          onClick={() => handleNav("NEW")}
           className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
         >
           <Plus size={18} />
@@ -57,10 +93,7 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
 
       <div className="flex gap-2 mb-4">
         <button
-          onClick={() => {
-            setViewMode(viewMode === "gallery" ? "editor" : "gallery");
-            setEditingPlugin(null);
-          }}
+          onClick={() => handleNav("GALLERY")}
           className={`flex-1 py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all ${
             viewMode === "gallery"
               ? "bg-indigo-500 text-white shadow-lg shadow-indigo-500/20"
@@ -87,21 +120,7 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
         {plugins.map((plugin) => (
           <div
             key={plugin.id}
-            onClick={() => {
-              const safePlugin = {
-                ...DEFAULT_PLUGIN,
-                ...plugin,
-                search: {
-                  ...DEFAULT_PLUGIN.search,
-                  ...(plugin.search || {}),
-                },
-                additionalSearches: plugin.additionalSearches || [],
-                enabled: plugin.enabled !== false,
-              };
-              setEditingPlugin(safePlugin);
-              // Edit tab state is managed in PluginEditor now
-              setViewMode("editor");
-            }}
+            onClick={() => handleNav(plugin)}
             className={`p-4 rounded-xl border cursor-pointer transition-all ${
               editingPlugin?.id === plugin.id
                 ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
@@ -145,9 +164,11 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
                   onChange={(val) => {
                     const updated = { ...plugin, enabled: val };
                     setPlugins(plugins.map((p) => (p.id === plugin.id ? updated : p)));
-                    const filename = `${updated.name
-                      .replace(/[^a-z0-9]/gi, "_")
-                      .toLowerCase()}_${updated.id}.json`;
+                    const filename = `${updated.name.replace(/[^a-z0-9]/gi, "_").toLowerCase()}_${updated.id}.json`;
+                    if ((updated as any)._originalFilename && (updated as any)._originalFilename !== filename) {
+                        ahk.call("DeleteSite", (updated as any)._originalFilename);
+                    }
+                    delete (updated as any)._originalFilename;
                     ahk.call("SaveSite", filename, JSON.stringify(updated, null, 2));
                   }}
                 />
@@ -201,6 +222,26 @@ export const PluginsSidebar: React.FC<PluginsSidebarProps> = ({ viewMode, setVie
             >
               Confirm Delete
             </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!pendingNavPlugin} onClose={() => setPendingNavPlugin(null)} title="Unsaved Changes">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--theme-text-sec)]">
+            You have unsaved changes in <strong className="text-[var(--theme-text-main)]">{editingPlugin?.name || "the editor"}</strong>. If you continue without saving, these changes will be lost.
+          </p>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
+            <button onClick={() => setPendingNavPlugin(null)} className="px-4 py-2 text-sm text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors">Cancel</button>
+            <button onClick={() => {
+              executeNav(pendingNavPlugin);
+              setPendingNavPlugin(null);
+            }} className="px-4 py-2 text-sm text-[var(--theme-text-sec)] hover:bg-zinc-800/80 rounded-lg transition-colors border border-transparent hover:border-zinc-700/50">Discard</button>
+            <button onClick={() => {
+              savePlugin(false);
+              executeNav(pendingNavPlugin);
+              setPendingNavPlugin(null);
+            }} className="px-4 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/20 shadow-sm">Save & Continue</button>
           </div>
         </div>
       </Modal>

@@ -142,6 +142,53 @@ export const FlowsView = () => {
   const setEditTab = (val: typeof cachedFlowsEditTab) => { cachedFlowsEditTab = val; _setEditTab(val); };
   const [deletePrompt, setDeletePrompt] = React.useState<any>(null);
 
+  const [baselineFlowStr, setBaselineFlowStr] = React.useState<string>("");
+  const [pendingNavFlow, setPendingNavFlow] = React.useState<any>(null); // "NEW" or a Flow object
+
+  React.useEffect(() => {
+    if (editingFlow && (!baselineFlowStr || JSON.parse(baselineFlowStr).id !== editingFlow.id)) {
+      setBaselineFlowStr(JSON.stringify(editingFlow));
+    }
+  }, [editingFlow, baselineFlowStr]);
+
+  const isDirty = editingFlow ? JSON.stringify(editingFlow) !== baselineFlowStr : false;
+
+  const handleNav = (target: any) => {
+    if (isDirty) {
+      setPendingNavFlow(target);
+    } else {
+      if (target === "NEW") createNewFlow();
+      else setEditingFlow(target);
+    }
+  };
+
+  const createNewFlow = () => {
+    const newFlow = {
+      id: Date.now().toString(),
+      name: "New Flow",
+      description: "",
+      steps: [],
+      enabled: true,
+    };
+    const newFlows = [...flows, newFlow];
+    setFlows(newFlows);
+    saveFlow(newFlow);
+    setEditingFlow(newFlow);
+  };
+
+  const saveFlow = (flowToSave: CustomFlow) => {
+    const filename = (flowToSave as any)._originalFilename || `flow_${flowToSave.id}.json`;
+    if ((flowToSave as any)._originalFilename && (flowToSave as any)._originalFilename !== filename) {
+        ahk.call('DeleteFlow', (flowToSave as any)._originalFilename);
+    }
+    const safeData = { ...flowToSave };
+    delete (safeData as any)._originalFilename;
+    ahk.call('SaveFlow', filename, JSON.stringify(safeData, null, 2));
+    if (editingFlow && flowToSave.id === editingFlow.id) {
+       setBaselineFlowStr(JSON.stringify(flowToSave));
+    }
+  };
+
   return (
     <div className="flex h-full w-full overflow-hidden">
       {/* Flows List */}
@@ -156,23 +203,7 @@ export const FlowsView = () => {
             </p>
           </div>
           <button
-            onClick={() => {
-              const newFlow = {
-                id: Date.now().toString(),
-                name: "New Flow",
-                description: "",
-                steps: [],
-                enabled: true,
-              };
-              const newFlows = [...flows, newFlow];
-              setFlows(newFlows);
-              ahk.call(
-                "SaveFlow",
-                `flow_${newFlow.id}.json`,
-                JSON.stringify(newFlow, null, 2),
-              );
-              setEditingFlow(newFlow);
-            }}
+            onClick={() => handleNav("NEW")}
             className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-colors"
           >
             <Plus size={18} />
@@ -182,7 +213,7 @@ export const FlowsView = () => {
           {flows.map((flow) => (
             <div
               key={flow.id}
-              onClick={() => setEditingFlow(flow)}
+              onClick={() => handleNav(flow)}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${editingFlow?.id === flow.id ? "bg-indigo-500/10 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]" : "bg-zinc-900/30 border-zinc-800/50 hover:border-zinc-700 hover:bg-zinc-900/50"}`}
             >
               <div className="flex items-center justify-between">
@@ -230,11 +261,7 @@ export const FlowsView = () => {
                       setFlows(
                         flows.map((f) => (f.id === flow.id ? updated : f)),
                       );
-                      ahk.call(
-                        "SaveFlow",
-                        `flow_${flow.id}.json`,
-                        JSON.stringify(updated, null, 2),
-                      );
+                      saveFlow(updated);
                     }}
                   />
                   <button
@@ -263,8 +290,13 @@ export const FlowsView = () => {
         {editingFlow ? (
           <div className="max-w-3xl mx-auto space-y-8 pb-20">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-light tracking-tight text-zinc-100">
+              <h2 className="text-2xl font-light tracking-tight text-zinc-100 flex items-center gap-3">
                 Edit Flow
+                {isDirty && (
+                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] uppercase font-bold tracking-wider rounded-full self-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Unsaved
+                  </div>
+                )}
               </h2>
               <div className="flex items-center gap-3">
                 <button
@@ -281,11 +313,7 @@ export const FlowsView = () => {
                       f.id === editingFlow.id ? editingFlow : f,
                     );
                     setFlows(updatedFlows);
-                    ahk.call(
-                      "SaveFlow",
-                      `flow_${editingFlow.id}.json`,
-                      JSON.stringify(editingFlow, null, 2),
-                    );
+                    saveFlow(editingFlow);
                   }}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-medium transition-colors shadow-[0_0_15px_rgba(99,102,241,0.3)]"
                 >
@@ -998,7 +1026,8 @@ export const FlowsView = () => {
                 if (deletePrompt) {
                   const newFlows = flows.filter((f: any) => f.id !== deletePrompt.id);
                   setFlows(newFlows);
-                  ahk.call("DeleteFlow", `flow_${deletePrompt.id}.json`);
+                  const filename = (deletePrompt as any)._originalFilename || `flow_${deletePrompt.id}.json`;
+                  ahk.call("DeleteFlow", filename);
                   if (editingFlow?.id === deletePrompt.id) setEditingFlow(null);
                 }
                 setDeletePrompt(null);
@@ -1010,6 +1039,29 @@ export const FlowsView = () => {
           </div>
         </div>
       </Modal>
+
+      <Modal isOpen={!!pendingNavFlow} onClose={() => setPendingNavFlow(null)} title="Unsaved Changes">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--theme-text-sec)]">
+            You have unsaved changes in <strong className="text-[var(--theme-text-main)]">{editingFlow?.name}</strong>. If you continue without saving, these changes will be lost.
+          </p>
+          <div className="flex justify-end gap-3 pt-4 border-t border-[color-mix(in_srgb,var(--theme-border)_50%,transparent)]">
+            <button onClick={() => setPendingNavFlow(null)} className="px-4 py-2 text-sm text-[var(--theme-text-sec)] hover:text-[var(--theme-text-main)] transition-colors">Cancel</button>
+            <button onClick={() => {
+              if (pendingNavFlow === "NEW") createNewFlow();
+              else setEditingFlow(pendingNavFlow);
+              setPendingNavFlow(null);
+            }} className="px-4 py-2 text-sm text-[var(--theme-text-sec)] hover:bg-zinc-800/80 rounded-lg transition-colors border border-transparent hover:border-zinc-700/50">Discard</button>
+            <button onClick={() => {
+              if (editingFlow) saveFlow(editingFlow);
+              if (pendingNavFlow === "NEW") createNewFlow();
+              else setEditingFlow(pendingNavFlow);
+              setPendingNavFlow(null);
+            }} className="px-4 py-2 text-sm bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors shadow-lg shadow-indigo-500/20 shadow-sm">Save & Continue</button>
+          </div>
+        </div>
+      </Modal>
+
     </div>
   );
 };

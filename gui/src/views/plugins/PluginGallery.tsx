@@ -8,12 +8,12 @@ let pluginsGalleryScrollPos = 0;
 
 export const PluginGallery: React.FC = () => {
   const { pluginRepoUrl, plugins, loadPlugins } = useAppContext();
-  
+
   const [repoData, setRepoData] = React.useState<RepoManifest | null>(null);
   const [isRepoLoading, setIsRepoLoading] = React.useState(false);
   const [installingItems, setInstallingItems] = React.useState<string[]>([]);
   const [repoTab, setRepoTab] = React.useState<"plugins" | "packs">("plugins");
-  
+
   const galleryScrollRef = React.useRef<HTMLDivElement>(null);
 
   const loadRepo = () => {
@@ -141,7 +141,7 @@ export const PluginGallery: React.FC = () => {
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-xl bg-zinc-900/40 flex items-center justify-center shrink-0 border border-zinc-700/50 shadow-inner overflow-hidden">
                       {p.icon && p.icon.includes("<svg") ? (
-                        <div className="w-8 h-8 text-zinc-300" dangerouslySetInnerHTML={{ __html: p.icon }} />
+                        <div className="w-14 h-14 text-zinc-300" dangerouslySetInnerHTML={{ __html: p.icon }} />
                       ) : p.icon && p.icon.includes("http") ? (
                         <img src={p.icon} alt="" className="w-full h-full object-cover" />
                       ) : (

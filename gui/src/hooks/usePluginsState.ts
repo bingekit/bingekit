@@ -21,6 +21,8 @@ export function usePluginsState(
 ) {
   const [plugins, setPlugins] = useState<SitePlugin[]>([]);
   const [editingPlugin, setEditingPlugin] = useState<SitePlugin | null>(null);
+  const [pluginBaselineStr, setPluginBaselineStr] = useState<string>("");
+  const isPluginDirty = editingPlugin ? JSON.stringify(editingPlugin) !== pluginBaselineStr : false;
   const [flows, setFlows] = useState<CustomFlow[]>([]);
   const [editingFlow, setEditingFlow] = useState<CustomFlow | null>(null);
   const [userscripts, setUserscripts] = useState<Userscript[]>([]);
@@ -62,24 +64,43 @@ export function usePluginsState(
       for (const file of files) {
         const data = ahk.call('LoadSite', file);
         if (data) {
-          try { loadedPlugins.push(JSON.parse(data)); } catch (e) { }
+          try { 
+            const parsed = JSON.parse(data);
+            (parsed as any)._originalFilename = file;
+            loadedPlugins.push(parsed); 
+          } catch (e) { }
         }
       }
       setPlugins(loadedPlugins);
     }
   };
 
-  const savePlugin = () => {
+  const savePlugin = (closeEditor: boolean = true) => {
     if (!editingPlugin) return;
     const pluginToSave = { ...editingPlugin, id: editingPlugin.id || Date.now().toString() };
-    const filename = `${pluginToSave.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${pluginToSave.id}.json`;
+    const filename = (pluginToSave as any)._originalFilename || `${pluginToSave.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${pluginToSave.id}.json`;
+    
+    if ((pluginToSave as any)._originalFilename && (pluginToSave as any)._originalFilename !== filename) {
+        ahk.call('DeleteSite', (pluginToSave as any)._originalFilename);
+    }
+    delete (pluginToSave as any)._originalFilename;
+
     ahk.call('SaveSite', filename, JSON.stringify(pluginToSave, null, 2));
-    setEditingPlugin(null);
+    
+    if (closeEditor) {
+      setEditingPlugin(null);
+      setPluginBaselineStr("");
+    } else {
+      const reloadedPlugin = { ...pluginToSave };
+      (reloadedPlugin as any)._originalFilename = filename;
+      setEditingPlugin(reloadedPlugin);
+      setPluginBaselineStr(JSON.stringify(reloadedPlugin));
+    }
     loadPlugins();
   };
 
   const deletePlugin = (plugin: SitePlugin) => {
-    const filename = `${plugin.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${plugin.id}.json`;
+    const filename = (plugin as any)._originalFilename || `${plugin.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${plugin.id}.json`;
     ahk.call('DeleteSite', filename);
     if (editingPlugin?.id === plugin.id) setEditingPlugin(null);
     loadPlugins();
@@ -678,8 +699,8 @@ html {
     editingFlow, setEditingFlow,
     userscripts, setUserscripts,
     editingUserscriptId, setEditingUserscriptId,
-    pluginUpdateCount, setPluginUpdateCount,
-    isCheckingUpdates, setIsCheckingUpdates,
+    pluginUpdateCount, setPluginUpdateCount, isCheckingUpdates, setIsCheckingUpdates,
+    isPluginDirty, setPluginBaselineStr, pluginBaselineStr,
     loadPlugins, savePlugin, deletePlugin, updateEditingPlugin,
     checkForUpdates, checkPluginUpdates, runFlow
   };
