@@ -6,16 +6,43 @@ global WorkspaceDir := ""
 LoadAppConfig() {
     global AppStartupUrl
     iniPath := A_ScriptDir "\config.ini"
+    
+    forwardedDir := ""
+    Loop A_Args.Length {
+        if (A_Args[A_Index] = "--forwarded-from" && A_Index < A_Args.Length) {
+            forwardedDir := A_Args[A_Index + 1]
+        }
+    }
+    if (forwardedDir != "") {
+        iniPath := forwardedDir "\config.ini"
+    }
+
     if FileExist(iniPath) {
         url := IniRead(iniPath, "Navigation", "StartupUrl", "http://gui.localhost/index.html")
-        AppStartupUrl := StrReplace(url, "${A_ScriptDir}", A_ScriptDir)
+        AppStartupUrl := StrReplace(url, "${A_ScriptDir}", forwardedDir != "" ? forwardedDir : A_ScriptDir)
     }
 }
 
 InitWorkspaces() {
     global CurrentWorkspace, WorkspaceBaseDir, WorkspaceDir
 
+    forwardedDir := ""
+    CurrentWorkspace := "default"
+    
+    Loop A_Args.Length {
+        if (A_Args[A_Index] = "--forwarded-from" && A_Index < A_Args.Length) {
+            forwardedDir := A_Args[A_Index + 1]
+        }
+        if (A_Args[A_Index] = "--workspace" && A_Index < A_Args.Length) {
+            CurrentWorkspace := A_Args[A_Index + 1]
+        }
+    }
+
     iniPath := A_ScriptDir "\config.ini"
+    if (forwardedDir != "") {
+        iniPath := forwardedDir "\config.ini"
+    }
+
     isPortable := 1
     customPath := ""
     if FileExist(iniPath) {
@@ -23,39 +50,37 @@ InitWorkspaces() {
         try customPath := IniRead(iniPath, "Storage", "InstalledDataPath", "")
     }
 
-    if (isPortable) {
-        if (!DirExist(A_ScriptDir "\settings")) {
-            try {
-                DirCreate(A_ScriptDir "\settings")
-            } catch {
-                isPortable := 0
-                IniWrite(0, iniPath, "Storage", "PortableMode")
-            }
-        } else {
-            testFile := A_ScriptDir "\settings\.test_write"
-            try {
-                FileAppend("", testFile, "UTF-8")
-                FileDelete(testFile)
-            } catch {
-                isPortable := 0
-                IniWrite(0, iniPath, "Storage", "PortableMode")
-            }
-        }
-    }
-
-    if (isPortable) {
-        WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
+    if (forwardedDir != "") {
+        WorkspaceBaseDir := A_ScriptDir
     } else {
-        if (customPath != "") {
-            WorkspaceBaseDir := customPath
-        } else {
-            WorkspaceBaseDir := EnvGet("LOCALAPPDATA") "\BingeKit\workspaces"
+        if (isPortable) {
+            if (!DirExist(A_ScriptDir "\settings")) {
+                try {
+                    DirCreate(A_ScriptDir "\settings")
+                } catch {
+                    isPortable := 0
+                    IniWrite(0, iniPath, "Storage", "PortableMode")
+                }
+            } else {
+                testFile := A_ScriptDir "\settings\.test_write"
+                try {
+                    FileAppend("", testFile, "UTF-8")
+                    FileDelete(testFile)
+                } catch {
+                    isPortable := 0
+                    IniWrite(0, iniPath, "Storage", "PortableMode")
+                }
+            }
         }
-    }
 
-    Loop A_Args.Length {
-        if (A_Args[A_Index] = "--workspace" && A_Index < A_Args.Length) {
-            CurrentWorkspace := A_Args[A_Index + 1]
+        if (isPortable) {
+            WorkspaceBaseDir := A_ScriptDir "\settings\workspaces"
+        } else {
+            if (customPath != "") {
+                WorkspaceBaseDir := customPath
+            } else {
+                WorkspaceBaseDir := EnvGet("LOCALAPPDATA") "\BingeKit\workspaces"
+            }
         }
     }
 
@@ -66,18 +91,19 @@ InitWorkspaces() {
 
     if (CurrentWorkspace = "default" && !DirExist(WorkspaceDir)) {
         DirCreate(WorkspaceDir)
-        if (FileExist(A_ScriptDir "\settings\theme.json")) {
+        baseConfigDir := forwardedDir != "" ? forwardedDir : A_ScriptDir
+        if (FileExist(baseConfigDir "\settings\theme.json")) {
             try {
-                Loop Files, A_ScriptDir "\settings\*.json", "F"
+                Loop Files, baseConfigDir "\settings\*.json", "F"
                     FileMove(A_LoopFileFullPath, WorkspaceDir "\" A_LoopFileName)
-                if DirExist(A_ScriptDir "\settings\cache")
-                    DirMove(A_ScriptDir "\settings\cache", WorkspaceDir "\cache")
-                if DirExist(A_ScriptDir "\settings\sites")
-                    DirMove(A_ScriptDir "\settings\sites", WorkspaceDir "\sites")
-                if DirExist(A_ScriptDir "\settings\scripts")
-                    DirMove(A_ScriptDir "\settings\scripts", WorkspaceDir "\scripts")
-                if DirExist(A_ScriptDir "\settings\flows")
-                    DirMove(A_ScriptDir "\settings\flows", WorkspaceDir "\flows")
+                if DirExist(baseConfigDir "\settings\cache")
+                    DirMove(baseConfigDir "\settings\cache", WorkspaceDir "\cache")
+                if DirExist(baseConfigDir "\settings\sites")
+                    DirMove(baseConfigDir "\settings\sites", WorkspaceDir "\sites")
+                if DirExist(baseConfigDir "\settings\scripts")
+                    DirMove(baseConfigDir "\settings\scripts", WorkspaceDir "\scripts")
+                if DirExist(baseConfigDir "\settings\flows")
+                    DirMove(baseConfigDir "\settings\flows", WorkspaceDir "\flows")
             }
         }
     }
@@ -92,9 +118,9 @@ InitWorkspaces() {
             currentVer := FileGetVersion(A_ScriptFullPath)
 
             if (VerCompare(fallbackVer, currentVer) > 0) {
-                cmdLine := "`"" fallbackExe "`""
+                cmdLine := "`"" fallbackExe "`" --forwarded-from `"" A_ScriptDir "`""
                 Loop A_Args.Length {
-                    cmdLine .= " " A_Args[A_Index]
+                    cmdLine .= " `"" A_Args[A_Index] "`""
                 }
                 Run(cmdLine)
                 ExitApp()

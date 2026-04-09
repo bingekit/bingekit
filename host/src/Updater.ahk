@@ -102,14 +102,22 @@ AHK_InstallUpdate(windowId := "main", downloadUrl := "", *) {
             batContent .= "@echo off`n"
             batContent .= "ping 127.0.0.1 -n 3 > nul`n" ; Wait ~2 seconds
 
+            isPortable := AHK_GetStorageMode()
+
             ; Try standard overwrite
             batContent .= "copy /y `"" tempExe "`" `"" currentExe "`" > nul 2>&1`n"
             batContent .= "if %ERRORLEVEL% EQU 0 (`n"
             batContent .= "    start `"`" `"" currentExe "`"`n"
             batContent .= ") else (`n"
-            ; Fallback to InstalledDataPath wrapper execution
-            batContent .= "    copy /y `"" tempExe "`" `"" fallbackExe "`" > nul 2>&1`n"
-            batContent .= "    start `"`" `"" fallbackExe "`"`n"
+            if (isPortable) {
+                ; Do not pollute the portable directory structure with a wrapper
+                batContent .= "    echo Update failed. Could not overwrite portable executable.`n"
+            } else {
+                ; Fallback to InstalledDataPath wrapper execution
+                batContent .= "    if not exist `"" WorkspaceBaseDir "`" mkdir `"" WorkspaceBaseDir "`"`n"
+                batContent .= "    copy /y `"" tempExe "`" `"" fallbackExe "`" > nul 2>&1`n"
+                batContent .= "    start `"`" `"" fallbackExe "`"`n"
+            }
             batContent .= ")`n"
             batContent .= "del `"%~f0`"`n" ; Delete self
 
