@@ -64,10 +64,10 @@ export function usePluginsState(
       for (const file of files) {
         const data = ahk.call('LoadSite', file);
         if (data) {
-          try { 
+          try {
             const parsed = JSON.parse(data);
             (parsed as any)._originalFilename = file;
-            loadedPlugins.push(parsed); 
+            loadedPlugins.push(parsed);
           } catch (e) { }
         }
       }
@@ -79,14 +79,14 @@ export function usePluginsState(
     if (!editingPlugin) return;
     const pluginToSave = { ...editingPlugin, id: editingPlugin.id || Date.now().toString() };
     const filename = (pluginToSave as any)._originalFilename || `${pluginToSave.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${pluginToSave.id}.json`;
-    
+
     if ((pluginToSave as any)._originalFilename && (pluginToSave as any)._originalFilename !== filename) {
-        ahk.call('DeleteSite', (pluginToSave as any)._originalFilename);
+      ahk.call('DeleteSite', (pluginToSave as any)._originalFilename);
     }
     delete (pluginToSave as any)._originalFilename;
 
     ahk.call('SaveSite', filename, JSON.stringify(pluginToSave, null, 2));
-    
+
     if (closeEditor) {
       setEditingPlugin(null);
       setPluginBaselineStr("");
@@ -125,10 +125,11 @@ export function usePluginsState(
     let payload = '';
 
     const globalCss = `
-html {
+html, body {
     background: var(--theme-main);
     color: var(--theme-textMain);
     font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    overscroll-behavior: none;
 }
 ::selection {
         background-color: color-mix(in srgb, var(--theme-accent) 20%, transparent) !important;
@@ -171,7 +172,7 @@ html {
                     var style = document.createElement('style');
                     style.id = styleId;
                     style.textContent = p.css;
-                    target.appendChild(style);
+                    target.prepend(style);
                   } else if (existingStyle.textContent !== p.css) {
                     existingStyle.textContent = p.css;
                   }
@@ -184,7 +185,7 @@ html {
             if (!tStyle) {
               tStyle = document.createElement('style');
               tStyle.id = 'bk-theme-injection';
-              target.appendChild(tStyle);
+              target.prepend(tStyle);
             }
             if (tStyle.textContent !== \`:root { \${themeVars} }${globalCss}\`) {
               tStyle.textContent = \`:root { \${themeVars} }${globalCss}\`;

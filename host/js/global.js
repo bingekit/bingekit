@@ -4,6 +4,14 @@
     window.BingeKit.localPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
     window.BingeKit.globalPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
 
+    window.addEventListener("DOMContentLoaded", () => {
+        try {
+            const swipeSt = document.createElement('style');
+            swipeSt.textContent = 'html, body { overscroll-behavior: none !important; }';
+            document.head.appendChild(swipeSt);
+        } catch(e) {}
+    });
+
     const __svGetAllVideos = (rootNode) => {
         let videos = [];
         function scan(root) {
