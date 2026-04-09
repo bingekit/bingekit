@@ -196,7 +196,7 @@ export const PlayerView = () => {
             const currentH = new URL(url).hostname;
             if (currentH === ev.data.hostname || currentH.includes(ev.data.hostname) || ev.data.hostname.includes(currentH)) {
               if (window.confirm(`A new login session was established for ${ev.data.hostname}.\n\nWould you like to refresh this window right now to apply the authenticated session?`)) {
-                ahk.asyncCall('UpdatePlayerUrl', url);
+                ahk.asyncCall('UpdatePlayerUrl', url, activeBrowserTabId);
               }
             }
           } catch (e) { }
@@ -219,7 +219,7 @@ export const PlayerView = () => {
             bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
             bc.close();
           } catch (err) { }
-          setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500);
+          setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url, activeBrowserTabId); }, 1500);
         }
         if (targetDomain) {
           ahk.asyncCall('SetTempCredential', targetDomain, '');
@@ -232,6 +232,24 @@ export const PlayerView = () => {
     window.addEventListener('message', handleLiveMsg);
     return () => window.removeEventListener('message', handleLiveMsg);
   }, [url]);
+
+  // Global Auth Cache Purger
+  React.useEffect(() => {
+    if (authStatus === 'loggedIn') {
+      try {
+        ahk.asyncCall('CacheList', 'bkLiveLogin_').then((listStr: any) => {
+          if (listStr && typeof listStr === 'string' && listStr.length > 2) {
+             const items = JSON.parse(listStr);
+             if (Array.isArray(items)) {
+                for (const item of items) {
+                   ahk.asyncCall('CacheSet', item, '');
+                }
+             }
+          }
+        });
+      } catch(e) {}
+    }
+  }, [authStatus]);
 
   React.useEffect(() => {
     if (activeTab !== 'player') return;
@@ -528,7 +546,7 @@ export const PlayerView = () => {
                           bc.postMessage({ hostname: new URL(url).hostname, initiator: initiatorId.current });
                           bc.close();
                         } catch (e) { }
-                        setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url); }, 1500); // Reload tab
+                        setTimeout(() => { ahk.asyncCall('UpdatePlayerUrl', url, activeBrowserTabId); }, 1500); // Reload tab
                       } else {
                         window.showToast("Auto-login completed, but could not confirm success.", "warning");
                       }
@@ -595,7 +613,17 @@ export const PlayerView = () => {
                       let targetUrl = resolvedLoginUrl;
                       let waitForLinkJs = `
                          const isAuthPage = window.location.href.includes('login') || window.location.href.includes('signin') || window.location.href.includes('auth') || window.location.href.includes('oauth') || document.querySelector('input[type="password"]');
-                         if (!isAuthPage) { return; }
+                         if (!isAuthPage) { 
+                             let sCheck = ${JSON.stringify(plugin.auth?.checkAuthJs || "")};
+                             if (sCheck) {
+                                 try {
+                                     if (eval('(function(){' + sCheck + '})()')) { 
+                                         window.top.postMessage({ type: 'bk-live-login-success', domain: ${JSON.stringify(cred.domain || "")} }, '*');
+                                     }
+                                 } catch(e) {}
+                             }
+                             return; 
+                         }
                       `;
                       if (plugin.auth?.loginUrlJs) {
                         targetUrl = plugin.baseUrl; // Start at base URL to let the crawler find the link natively
@@ -664,7 +692,7 @@ export const PlayerView = () => {
                       ahk.asyncCall('SetTempCredential', tgtDomainStr, rawPass);
                       ahk.asyncCall('CacheSet', 'bkLiveLogin_' + tgtDomainStr, wrappedJs);
 
-                      ahk.asyncCall('UpdatePlayerUrl', targetUrl);
+                      ahk.asyncCall('UpdatePlayerUrl', targetUrl, activeBrowserTabId);
                     } else {
                       window.showToast('No matching plugin configuration found.', 'error');
                     }

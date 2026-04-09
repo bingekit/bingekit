@@ -141,7 +141,7 @@ export const getAutoLoginScript = (plugin: SitePlugin, cred: CredentialItem, raw
           } catch(e) { window._svLivePw = ''; }
           
           let limit = 0;
-          let successCheckStr = !${JSON.stringify(plugin.auth.checkAuthJs || "")};
+          let successCheckStr = ${JSON.stringify(plugin.auth.checkAuthJs || "")};
           console.log("[AutoLogin] Starting default interval-based login hook");
           
           let i = setInterval(() => {
