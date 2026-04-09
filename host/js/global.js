@@ -4,6 +4,24 @@
     window.BingeKit.localPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
     window.BingeKit.globalPlayerState = { isPlaying: false, currentTime: 0, duration: 0, src: "" };
 
+    const __svGetAllVideos = (rootNode) => {
+        let videos = [];
+        function scan(root) {
+            if (!root || !root.querySelectorAll) return;
+            try {
+                let vids = root.querySelectorAll('video');
+                for (let i = 0; i < vids.length; i++) videos.push(vids[i]);
+                
+                let all = root.querySelectorAll('*');
+                for (let i = 0; i < all.length; i++) {
+                    if (all[i].shadowRoot) scan(all[i].shadowRoot);
+                }
+            } catch (e) {}
+        }
+        scan(rootNode);
+        return videos;
+    };
+
     let runSync = true;
     window.throwNavigationError = (codeStr, msgStr) => {
         if (window.__svErrorFired && window.__svErrorCode) return; // Only lock if we have a real error code
@@ -267,7 +285,7 @@
             return; // Ignore this entire frame
         }
 
-        document.querySelectorAll('video').forEach(v => {
+        __svGetAllVideos(document).forEach(v => {
             if (window._svIgnoreVideoCSS && v.matches(window._svIgnoreVideoCSS)) return;
             if (v.readyState !== 0 && !v.paused) {
                 playing = true;
@@ -309,7 +327,7 @@
     let lastPausedVideo = null;
     window.addEventListener('message', (e) => {
         if (e.data === 'bk-toggle-play') {
-            const videos = Array.from(document.querySelectorAll('video'));
+            const videos = __svGetAllVideos(document);
             let active = videos.find(v => !v.paused && v.readyState !== 0);
             if (active) {
                 lastPausedVideo = active;
@@ -337,7 +355,7 @@
             }
 
             const attemptSeek = () => {
-                document.querySelectorAll('video').forEach(v => {
+                __svGetAllVideos(document).forEach(v => {
                     if (v.dataset.svAutoSeeked === e.data.mainUrl) return;
                     v.dataset.svAutoSeeked = e.data.mainUrl;
 
