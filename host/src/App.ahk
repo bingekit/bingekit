@@ -55,6 +55,8 @@ CreateAppWindow(windowId := "main", initialUrl := "") {
         WebViewCtrl.CreateFileFromResource("gui\index.html", WebViewCtrl.TempDir)
         newGui.Control.BrowseFolder(WebViewCtrl.TempDir "\gui", "gui.localhost")
     } else {
+        if !DirExist(A_ScriptDir "\gui")
+            DirCreate(A_ScriptDir "\gui")
         newGui.Control.BrowseFolder(A_ScriptDir "\gui", "gui.localhost")
     }
 

@@ -11,6 +11,9 @@
 
 ; 1. Settings Loading/Saving/Parsing
 #Include src\Config.ahk
+global AppHash := ""
+global GlobalHash := ""
+global AdblockHash := ""
 #Include src\appHash.ahk
 LoadAppConfig()
 InitWorkspaces()
