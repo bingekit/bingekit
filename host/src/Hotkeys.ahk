@@ -32,7 +32,7 @@ GetActiveMainGui() {
             }
         }
     }
-    
+
     if (IsSet(MainGuis)) {
         if (MainGuis.Has("main"))
             return MainGuis["main"]
@@ -114,19 +114,22 @@ Escape::
 }
 $#Left::
 {
+    Critical ; Prevents other threads from interrupting for maximum responsiveness
     g := GetActiveMainGui()
     if (g && !WinActive("ahk_id " g.Hwnd)) {
         WinActivate("ahk_id " g.Hwnd)
     }
-    Send("{LWin down}{Left}{LWin up}")
+    SendInput("#{Left}")
 }
+
 $#Right::
 {
+    Critical
     g := GetActiveMainGui()
     if (g && !WinActive("ahk_id " g.Hwnd)) {
         WinActivate("ahk_id " g.Hwnd)
     }
-    Send("{LWin down}{Right}{LWin up}")
+    SendInput("#{Right}")
 }
 #HotIf
 
