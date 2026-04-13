@@ -58,10 +58,11 @@ StartBuild(*) {
     newVer := saved.NewVersion
     changelog := saved.Changelog
     pushGithub := saved.PushGithub
+    AppDir := A_ScriptDir "\gui"
 
     ; Step 1: Run version.ts script
     TrayTip("Updating version across files...", "BingeKit Build")
-    RunWait("bun run version.ts " newVer, A_ScriptDir "\scripts", "Hide")
+    RunWait("bun run version.ts " newVer, AppDir, "Hide")
 
     ; Step 2: Ensure build dir exists
     if !DirExist(BuildDir) {
@@ -69,7 +70,6 @@ StartBuild(*) {
     }
 
     ; Step 3: Run frontend build
-    AppDir := A_ScriptDir "\gui"
     if DirExist(AppDir) {
         TrayTip("Running Vite Frontend Build...", "BingeKit Build")
         RunWait("bun run ./build.js", AppDir, "Hide")
